@@ -1,0 +1,6 @@
+{
+  "name": "Daryos® - Tarifoptimierung & Wechselservice Leipzig",
+  "description": "Unabhängige Beratung und Optimierung für Strom, Gas, DSL/Glasfaser-Internet und Autoversicherung in Leipzig & bundesweit mit Schnell-Rechner und Online-Terminbuchung.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
