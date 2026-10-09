@@ -128,6 +128,7 @@ export const Header: React.FC<HeaderProps> = ({
           <a href="#calculator" className="hover:text-blue-400 transition-colors py-1">
             {t.nav.calculator}
           </a>
+          <a href="#transparency" className="hover:text-blue-400 transition-colors py-1">Transparenz</a>
           <a href="#process" className="hover:text-blue-400 transition-colors py-1">
             {t.nav.process}
           </a>
@@ -228,6 +229,13 @@ export const Header: React.FC<HeaderProps> = ({
               className="hover:text-blue-400 py-1"
             >
               {t.nav.calculator}
+            </a>
+            <a
+              href="#transparency"
+              onClick={() => setMobileMenuOpen(false)}
+              className="hover:text-blue-400 py-1"
+            >
+              Transparenz
             </a>
             <a
               href="#process"
