@@ -49,14 +49,14 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
 
   const sendFileToWhatsApp = () => {
     const fileName = selectedFile ? selectedFile.name : 'Rechnung';
-    const message = `Hallo Daryos, ich habe meine Rechnung (${fileName}) hochgeladen. Bitte prüfen Sie mein Einsparpotenzial und berechnen Sie den optimalen monatlichen Abschlag für mich (Nachzahlungs-Schutz).`;
+    const message = `Hallo Daryos, ich möchte meine Rechnung (${fileName}) zur Prüfung senden. Bitte teilen Sie mir mit, welche Unterlagen Sie benötigen.`;
     window.open(`https://wa.me/4917643416174?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const sendFileToEmail = () => {
-    const subject = encodeURIComponent('Anfrage: Kostenloser Rechnungs-Check & Nachzahlungs-Schutz bei Daryos');
+    const subject = encodeURIComponent('Anfrage: Persönliche Prüfung meiner Strom- oder Gasrechnung');
     const body = encodeURIComponent(
-      `Hallo Herr Daryos,\n\nanbei sende ich Ihnen meine aktuelle Abrechnung für einen unverbindlichen Tarifvergleich und Abschlags-Check.\n\nMeine Telefonnummer: ${clientPhone || '+49 ...'}\n\nBitte prüfen Sie, wie viel ich sparen kann und wie mein monatlicher Abschlag optimal eingestellt wird, damit ich keine Nachzahlung bekomme.\n\nMit freundlichen Grüßen`
+      `Hallo Herr Daryos,\n\nanbei sende ich Ihnen meine aktuelle Abrechnung für einen unverbindlichen Tarifvergleich.\n\nMeine Telefonnummer: ${clientPhone || '+49 ...'}\n\nBitte prüfen Sie, wie viel ich sparen kann und wie mein monatlicher Abschlag optimal eingestellt wird, damit ich keine Nachzahlung bekomme.\n\nMit freundlichen Grüßen`
     );
     window.location.href = `mailto:daryos.kreis@gmail.com?subject=${subject}&body=${body}`;
   };
