@@ -35,11 +35,13 @@ import {
   Search,
   CheckCircle2,
   AlertOctagon,
-  BellRing
+  BellRing,
+  Users
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { ServiceType, ContractRecord, KiAuditLead, NachzahlungCalculation } from '../types';
+import { ServiceType, ContractRecord, KiAuditLead, NachzahlungCalculation, CustomerContact } from '../types';
 import { ProviderLogo } from './ProviderLogos';
+import { CrmModule } from './CrmModule';
 
 export interface TariffPricingConfig {
   stromArbeitspreis: number; // in ct/kWh (e.g. 26.8)
@@ -74,7 +76,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
   const [pinError, setPinError] = useState<string>('');
   
   // Navigation tabs
-  const [activeTab, setActiveTab] = useState<'ki_inbox' | 'vertraege' | 'nachzahlung' | 'buchhaltung' | 'tarife' | 'automatisierung'>('ki_inbox');
+  const [activeTab, setActiveTab] = useState<'ki_inbox' | 'crm' | 'vertraege' | 'nachzahlung' | 'buchhaltung' | 'tarife' | 'automatisierung'>('crm');
 
   // Config state
   const [config, setConfig] = useState<TariffPricingConfig>(pricingConfig);
@@ -292,6 +294,652 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
     ];
   });
 
+  // 2.5 CRM Kundenkontakte & Optimierungsprozesse State
+  const [crmContacts, setCrmContacts] = useState<CustomerContact[]>(() => {
+    try {
+      const saved = localStorage.getItem('daryos_crm_contacts');
+      if (saved) {
+        const parsed: CustomerContact[] = JSON.parse(saved);
+        return parsed.map((c) => ({
+          ...c,
+          noteEntries: c.noteEntries || []
+        }));
+      }
+    } catch (e) {}
+    return [
+      {
+        id: 'kd-1',
+        customerNumber: 'KD-2026-001',
+        fullName: 'Klaus Ebersbach',
+        phone: '+49 174 5544332',
+        email: 'klaus.ebersbach@web.de',
+        address: 'Wurzner Str. 42',
+        city: 'Leipzig',
+        postalCode: '04315',
+        preferredContact: 'telefon',
+        customerSince: '15.11.2025',
+        tags: ['Stammkunde', 'Gas-Heizung', 'Leipzig-Ost'],
+        contracts: [
+          {
+            id: 'ct-101',
+            clientName: 'Klaus Ebersbach',
+            clientPhone: '+49 174 5544332',
+            clientEmail: 'klaus.ebersbach@web.de',
+            service: 'gas',
+            provider: 'E.ON Gas',
+            tariffName: 'E.ON Erdgas 24M Festpreis',
+            meterNumber: 'GAS-04329-1102',
+            annualKwh: 14500,
+            currentMonthlyInstallment: 110,
+            startDate: '2025-11-15',
+            durationMonths: 12,
+            noticePeriodDays: 30,
+            endDate: '2026-11-15',
+            status: 'critical_cancellation',
+            provision: 80,
+            accountingInvoiceId: 'RE-2025-118',
+            accountingStatus: 'ausgezahlt',
+            safeInstallmentRecommended: 112,
+            backpaymentRisk: -24,
+            nextBestOffer: {
+              provider: 'EnBW Energie',
+              tariff: 'EnBW Gas Natur 2026',
+              newMonthly: 98,
+              newAnnual: 1176,
+              savingsPerYear: 144,
+            },
+          }
+        ],
+        optimizationProcesses: [
+          {
+            id: 'proc-101',
+            service: 'gas',
+            stage: 'angebot_versendet',
+            currentProvider: 'E.ON Gas (Altvertrag)',
+            targetProvider: 'EnBW Energie',
+            targetTariff: 'EnBW Gas Natur 2026',
+            potentialAnnualSavings: 144,
+            currentMonthlyInstallment: 110,
+            projectedMonthlyInstallment: 98,
+            startedDate: '01.10.2026',
+            lastUpdatedDate: '07.10.2026',
+            notes: 'Kündigungsfrist naht in ~38 Tagen! Folge-Angebot EnBW Gas Natur vorgelegt. Kunde prüft Unterlagen.',
+          }
+        ],
+        notes: 'Sehr zuverlässiger Stammkunde. Hat Gas-Vertrag, Kündigungsfrist naht in ~38 Tagen. Folgeangebot vorab versendet.',
+        noteEntries: [
+          {
+            id: 'note-101-1',
+            date: '07.10.2026, 11:20 Uhr',
+            type: 'telefonat',
+            author: 'Daryos Kreis',
+            title: 'Kündigungsfrist & EnBW Folge-Angebot besprochen',
+            content: 'Mit Herrn Ebersbach telefoniert: Kündigungsfrist zum 15.11.2026 rückt näher. Angebot für EnBW Gas Natur (98 €/Monat, Ersparnis +144 €/Jahr) per E-Mail zugestellt. Kunde prüft Unterlagen am Wochenende.',
+            actionRequired: true,
+            actionDone: false,
+            followUpDate: '12.10.2026',
+            pinned: true,
+          },
+          {
+            id: 'note-101-2',
+            date: '02.10.2026, 09:45 Uhr',
+            type: 'whatsapp',
+            author: 'Daryos Kreis',
+            title: 'Zählerstand & Nachzahlungs-Check',
+            content: 'Kunde hat Foto von Gaszähler GAS-04329-1102 über WhatsApp gesendet (Stand: 14.500 kWh). Nachzahlungsrisiko mit 110 € Abschlag durchgerechnet: Im grünen Bereich (-24 € Guthaben erwartet).',
+            actionRequired: false,
+            actionDone: true,
+            pinned: false,
+          }
+        ],
+        totalAnnualSavingsCalculated: 144,
+        status: 'in_optimierung'
+      },
+      {
+        id: 'kd-2',
+        customerNumber: 'KD-2026-002',
+        fullName: 'Merve Aydin',
+        phone: '+49 178 1122334',
+        email: 'merve.aydin@gmail.com',
+        address: 'Karl-Liebknecht-Str. 89',
+        city: 'Leipzig',
+        postalCode: '04275',
+        preferredContact: 'whatsapp',
+        customerSince: '01.01.2026',
+        tags: ['Ökostrom', 'Südvorstadt'],
+        contracts: [
+          {
+            id: 'ct-102',
+            clientName: 'Merve Aydin',
+            clientPhone: '+49 178 1122334',
+            clientEmail: 'merve.aydin@gmail.com',
+            service: 'strom',
+            provider: 'Vattenfall',
+            tariffName: 'Vattenfall Natur 12',
+            meterNumber: 'STR-04109-7723',
+            annualKwh: 4200,
+            currentMonthlyInstallment: 105,
+            startDate: '2026-01-01',
+            durationMonths: 12,
+            noticePeriodDays: 30,
+            endDate: '2026-12-31',
+            status: 'warning_renewal',
+            provision: 65,
+            accountingInvoiceId: 'RE-2026-003',
+            accountingStatus: 'ausgezahlt',
+            safeInstallmentRecommended: 104,
+            backpaymentRisk: 12,
+            nextBestOffer: {
+              provider: 'Yello Strom',
+              tariff: 'Yello Strom Klima Plus',
+              newMonthly: 94,
+              newAnnual: 1128,
+              savingsPerYear: 132,
+            },
+          }
+        ],
+        optimizationProcesses: [
+          {
+            id: 'proc-102',
+            service: 'strom',
+            stage: 'tarif_vergleich',
+            currentProvider: 'Vattenfall Natur 12',
+            targetProvider: 'Yello Strom',
+            targetTariff: 'Yello Strom Klima Plus',
+            potentialAnnualSavings: 132,
+            currentMonthlyInstallment: 105,
+            projectedMonthlyInstallment: 94,
+            startedDate: '05.10.2026',
+            lastUpdatedDate: '08.10.2026',
+            notes: 'Laufzeit endet zum Jahreswechsel. Vergleich zu Yello Klima Plus berechnet. Wartet auf Kundenfreigabe.',
+          }
+        ],
+        notes: 'Bevorzugt Kommunikation via WhatsApp. Ökostrom-Option wichtig.',
+        noteEntries: [
+          {
+            id: 'note-102-1',
+            date: '08.10.2026, 10:15 Uhr',
+            type: 'whatsapp',
+            author: 'Daryos Kreis',
+            title: 'Ökostrom-Option gewünscht · Yello Angebot gesendet',
+            content: 'Frau Aydin hat per WhatsApp geschrieben: Ausdrücklicher Wunsch nach 100% Ökostrom. Tarifangebot Yello Strom Klima Plus (94 €/M., -132 €/Jahr) geteilt. Kundin prüft heute Abend.',
+            actionRequired: false,
+            actionDone: true,
+            pinned: true,
+          },
+          {
+            id: 'note-102-2',
+            date: '05.10.2026, 16:30 Uhr',
+            type: 'telefonat',
+            author: 'Daryos Kreis',
+            title: 'Erstberatung nach Umzug in die Südvorstadt',
+            content: 'Telefonische Aufnahme der Verbrauchsdaten (4.200 kWh). Laufzeit bei Vattenfall endet zum 31.12.2026. Fristgerechte Wechselvorbereitung zugesagt.',
+            actionRequired: false,
+            actionDone: true,
+            pinned: false,
+          }
+        ],
+        totalAnnualSavingsCalculated: 132,
+        status: 'in_optimierung'
+      },
+      {
+        id: 'kd-3',
+        customerNumber: 'KD-2026-003',
+        fullName: 'Jens Brauer',
+        phone: '+49 172 3344556',
+        email: 'j.brauer@leipzig-mail.de',
+        address: 'Zweinaundorfer Str. 14',
+        city: 'Leipzig',
+        postalCode: '04318',
+        preferredContact: 'telefon',
+        customerSince: '01.04.2026',
+        tags: ['Stammkunde', 'Langzeitgarantie'],
+        contracts: [
+          {
+            id: 'ct-103',
+            clientName: 'Jens Brauer',
+            clientPhone: '+49 172 3344556',
+            clientEmail: 'j.brauer@leipzig-mail.de',
+            service: 'strom',
+            provider: 'Maingau Energie',
+            tariffName: 'Maingau Strom Clever',
+            meterNumber: 'STR-04315-9921',
+            annualKwh: 2900,
+            currentMonthlyInstallment: 72,
+            startDate: '2026-04-01',
+            durationMonths: 24,
+            noticePeriodDays: 30,
+            endDate: '2028-04-01',
+            status: 'active',
+            provision: 65,
+            accountingInvoiceId: 'RE-2026-041',
+            accountingStatus: 'ausgezahlt',
+            safeInstallmentRecommended: 74,
+            backpaymentRisk: -15,
+          }
+        ],
+        optimizationProcesses: [
+          {
+            id: 'proc-103',
+            service: 'strom',
+            stage: 'erfolgreich_aktiv',
+            currentProvider: 'Stadtwerke Leipzig (alt)',
+            targetProvider: 'Maingau Energie',
+            targetTariff: 'Maingau Strom Clever',
+            potentialAnnualSavings: 280,
+            currentMonthlyInstallment: 72,
+            startedDate: '15.03.2026',
+            lastUpdatedDate: '01.04.2026',
+            notes: 'Wechsel erfolgreich abgeschlossen. 24 Monate Preisgarantie bis 2028 gesichert.',
+          }
+        ],
+        notes: 'Sehr zufrieden mit Wechsel. Nachzahlungs-Schutz aktiviert, keine Nachzahlung zu erwarten.',
+        noteEntries: [
+          {
+            id: 'note-103-1',
+            date: '01.04.2026, 14:00 Uhr',
+            type: 'beratung_vor_ort',
+            author: 'Daryos Kreis',
+            title: 'Vor-Ort Vertragsabschluss & Lieferbeginn',
+            content: 'Persönlicher Termin in Leipzig: Vertrag Maingau Strom Clever mit 24 Monaten Preisgarantie unterzeichnet. Kündigungsbestätigung des Altversorgers liegt vor.',
+            actionRequired: false,
+            actionDone: true,
+            pinned: false,
+          }
+        ],
+        totalAnnualSavingsCalculated: 280,
+        status: 'aktiv'
+      },
+      {
+        id: 'kd-4',
+        customerNumber: 'KD-2026-004',
+        fullName: 'Dr. Annette Richter',
+        phone: '+49 170 9988776',
+        email: 'richter.praxis@arcor.de',
+        address: 'Gohliser Str. 22',
+        city: 'Leipzig',
+        postalCode: '04155',
+        preferredContact: 'vor-ort',
+        customerSince: '15.06.2026',
+        tags: ['Gewerbe / Praxis', 'Gohlis', 'Hoher Verbrauch'],
+        contracts: [
+          {
+            id: 'ct-104',
+            clientName: 'Dr. Annette Richter',
+            clientPhone: '+49 170 9988776',
+            clientEmail: 'richter.praxis@arcor.de',
+            service: 'gas',
+            provider: 'Montana Energie',
+            tariffName: 'Montana Erdgas Fix',
+            meterNumber: 'GAS-04105-3391',
+            annualKwh: 26000,
+            currentMonthlyInstallment: 180,
+            startDate: '2026-06-15',
+            durationMonths: 12,
+            noticePeriodDays: 30,
+            endDate: '2027-06-15',
+            status: 'active',
+            provision: 80,
+            accountingInvoiceId: 'RE-2026-062',
+            accountingStatus: 'ausgezahlt',
+            safeInstallmentRecommended: 194,
+            backpaymentRisk: 168,
+          }
+        ],
+        optimizationProcesses: [
+          {
+            id: 'proc-104',
+            service: 'gas',
+            stage: 'erfolgreich_aktiv',
+            currentProvider: 'Mitgas Grundversorgung',
+            targetProvider: 'Montana Energie',
+            targetTariff: 'Montana Erdgas Fix',
+            potentialAnnualSavings: 620,
+            currentMonthlyInstallment: 180,
+            startedDate: '01.06.2026',
+            lastUpdatedDate: '15.06.2026',
+            notes: 'Praxisräume in Gohlis umgestellt. Jährliche Ersparnis über 600 € realisiert.',
+          }
+        ],
+        notes: 'Praxis in Gohlis. Abschlag sollte auf 194 € angehoben werden (Nachzahlungs-Check empfohlen).',
+        noteEntries: [
+          {
+            id: 'note-104-1',
+            date: '06.10.2026, 09:00 Uhr',
+            type: 'telefonat',
+            author: 'Daryos Kreis',
+            title: 'Daryos Nachzahlungs-Schutz: Abschlag erhöhen',
+            content: 'Frau Dr. Richter kontaktiert: Durch höheren Gasverbrauch (26.000 kWh in Praxisräumen) droht bei unverändertem Abschlag von 180 € eine Nachzahlung von ca. +168 €. Empfehlung zur Erhöhung auf 194 € ausgesprochen.',
+            actionRequired: true,
+            actionDone: false,
+            followUpDate: '15.10.2026',
+            pinned: true,
+          }
+        ],
+        totalAnnualSavingsCalculated: 620,
+        status: 'aktiv'
+      },
+      {
+        id: 'kd-5',
+        customerNumber: 'KD-2026-005',
+        fullName: 'Michael Weber',
+        phone: '+49 176 98765432',
+        email: 'm.weber.leipzig@web.de',
+        address: 'Torgauer Str. 110',
+        city: 'Leipzig',
+        postalCode: '04315',
+        preferredContact: 'whatsapp',
+        customerSince: '08.10.2026',
+        tags: ['Neukunde', 'Grundversorgung Stadtwerke', 'Gas'],
+        contracts: [],
+        optimizationProcesses: [
+          {
+            id: 'proc-105',
+            service: 'gas',
+            stage: 'dokumenten_pruefung',
+            currentProvider: 'Stadtwerke Leipzig (Grundversorgung)',
+            targetProvider: 'E.ON Energie Deutschland',
+            targetTariff: 'Daryos Gas-Garant 24M (Öko)',
+            potentialAnnualSavings: 540,
+            currentMonthlyInstallment: 155,
+            projectedMonthlyInstallment: 110,
+            startedDate: '08.10.2026',
+            lastUpdatedDate: '08.10.2026',
+            notes: 'Alte Stadtwerke-Rechnung übermittelt. KI hat 18.000 kWh erkannt. Wechsel spart 540 €!',
+          }
+        ],
+        notes: 'Zähler GAS-04329-8812. Wartet auf Vollmacht zur Kündigung der teuren Stadtwerke-Grundversorgung.',
+        noteEntries: [
+          {
+            id: 'note-105-1',
+            date: '08.10.2026, 08:30 Uhr',
+            type: 'notiz',
+            author: 'Daryos Kreis',
+            title: 'KI-Rechnungsanalyse: Teure Grundversorgung',
+            content: 'Eingereichte Stadtwerke-Abrechnung durch KI gescannt. Arbeitspreis viel zu hoch. Wechsel zu E.ON Gas-Garant spart 540 €/Jahr. Kündigungsvollmacht per WhatsApp angefordert.',
+            actionRequired: true,
+            actionDone: false,
+            followUpDate: '09.10.2026',
+            pinned: true,
+          }
+        ],
+        totalAnnualSavingsCalculated: 540,
+        status: 'in_optimierung'
+      },
+      {
+        id: 'kd-6',
+        customerNumber: 'KD-2026-006',
+        fullName: 'Sabine Hoffmann',
+        phone: '+49 152 12345678',
+        email: 'sabine.hoffmann@gmx.de',
+        address: 'Riesaer Str. 55',
+        city: 'Leipzig',
+        postalCode: '04328',
+        preferredContact: 'telefon',
+        customerSince: '07.10.2026',
+        tags: ['Neukunde', 'Paunsdorf', 'Strom'],
+        contracts: [],
+        optimizationProcesses: [
+          {
+            id: 'proc-106',
+            service: 'strom',
+            stage: 'angebot_versendet',
+            currentProvider: 'Vattenfall Easy',
+            targetProvider: 'Yello Strom',
+            targetTariff: 'Daryos Grünstrom 12M',
+            potentialAnnualSavings: 379,
+            currentMonthlyInstallment: 118,
+            projectedMonthlyInstallment: 86,
+            startedDate: '07.10.2026',
+            lastUpdatedDate: '08.10.2026',
+            notes: 'Angebot per E-Mail versendet. Kunde möchte nach Feierabend anrufen.',
+          }
+        ],
+        notes: 'Umzug nach Paunsdorf. Zähler STR-99214-4401.',
+        noteEntries: [
+          {
+            id: 'note-106-1',
+            date: '07.10.2026, 17:40 Uhr',
+            type: 'telefonat',
+            author: 'Daryos Kreis',
+            title: 'Telefonische Angebotsbesprechung nach Feierabend',
+            content: 'Frau Hoffmann telefonisch erreicht. Grünstrom-Angebot (86 €/M.) gefällt ihr sehr gut. Kündigung von Vattenfall soll durch uns durchgeführt werden. Vollmacht wird morgen per Mail geschickt.',
+            actionRequired: true,
+            actionDone: false,
+            followUpDate: '09.10.2026',
+            pinned: false,
+          }
+        ],
+        totalAnnualSavingsCalculated: 379,
+        status: 'in_optimierung'
+      },
+      {
+        id: 'kd-7',
+        customerNumber: 'KD-2026-007',
+        fullName: 'Markus Schmidt',
+        phone: '+49 171 4455667',
+        email: 'm.schmidt.leipzig@t-online.de',
+        address: 'Eisenbahnstraße 102',
+        city: 'Leipzig',
+        postalCode: '04315',
+        preferredContact: 'telefon',
+        customerSince: '12.02.2026',
+        tags: ['Home-Office', 'Glasfaser-Ausbau', 'Internet & DSL'],
+        contracts: [
+          {
+            id: 'ct-107',
+            clientName: 'Markus Schmidt',
+            clientPhone: '+49 171 4455667',
+            clientEmail: 'm.schmidt.leipzig@t-online.de',
+            service: 'internet',
+            provider: 'Telekom Deutschland',
+            tariffName: 'MagentaZuhause XL (250 MBit/s)',
+            meterNumber: 'DSL-LINE-04315-881',
+            currentMonthlyInstallment: 54,
+            startDate: '2026-02-15',
+            durationMonths: 24,
+            noticePeriodDays: 30,
+            endDate: '2028-02-15',
+            status: 'active',
+            provision: 75,
+            accountingInvoiceId: 'RE-2026-029',
+            accountingStatus: 'ausgezahlt',
+            safeInstallmentRecommended: 54,
+            backpaymentRisk: 0,
+          }
+        ],
+        optimizationProcesses: [
+          {
+            id: 'proc-107',
+            service: 'internet',
+            stage: 'erfolgreich_aktiv',
+            currentProvider: 'Vodafone Kabel (Alt)',
+            targetProvider: 'Telekom Deutschland',
+            targetTariff: 'MagentaZuhause XL (250 MBit/s)',
+            potentialAnnualSavings: 180,
+            currentMonthlyInstallment: 54,
+            startedDate: '01.02.2026',
+            lastUpdatedDate: '15.02.2026',
+            notes: 'Wechsel zu Telekom Glasfaser vollzogen. Stabile Leitung fürs Home-Office garantiert.',
+          }
+        ],
+        notes: 'Selbstständiger Softwareentwickler. Sehr wichtiger Internetanschluss.',
+        noteEntries: [
+          {
+            id: 'note-107-1',
+            date: '15.02.2026, 11:00 Uhr',
+            type: 'telefonat',
+            author: 'Daryos Kreis',
+            title: 'Schaltung Telekom Internet erfolgreich',
+            content: 'Router geschaltet, Bandbreite mit 250 MBit/s stabil. Altvertrag bei Vodafone rechtzeitig gekündigt.',
+            actionRequired: false,
+            actionDone: true,
+            pinned: false,
+          }
+        ],
+        totalAnnualSavingsCalculated: 180,
+        status: 'aktiv'
+      },
+      {
+        id: 'kd-8',
+        customerNumber: 'KD-2026-008',
+        fullName: 'Familie Demir',
+        phone: '+49 173 8899001',
+        email: 'demir.familie@gmail.com',
+        address: 'Bornaische Str. 42',
+        city: 'Leipzig',
+        postalCode: '04277',
+        preferredContact: 'whatsapp',
+        customerSince: '20.03.2026',
+        tags: ['Kombi-Kunde', 'Strom & Gas', 'Connewitz', 'Familie'],
+        contracts: [
+          {
+            id: 'ct-108-strom',
+            clientName: 'Familie Demir',
+            clientPhone: '+49 173 8899001',
+            clientEmail: 'demir.familie@gmail.com',
+            service: 'strom',
+            provider: 'E.ON Energie Deutschland',
+            tariffName: 'E.ON Strom Öko 24',
+            meterNumber: 'STR-04277-5510',
+            annualKwh: 4800,
+            currentMonthlyInstallment: 115,
+            startDate: '2026-03-20',
+            durationMonths: 24,
+            noticePeriodDays: 30,
+            endDate: '2028-03-20',
+            status: 'active',
+            provision: 70,
+            accountingInvoiceId: 'RE-2026-035',
+            accountingStatus: 'ausgezahlt',
+            safeInstallmentRecommended: 115,
+            backpaymentRisk: 0,
+          },
+          {
+            id: 'ct-108-gas',
+            clientName: 'Familie Demir',
+            clientPhone: '+49 173 8899001',
+            clientEmail: 'demir.familie@gmail.com',
+            service: 'gas',
+            provider: 'EnBW Energie',
+            tariffName: 'EnBW Gas Komfort 12M',
+            meterNumber: 'GAS-04277-2290',
+            annualKwh: 22000,
+            currentMonthlyInstallment: 145,
+            startDate: '2026-03-20',
+            durationMonths: 12,
+            noticePeriodDays: 30,
+            endDate: '2027-03-20',
+            status: 'active',
+            provision: 85,
+            accountingInvoiceId: 'RE-2026-036',
+            accountingStatus: 'ausgezahlt',
+            safeInstallmentRecommended: 148,
+            backpaymentRisk: 36,
+          }
+        ],
+        optimizationProcesses: [
+          {
+            id: 'proc-108',
+            service: 'gas',
+            stage: 'erfolgreich_aktiv',
+            currentProvider: 'Stadtwerke Leipzig (Alt)',
+            targetProvider: 'EnBW Energie',
+            targetTariff: 'EnBW Gas Komfort 12M',
+            potentialAnnualSavings: 490,
+            currentMonthlyInstallment: 145,
+            startedDate: '01.03.2026',
+            lastUpdatedDate: '20.03.2026',
+            notes: 'Kombi-Optimierung für Strom und Gas gleichzeitig abgewickelt. Gesamtersparnis ca. 730 €/Jahr!',
+          }
+        ],
+        notes: 'Große Wohnung in Connewitz. Haben sowohl Strom als auch Gas über uns optimiert.',
+        noteEntries: [
+          {
+            id: 'note-108-1',
+            date: '20.03.2026, 15:30 Uhr',
+            type: 'beratung_vor_ort',
+            author: 'Daryos Kreis',
+            title: 'Kombi-Abschluss Strom & Gas Connewitz',
+            content: 'Termin vor Ort: Beide Zähler (Strom STR-04277-5510 & Gas GAS-04277-2290) abgelesen. Kombi-Vertrag mit E.ON und EnBW erfolgreich unter Dach und Fach.',
+            actionRequired: false,
+            actionDone: true,
+            pinned: true,
+          }
+        ],
+        totalAnnualSavingsCalculated: 730,
+        status: 'aktiv'
+      },
+      {
+        id: 'kd-9',
+        customerNumber: 'KD-2026-009',
+        fullName: 'Krause Logistik & Fuhrpark GmbH',
+        phone: '+49 175 6677889',
+        email: 'fuhrpark@krause-logistik.de',
+        address: 'Plautstraße 48',
+        city: 'Leipzig',
+        postalCode: '04179',
+        preferredContact: 'telefon',
+        customerSince: '18.05.2026',
+        tags: ['Gewerbe / Flotte', 'KFZ & Flotte', 'Leipzig-West'],
+        contracts: [
+          {
+            id: 'ct-109',
+            clientName: 'Krause Logistik & Fuhrpark GmbH',
+            clientPhone: '+49 175 6677889',
+            clientEmail: 'fuhrpark@krause-logistik.de',
+            service: 'kfz',
+            provider: 'VHV Versicherungen',
+            tariffName: 'VHV FlottenSchutz Gewerbe Plus',
+            meterNumber: 'KFZ-L-KL-2026',
+            currentMonthlyInstallment: 380,
+            startDate: '2026-05-18',
+            durationMonths: 12,
+            noticePeriodDays: 30,
+            endDate: '2027-05-18',
+            status: 'active',
+            provision: 140,
+            accountingInvoiceId: 'RE-2026-052',
+            accountingStatus: 'ausgezahlt',
+            safeInstallmentRecommended: 380,
+            backpaymentRisk: 0,
+          }
+        ],
+        optimizationProcesses: [
+          {
+            id: 'proc-109',
+            service: 'kfz',
+            stage: 'erfolgreich_aktiv',
+            currentProvider: 'Allianz Gewerbe (Alt)',
+            targetProvider: 'VHV Versicherungen',
+            targetTariff: 'VHV FlottenSchutz Gewerbe Plus',
+            potentialAnnualSavings: 860,
+            currentMonthlyInstallment: 380,
+            startedDate: '01.05.2026',
+            lastUpdatedDate: '18.05.2026',
+            notes: 'Fuhrpark mit 6 Transportern optimiert. Jährliche Ersparnis 860 €!',
+          }
+        ],
+        notes: 'Ansprechpartner Herr Krause. Fuhrparkleiter.',
+        noteEntries: [
+          {
+            id: 'note-109-1',
+            date: '18.05.2026, 10:15 Uhr',
+            type: 'telefonat',
+            author: 'Daryos Kreis',
+            title: 'Flottenoptimierung erfolgreich umgestellt',
+            content: 'Fuhrparkverträge auf VHV FlottenSchutz umgestellt. Flottenrabatt aktiviert. Wiedervorlage für April 2027 hinterlegt.',
+            actionRequired: false,
+            actionDone: true,
+            pinned: false,
+          }
+        ],
+        totalAnnualSavingsCalculated: 860,
+        status: 'aktiv'
+      }
+    ];
+  });
+
   // 3. Nachzahlungs-Schutz State & Simulator
   const [nzService, setNzService] = useState<ServiceType>('gas');
   const [nzKwh, setNzKwh] = useState<number>(20000);
@@ -318,6 +966,43 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
       localStorage.setItem('daryos_active_contracts', JSON.stringify(contracts));
     } catch (e) {}
   }, [contracts]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('daryos_crm_contacts', JSON.stringify(crmContacts));
+    } catch (e) {}
+  }, [crmContacts]);
+
+  const handleUpdateCrmContact = (updated: CustomerContact) => {
+    setCrmContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+  };
+
+  const handleAddCrmContact = (newContact: CustomerContact) => {
+    setCrmContacts((prev) => [newContact, ...prev]);
+  };
+
+  const handleDeleteCrmContact = (contactId: string) => {
+    setCrmContacts((prev) => prev.filter((c) => c.id !== contactId));
+    showNotification('Kundenkontakt gelöscht.');
+  };
+
+  const handleOpenNachzahlungFromCrm = (
+    clientName: string,
+    email: string,
+    phone: string,
+    service: ServiceType,
+    monthly: number,
+    kwh?: number
+  ) => {
+    setNzClientName(clientName);
+    setNzClientEmail(email);
+    setNzClientPhone(phone);
+    setNzService(service);
+    setNzCurrentInstallment(monthly);
+    if (kwh) setNzKwh(kwh);
+    setActiveTab('nachzahlung');
+    showNotification(`Nachzahlungs-Schutz für ${clientName} geöffnet!`);
+  };
 
   useEffect(() => {
     setConfig(pricingConfig);
@@ -476,6 +1161,69 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
     setKiLeads((prev) =>
       prev.map((l) => (l.id === lead.id ? { ...l, status: 'abgeschlossen' } : l))
     );
+
+    // Sync into CRM Contacts
+    setCrmContacts((prev) => {
+      const existing = prev.find(
+        (c) => c.fullName.toLowerCase() === lead.clientName.toLowerCase() || c.email === lead.clientEmail
+      );
+      if (existing) {
+        return prev.map((c) => {
+          if (c.id === existing.id) {
+            return {
+              ...c,
+              contracts: [newContract, ...c.contracts],
+              optimizationProcesses: c.optimizationProcesses.map((p) =>
+                p.service === lead.service
+                  ? {
+                      ...p,
+                      stage: 'erfolgreich_aktiv' as const,
+                      lastUpdatedDate: new Date().toLocaleDateString('de-DE'),
+                      notes: `${p.notes} · Vertrag erfolgreich abgeschlossen (${invoiceNum})`,
+                    }
+                  : p
+              ),
+              status: 'aktiv' as const,
+            };
+          }
+          return c;
+        });
+      } else {
+        const newCrmContact: CustomerContact = {
+          id: `kd-${Date.now()}`,
+          customerNumber: `KD-2026-${String(prev.length + 1).padStart(3, '0')}`,
+          fullName: lead.clientName,
+          phone: lead.clientPhone,
+          email: lead.clientEmail,
+          address: 'Leipzig',
+          city: 'Leipzig',
+          postalCode: '04329',
+          preferredContact: 'whatsapp',
+          customerSince: new Date().toLocaleDateString('de-DE'),
+          tags: ['Neukunde', lead.service.toUpperCase()],
+          contracts: [newContract],
+          optimizationProcesses: [
+            {
+              id: `proc-${Date.now()}`,
+              service: lead.service,
+              stage: 'erfolgreich_aktiv',
+              currentProvider: lead.currentProvider,
+              targetProvider: lead.bestOfferProvider,
+              targetTariff: lead.bestOfferName,
+              potentialAnnualSavings: lead.calculatedSavings,
+              currentMonthlyInstallment: lead.bestOfferMonthly,
+              startedDate: new Date().toLocaleDateString('de-DE'),
+              lastUpdatedDate: new Date().toLocaleDateString('de-DE'),
+              notes: `Vertrag erfolgreich umgestellt. Beleg ${invoiceNum}`,
+            },
+          ],
+          notes: lead.notes,
+          totalAnnualSavingsCalculated: lead.calculatedSavings,
+          status: 'aktiv',
+        };
+        return [newCrmContact, ...prev];
+      }
+    });
 
     showNotification(
       `Vertrag für ${lead.clientName} erfolgreich abgeschlossen! In Kundenbestand gelistet & ${lead.provisionExpected} € Provision gebucht (${invoiceNum})`
@@ -886,7 +1634,23 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                 )}
               </button>
 
-              {/* Tab 2: Aktive Verträge & Fristen-Wächter */}
+              {/* Tab 2: Kunden-CRM & Optimierungsprozesse */}
+              <button
+                onClick={() => setActiveTab('crm')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
+                  activeTab === 'crm'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5 text-blue-400" />
+                <span>2. Kunden-CRM & Prozesse</span>
+                <span className="px-1.5 py-0.2 text-[10px] bg-blue-500/20 text-blue-200 border border-blue-500/30 rounded-full font-bold">
+                  {crmContacts.length}
+                </span>
+              </button>
+
+              {/* Tab 3: Aktive Verträge & Fristen-Wächter */}
               <button
                 onClick={() => setActiveTab('vertraege')}
                 className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
@@ -896,7 +1660,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                 }`}
               >
                 <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>2. Verträge & Fristen-Wächter</span>
+                <span>3. Verträge & Fristen-Wächter</span>
                 {expiringContractsCount > 0 && (
                   <span className="px-1.5 py-0.2 text-[10px] bg-rose-500 text-white rounded-full font-bold animate-pulse">
                     {expiringContractsCount}
@@ -904,7 +1668,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                 )}
               </button>
 
-              {/* Tab 3: Nachzahlungs-Schutz */}
+              {/* Tab 4: Nachzahlungs-Schutz */}
               <button
                 onClick={() => setActiveTab('nachzahlung')}
                 className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
@@ -914,10 +1678,10 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                 }`}
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-                <span>3. Nachzahlungs-Schutz</span>
+                <span>4. Nachzahlungs-Schutz</span>
               </button>
 
-              {/* Tab 4: Buchhaltung & Provisionen */}
+              {/* Tab 5: Buchhaltung & Provisionen */}
               <button
                 onClick={() => setActiveTab('buchhaltung')}
                 className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
@@ -927,10 +1691,10 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                 }`}
               >
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-                <span>4. Buchhaltung & Provisionen</span>
+                <span>5. Buchhaltung & Provisionen</span>
               </button>
 
-              {/* Tab 5: Live-Tarife */}
+              {/* Tab 6: Live-Tarife */}
               <button
                 onClick={() => setActiveTab('tarife')}
                 className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
@@ -940,10 +1704,10 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                 }`}
               >
                 <Settings className="w-3.5 h-3.5 text-slate-300" />
-                <span>5. Marktpreise & Tarife</span>
+                <span>6. Marktpreise & Tarife</span>
               </button>
 
-              {/* Tab 6: Automatisierung */}
+              {/* Tab 7: Automatisierung */}
               <button
                 onClick={() => setActiveTab('automatisierung')}
                 className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
@@ -953,7 +1717,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                 }`}
               >
                 <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
-                <span>6. Tablet-Workflow & Blueprint</span>
+                <span>7. Tablet-Workflow & Blueprint</span>
               </button>
             </div>
 
@@ -1066,7 +1830,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                             {lead.bestOfferName} <span className="text-slate-400 font-normal">({lead.bestOfferProvider})</span>
                           </div>
                           <div className="scale-75 origin-right">
-                            <ProviderLogo id={lead.bestOfferProvider} size="sm" />
+                            <ProviderLogo id={lead.bestOfferProvider} size="sm" variant="dark" />
                           </div>
                         </div>
                         <div className="flex items-center justify-between text-xs text-slate-300 pt-1 border-t border-white/[0.06]">
@@ -1116,7 +1880,19 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
               </div>
             )}
 
-            {/* TAB 2: Aktiver Kundenbestand, Vertragslaufzeit & Fristen-Wächter */}
+            {/* TAB 2: Kunden-CRM & Optimierungsprozesse */}
+            {activeTab === 'crm' && (
+              <CrmModule
+                contacts={crmContacts}
+                onUpdateContact={handleUpdateCrmContact}
+                onAddContact={handleAddCrmContact}
+                onDeleteContact={handleDeleteCrmContact}
+                onOpenNachzahlungCheck={handleOpenNachzahlungFromCrm}
+                onSendNotification={showNotification}
+              />
+            )}
+
+            {/* TAB 3: Aktiver Kundenbestand, Vertragslaufzeit & Fristen-Wächter */}
             {activeTab === 'vertraege' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
@@ -1186,7 +1962,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                             <div className="inline-flex items-center gap-1.5">
                               <span>Versorger:</span>
                               <div className="scale-75 origin-left inline-block">
-                                <ProviderLogo id={ct.provider} size="sm" />
+                                <ProviderLogo id={ct.provider} size="sm" variant="dark" />
                               </div>
                               <span className="text-slate-300 font-medium">({ct.tariffName})</span>
                             </div>

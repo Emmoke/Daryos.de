@@ -84,7 +84,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ currentLang, o
                     <div className="flex flex-wrap items-center gap-1.5">
                       {service.providersExample.slice(0, 3).map((prov, pIdx) => (
                         <div key={pIdx} className="scale-90 origin-left">
-                          <ProviderLogo id={prov} size="sm" />
+                          <ProviderLogo id={prov} size="sm" variant="dark" />
                         </div>
                       ))}
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.05] text-slate-400 font-mono">
@@ -176,7 +176,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ currentLang, o
                     key={i}
                     className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center hover:border-slate-700 transition-colors"
                   >
-                    <ProviderLogo id={p} size="sm" />
+                    <ProviderLogo id={p} size="sm" variant="dark" />
                   </div>
                 ))}
               </div>

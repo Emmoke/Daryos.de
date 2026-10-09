@@ -527,7 +527,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
                   : ['allianz', 'huk-coburg', 'axa', 'devk', 'adac']
                 ).map((provId) => (
                   <div key={provId} className="hover:scale-105 transition-transform">
-                    <ProviderLogo id={provId} size="sm" />
+                    <ProviderLogo id={provId} size="sm" variant="dark" />
                   </div>
                 ))}
               </div>

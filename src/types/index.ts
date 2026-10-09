@@ -70,6 +70,65 @@ export interface NachzahlungCalculation {
   riskStatus: 'danger' | 'safe' | 'overpay';
 }
 
+export type OptimizationStage =
+  | 'dokumenten_pruefung'   // 1. Unterlagen- & Rechnungsprüfung
+  | 'tarif_vergleich'       // 2. KI-Tarifvergleich läuft
+  | 'angebot_versendet'     // 3. Angebot vorgelegt (E-Mail/WhatsApp)
+  | 'vollmacht_erteilt'     // 4. Auftrag & Vollmacht erteilt
+  | 'wechsel_eingereicht'   // 5. Kündigung & Wechsel beim Versorger eingereicht
+  | 'erfolgreich_aktiv'     // 6. Neuer Vertrag aktiv & Ersparnis realisiert
+  | 'wiedervorlage';        // 7. Fristen-Wächter / Wiedervorlage vor Laufzeitende
+
+export interface CustomerOptimizationProcess {
+  id: string;
+  service: ServiceType;
+  stage: OptimizationStage;
+  currentProvider: string;
+  targetProvider?: string;
+  targetTariff?: string;
+  potentialAnnualSavings: number; // in €
+  currentMonthlyInstallment: number; // in €
+  projectedMonthlyInstallment?: number; // in €
+  startedDate: string;
+  lastUpdatedDate: string;
+  notes: string;
+}
+
+export type NoteType = 'notiz' | 'telefonat' | 'beratung_vor_ort' | 'whatsapp' | 'email' | 'wiedervorlage';
+
+export interface CustomerNoteEntry {
+  id: string;
+  date: string; // e.g. "08.10.2026, 14:35"
+  type: NoteType;
+  author: string; // e.g. "Daryos Kreis"
+  title: string;
+  content: string;
+  actionRequired?: boolean;
+  actionDone?: boolean;
+  followUpDate?: string;
+  pinned?: boolean;
+}
+
+export interface CustomerContact {
+  id: string;
+  customerNumber: string; // e.g. "KD-2026-001"
+  fullName: string;
+  email: string;
+  phone: string;
+  address?: string;
+  city: string; // e.g. "Leipzig"
+  postalCode?: string; // e.g. "04329"
+  preferredContact: ConsultationType;
+  customerSince: string;
+  tags: string[]; // e.g. ["Stammkunde", "Leipzig-Ost", "Gas + Strom"]
+  contracts: ContractRecord[];
+  optimizationProcesses: CustomerOptimizationProcess[];
+  notes: string;
+  noteEntries?: CustomerNoteEntry[];
+  totalAnnualSavingsCalculated: number;
+  status: 'aktiv' | 'in_optimierung' | 'abgeschlossen' | 'interessent';
+}
+
 export interface ServiceDetail {
   id: ServiceType;
   title: string;
