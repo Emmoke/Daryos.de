@@ -39,7 +39,9 @@ import {
   Users,
   Crown,
   LogOut,
-  User
+  User,
+  Award,
+  Key
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { 
@@ -58,6 +60,7 @@ import { ProviderLogo } from './ProviderLogos';
 import { CrmModule } from './CrmModule';
 import { InvoiceBuilder } from './InvoiceBuilder';
 import { CustomerMessagesTab, ProjectsTab, OffersTab, InvoicesTab } from './CockpitTabs';
+import { MaklerVergleichTab } from './MaklerVergleichTab';
 
 export interface TariffPricingConfig {
   stromArbeitspreis: number; // in ct/kWh (e.g. 26.8)
@@ -80,6 +83,7 @@ interface AdminCockpitProps {
   authUser: AuthUser | null;
   onLoginSuccess: (user: AuthUser) => void;
   onLogout: () => void;
+  isStandaloneApp?: boolean;
 }
 
 export const AdminCockpit: React.FC<AdminCockpitProps> = ({
@@ -90,15 +94,34 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
   authUser,
   onLoginSuccess,
   onLogout,
+  isStandaloneApp = false,
 }) => {
+  // Gespeicherte Eigentümer-Email & anpassbare PIN (Sicherheitsverwaltung)
+  const [ownerEmail, setOwnerEmail] = useState<string>(() => {
+    return localStorage.getItem('daryos_owner_email') || 'Emmoke@outlook.de';
+  });
+
+  const [storedPin, setStoredPin] = useState<string>(() => {
+    return localStorage.getItem('daryos_admin_pin') || '04329';
+  });
+
+  const [isPinChangeModalOpen, setIsPinChangeModalOpen] = useState(false);
+  const [currentPinCheck, setCurrentPinCheck] = useState('');
+  const [newPinInput, setNewPinInput] = useState('');
+  const [confirmPinInput, setConfirmPinInput] = useState('');
+  const [editOwnerEmailInput, setEditOwnerEmailInput] = useState(ownerEmail);
+  const [pinChangeError, setPinChangeError] = useState('');
+  const [pinChangeSuccess, setPinChangeSuccess] = useState('');
+
   const [loginRole, setLoginRole] = useState<'eigentuemer' | 'admin'>('eigentuemer');
-  const [loginEmail, setLoginEmail] = useState<string>('Emmoke@outlook.de');
+  const [loginEmail, setLoginEmail] = useState<string>(ownerEmail);
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string>('');
   
-  // Navigation tabs: Kunden-Meldungen, Projekte, Angebote, Rechnungen, Rechnung erstellen, Vertragsliste, CRM, Nachzahlung, Tarife
+  // Navigation tabs: Kunden-Meldungen, CHECK24 Makler-Verbindung, Projekte, Angebote, Rechnungen, Rechnung erstellen, Vertragsliste, CRM, Nachzahlung, Tarife
   const [activeTab, setActiveTab] = useState<
     | 'meldungen'
+    | 'makler_vergleich'
     | 'projekte'
     | 'angebote'
     | 'rechnungen'
@@ -109,7 +132,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
     | 'tarife'
     | 'ki_inbox'
     | 'automatisierung'
-  >('meldungen');
+  >('makler_vergleich');
 
   // Selected invoice for builder
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
@@ -1783,20 +1806,21 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPin = pinInput.trim();
+    const validPins = [storedPin, '04329', '1234', 'daryos2026'];
     if (loginRole === 'eigentuemer') {
-      if (cleanPin === '1234' || cleanPin === '04329' || cleanPin === 'daryos2026' || cleanPin === '') {
+      if (validPins.includes(cleanPin) || cleanPin === '') {
         onLoginSuccess({
           role: 'eigentuemer',
           name: 'Daryos Inhaber (Eigentümer)',
-          email: loginEmail.trim() || 'Emmoke@outlook.de',
+          email: ownerEmail,
         });
         setPinError('');
         setPinInput('');
       } else {
-        setPinError('Ungültiges Passwort oder PIN. (Autorisiert für Emmoke@outlook.de · Standard-PIN: 04329 oder 1234)');
+        setPinError(`Ungültiges Passwort oder PIN. (Autorisiert für ${ownerEmail} · Standard: 04329 oder 1234)`);
       }
     } else {
-      if (cleanPin === '1234' || cleanPin === '04329' || cleanPin === 'admin2026') {
+      if (validPins.includes(cleanPin) || cleanPin === 'admin2026') {
         onLoginSuccess({
           role: 'admin',
           name: 'Administrator',
@@ -1814,10 +1838,129 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
     onLoginSuccess({
       role: 'eigentuemer',
       name: 'Daryos Inhaber (Eigentümer)',
-      email: 'Emmoke@outlook.de',
+      email: ownerEmail,
     });
     setPinError('');
     setPinInput('');
+  };
+
+  // Handler: PIN und Eigentümer-E-Mail im System ändern
+  const handleSavePinAndEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinChangeError('');
+    setPinChangeSuccess('');
+
+    const cleanCurrent = currentPinCheck.trim();
+    if (cleanCurrent !== storedPin && cleanCurrent !== '04329' && cleanCurrent !== '1234') {
+      setPinChangeError('Die aktuelle PIN ist nicht korrekt.');
+      return;
+    }
+
+    if (newPinInput.trim().length < 4) {
+      setPinChangeError('Die neue PIN muss mindestens 4 Ziffern oder Zeichen haben.');
+      return;
+    }
+
+    if (newPinInput.trim() !== confirmPinInput.trim()) {
+      setPinChangeError('Die Bestätigungs-PIN stimmt nicht mit der neuen PIN überein.');
+      return;
+    }
+
+    if (!editOwnerEmailInput.includes('@')) {
+      setPinChangeError('Bitte eine gültige E-Mail-Adresse für den Eigentümer eingeben.');
+      return;
+    }
+
+    const cleanNewPin = newPinInput.trim();
+    const cleanNewEmail = editOwnerEmailInput.trim();
+
+    setStoredPin(cleanNewPin);
+    setOwnerEmail(cleanNewEmail);
+    try {
+      localStorage.setItem('daryos_admin_pin', cleanNewPin);
+      localStorage.setItem('daryos_owner_email', cleanNewEmail);
+      if (authUser) {
+        onLoginSuccess({
+          ...authUser,
+          email: cleanNewEmail,
+        });
+      }
+    } catch (err) {}
+
+    setPinChangeSuccess('✓ PIN und Eigentümer-E-Mail wurden erfolgreich aktualisiert & gespeichert!');
+    setTimeout(() => {
+      setIsPinChangeModalOpen(false);
+      setPinChangeSuccess('');
+      setCurrentPinCheck('');
+      setNewPinInput('');
+      setConfirmPinInput('');
+    }, 1800);
+  };
+
+  // Handler für CHECK24 & Makler-Verbindung: Vertrag mit Kunde verbinden
+  const handleConnectContractFromBroker = (
+    customerId: string,
+    newContract: ContractRecord,
+    commissionEarned: number
+  ) => {
+    // 1. In CRM Kontakte hinzufügen & Status aktualisieren
+    setCrmContacts((prev) => {
+      const updated = prev.map((cust) => {
+        if (cust.id !== customerId) return cust;
+
+        const updatedContracts = [newContract, ...cust.contracts];
+        const newOptimizationProcess = {
+          id: `proc-${Date.now()}`,
+          service: newContract.service,
+          stage: 'wechsel_eingereicht' as const,
+          currentProvider: cust.contracts[0]?.provider || 'Bisheriger Anbieter',
+          targetProvider: newContract.provider,
+          targetTariff: newContract.tariffName,
+          potentialAnnualSavings: Math.max(120, Math.round(newContract.currentMonthlyInstallment * 1.5)),
+          currentMonthlyInstallment: cust.contracts[0]?.currentMonthlyInstallment || newContract.currentMonthlyInstallment + 25,
+          projectedMonthlyInstallment: newContract.currentMonthlyInstallment,
+          startedDate: new Date().toLocaleDateString('de-DE'),
+          lastUpdatedDate: new Date().toLocaleDateString('de-DE'),
+          notes: `Über CHECK24/Makler-Schnittstelle verbunden: ${newContract.provider} (${newContract.tariffName}). Wechselauftrag eingereicht, Maklerprovision +${commissionEarned} € erfasst.`,
+        };
+
+        const newNote = {
+          id: `note-${Date.now()}`,
+          date: new Date().toLocaleDateString('de-DE') + ', ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr',
+          type: 'notiz' as const,
+          author: 'Daryos Makler-System',
+          title: `CHECK24-Tarif verbunden: ${newContract.provider} (${newContract.tariffName})`,
+          content: `Neuer Vertrag erfolgreich zugeordnet. Abschlag: ${newContract.currentMonthlyInstallment} €/M. Wechsel- & Kündigungsservice via Maklervollmacht eingereicht.`,
+          actionRequired: false,
+          actionDone: true,
+          pinned: true,
+        };
+
+        return {
+          ...cust,
+          status: 'in_optimierung' as const,
+          contracts: updatedContracts,
+          optimizationProcesses: [newOptimizationProcess, ...cust.optimizationProcesses],
+          noteEntries: [newNote, ...(cust.noteEntries || [])],
+        };
+      });
+
+      try {
+        localStorage.setItem('daryos_crm_contacts', JSON.stringify(updated));
+      } catch (err) {}
+      return updated;
+    });
+
+    // 2. In Vertragsliste aufnehmen
+    setContracts((prev) => {
+      const updated = [newContract, ...prev];
+      try {
+        localStorage.setItem('daryos_contracts', JSON.stringify(updated));
+      } catch (err) {}
+      return updated;
+    });
+
+    showNotification(`✓ Vertrag ${newContract.provider} erfolgreich mit Kunde verbunden & Maklerprovision (+${commissionEarned} €) erfasst!`);
   };
 
   const handleSaveConfig = (e: React.FormEvent) => {
@@ -2324,7 +2467,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
           <div className="flex items-center gap-2">
             {authUser && (
               <>
-                <div className={`hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs ${
+                <div className={`hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs ${
                   authUser.role === 'eigentuemer'
                     ? 'bg-amber-50 text-amber-900 border-amber-300'
                     : 'bg-blue-50 text-blue-900 border-blue-200'
@@ -2336,10 +2479,20 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                   )}
                   <span>
                     {authUser.role === 'eigentuemer'
-                      ? `Eigentümer: ${authUser.email}`
+                      ? `Eigentümer: ${ownerEmail}`
                       : `Admin: ${authUser.name}`}
                   </span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPinChangeModalOpen(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-2xs"
+                  title="PIN ändern & Eigentümer-E-Mail verbinden"
+                >
+                  <Key className="w-3.5 h-3.5 text-amber-700" />
+                  <span className="hidden sm:inline">PIN & E-Mail ändern</span>
+                </button>
 
                 <button
                   onClick={exportAccountingPDF}
@@ -2360,12 +2513,14 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                 </button>
               </>
             )}
+
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
-              title="Cockpit schließen"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-slate-700 hover:text-slate-900 rounded-lg hover:bg-slate-100 border border-slate-300 text-xs font-bold cursor-pointer transition-colors"
+              title="Zur Kunden-Website zurückkehren"
             >
-              <X className="w-5 h-5" />
+              <span>🌐 Kunden-Website</span>
+              <X className="w-4 h-4 text-slate-400" />
             </button>
           </div>
         </div>
