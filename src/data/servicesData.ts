@@ -96,63 +96,7 @@ export const servicesData: ServiceDetail[] = [
   },
 ];
 
-export const reviewsData: ReviewItem[] = [
-  {
-    id: 'r1',
-    name: 'Familie Müller',
-    location: 'Leipzig-Paunsdorf',
-    service: 'gas',
-    rating: 5,
-    date: 'Vor 2 Wochen',
-    savings: '430 € / Jahr bei Gas & Strom',
-    comment:
-      'Herr Daryos hat sich unsere alte Gasabrechnung angeschaut und sofort gesehen, dass wir seit Jahren viel zu viel zahlen. Der Wechsel lief komplett ohne Aufwand für uns – kein einziger Brief, kein Papierkram. Großartige Beratung!',
-  },
-  {
-    id: 'r2',
-    name: 'Mehmet Yilmaz',
-    location: 'Leipzig-Zentrum',
-    service: 'strom',
-    rating: 5,
-    date: 'Vor 1 Monat',
-    savings: '290 € / Jahr bei Strom',
-    comment:
-      'Sehr professionell und freundlich. Die Beratung war auch auf Türkisch möglich, was für meine Eltern eine riesige Hilfe war. Innerhalb von 20 Minuten war alles geregelt.',
-  },
-  {
-    id: 'r3',
-    name: 'Karolin Sommer',
-    location: 'Leipzig-Gohlis',
-    service: 'kfz',
-    rating: 5,
-    date: 'Vor 3 Wochen',
-    savings: '215 € / Jahr bei KFZ',
-    comment:
-      'Ich wollte meine Autoversicherung wechseln, blickte aber bei den vielen Tarifen nicht durch. Daryos hat mir die Konditionen super transparent erklärt und gleichzeitig besseren Versicherungsschutz bei Vollkasko herausgeholt.',
-  },
-  {
-    id: 'r4',
-    name: 'Tariq Al-Mansoor',
-    location: 'Leipzig-Schönefeld',
-    service: 'internet',
-    rating: 5,
-    date: 'Vor 2 Monaten',
-    savings: '180 € / Jahr + Glasfaser 250 Mbit/s',
-    comment:
-      'Wir hatten ständig Verbindungsabbrüche mit unserem alten Internetanbieter. Daryos hat die Glasfaser-Leitung geprüft und uns einen modernen Tarif mit Router eingerichtet. Top Service!',
-  },
-  {
-    id: 'r5',
-    name: 'Stefan Berger',
-    location: 'Markkleeberg',
-    service: 'allgemein',
-    rating: 5,
-    date: 'Vor 1 Monat',
-    savings: 'Insgesamt 720 € / Jahr gebündelt',
-    comment:
-      'Habe direkt alle 4 Verträge (Strom, Gas, Internet, 2 Autos) prüfen lassen. Ehrliche Empfehlungen ohne Aufschwatzen unnötiger Optionen. Absolute Empfehlung für jeden in Leipzig!',
-  },
-];
+export const reviewsData: ReviewItem[] = [];
 
 export const faqData: FaqItem[] = [
   {
