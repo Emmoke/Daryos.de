@@ -617,7 +617,7 @@ export const translations: Record<Language, TranslationSchema> = {
       notesLabel: 'Şu anki sağlayıcı veya notunuz (opsiyonel):',
       submitBtn: 'Randevu talebini hazırla',
       confirmationTitle: 'Talep hazırlandı – henüz gönderilmedi',
-      confirmationDesc: 'Bilgileriniz yalnızca bu sayfada hazırlandı. Talebinizin bize ulaşması için WhatsApp'ı açıp mesajı kendiniz göndermeniz gerekir.',
+      confirmationDesc: "Bilgileriniz yalnızca bu sayfada hazırlandı. Talebinizin bize ulaşması için WhatsApp’ı açıp mesajı kendiniz göndermeniz gerekir.",
       exportCalendar: 'Takvime Kaydet (.ics)',
       openWhatsAppAction: 'WhatsApp İle Onayla',
       newBooking: 'Yeni Randevu Talebi',
