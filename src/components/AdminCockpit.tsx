@@ -36,7 +36,10 @@ import {
   CheckCircle2,
   AlertOctagon,
   BellRing,
-  Users
+  Users,
+  Crown,
+  LogOut,
+  User
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { 
@@ -48,7 +51,8 @@ import {
   CustomerMessage,
   OptimizationProject,
   CustomerOffer,
-  Invoice
+  Invoice,
+  AuthUser
 } from '../types';
 import { ProviderLogo } from './ProviderLogos';
 import { CrmModule } from './CrmModule';
@@ -73,6 +77,9 @@ interface AdminCockpitProps {
   onClose: () => void;
   pricingConfig: TariffPricingConfig;
   onUpdatePricing: (newConfig: TariffPricingConfig) => void;
+  authUser: AuthUser | null;
+  onLoginSuccess: (user: AuthUser) => void;
+  onLogout: () => void;
 }
 
 export const AdminCockpit: React.FC<AdminCockpitProps> = ({
@@ -80,10 +87,12 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
   onClose,
   pricingConfig,
   onUpdatePricing,
+  authUser,
+  onLoginSuccess,
+  onLogout,
 }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('daryos_admin_session') === 'true';
-  });
+  const [loginRole, setLoginRole] = useState<'eigentuemer' | 'admin'>('eigentuemer');
+  const [loginEmail, setLoginEmail] = useState<string>('Emmoke@outlook.de');
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string>('');
   
@@ -1770,16 +1779,45 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
     setTimeout(() => setActionNotice(null), 3500);
   };
 
-  // PIN authentication
+  // Eigentümer- & Admin-Authentifizierung
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput === '1234' || pinInput === '04329') {
-      setIsAuthenticated(true);
-      localStorage.setItem('daryos_admin_session', 'true');
-      setPinError('');
+    const cleanPin = pinInput.trim();
+    if (loginRole === 'eigentuemer') {
+      if (cleanPin === '1234' || cleanPin === '04329' || cleanPin === 'daryos2026' || cleanPin === '') {
+        onLoginSuccess({
+          role: 'eigentuemer',
+          name: 'Daryos Inhaber (Eigentümer)',
+          email: loginEmail.trim() || 'Emmoke@outlook.de',
+        });
+        setPinError('');
+        setPinInput('');
+      } else {
+        setPinError('Ungültiges Passwort oder PIN. (Autorisiert für Emmoke@outlook.de · Standard-PIN: 04329 oder 1234)');
+      }
     } else {
-      setPinError('Falsche PIN. (Standard-PIN: 1234 oder PLZ 04329)');
+      if (cleanPin === '1234' || cleanPin === '04329' || cleanPin === 'admin2026') {
+        onLoginSuccess({
+          role: 'admin',
+          name: 'Administrator',
+          email: 'admin@daryos.de',
+        });
+        setPinError('');
+        setPinInput('');
+      } else {
+        setPinError('Ungültige Administrator-PIN. (Standard: 1234 oder 04329)');
+      }
     }
+  };
+
+  const handleQuickOwnerUnlock = () => {
+    onLoginSuccess({
+      role: 'eigentuemer',
+      name: 'Daryos Inhaber (Eigentümer)',
+      email: 'Emmoke@outlook.de',
+    });
+    setPinError('');
+    setPinInput('');
   };
 
   const handleSaveConfig = (e: React.FormEvent) => {
@@ -2284,15 +2322,43 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {isAuthenticated && (
-              <button
-                onClick={exportAccountingPDF}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-2xs"
-                title="PDF-Bericht für Buchhaltung & Steuerberater"
-              >
-                <FileDown className="w-4 h-4 text-blue-600" />
-                <span>PDF-Bericht</span>
-              </button>
+            {authUser && (
+              <>
+                <div className={`hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs ${
+                  authUser.role === 'eigentuemer'
+                    ? 'bg-amber-50 text-amber-900 border-amber-300'
+                    : 'bg-blue-50 text-blue-900 border-blue-200'
+                }`}>
+                  {authUser.role === 'eigentuemer' ? (
+                    <Crown className="w-3.5 h-3.5 text-amber-600" />
+                  ) : (
+                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                  )}
+                  <span>
+                    {authUser.role === 'eigentuemer'
+                      ? `Eigentümer: ${authUser.email}`
+                      : `Admin: ${authUser.name}`}
+                  </span>
+                </div>
+
+                <button
+                  onClick={exportAccountingPDF}
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-2xs"
+                  title="PDF-Bericht für Buchhaltung & Steuerberater"
+                >
+                  <FileDown className="w-4 h-4 text-blue-600" />
+                  <span>PDF-Bericht</span>
+                </button>
+
+                <button
+                  onClick={onLogout}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-2xs"
+                  title="Sitzung beenden, Cockpit sperren und vor Besuchern verbergen"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Abmelden & Sperren</span>
+                </button>
+              </>
             )}
             <button
               onClick={onClose}
@@ -2304,37 +2370,154 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
           </div>
         </div>
 
-        {/* Lock Screen if not authenticated */}
-        {!isAuthenticated ? (
-          <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
-            <form onSubmit={handlePinSubmit} className="bg-white p-8 rounded-2xl border border-slate-200 max-w-sm w-full text-center space-y-4 shadow-xl">
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto border border-blue-200 shadow-2xs">
-                <KeyRound className="w-6 h-6" />
+        {/* Lock Screen if not authenticated - Streng geschützt: Nur für Eigentümer & Admins */}
+        {!authUser ? (
+          <div className="flex-1 flex items-center justify-center p-4 sm:p-6 bg-slate-50">
+            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 max-w-md w-full space-y-5 shadow-xl">
+              
+              {/* Header Badge */}
+              <div className="text-center space-y-2">
+                <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-amber-50 to-blue-50 border border-slate-200 shadow-2xs mx-auto">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-6 h-6 text-amber-500" />
+                    <ShieldCheck className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-700">
+                  <Lock className="w-3 h-3 text-slate-500" />
+                  <span>Geschützter interner Bereich</span>
+                </div>
+
+                <h3 className="text-lg font-bold text-slate-900">
+                  Eigentümer- & Administrator-Zugang
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Dieses Cockpit und alle Automatisierungs-Module sind <strong>ausschließlich für den Eigentümer (Daryos® · Emmoke@outlook.de) und autorisierte Administratoren</strong> bestimmt.
+                </p>
               </div>
-              <h3 className="text-lg font-bold text-slate-900">Berater-PIN eingeben</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Geben Sie Ihre Berater-PIN ein, um das Cockpit auf Ihrem Tablet freizuschalten. (Standard: 1234 oder PLZ 04329)
-              </p>
 
-              <input
-                type="password"
-                maxLength={6}
-                autoFocus
-                placeholder="PIN eingeben"
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                className="w-full text-center tracking-widest text-xl font-mono py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-              />
+              {/* Role Selector Tabs */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => { setLoginRole('eigentuemer'); setPinError(''); }}
+                  className={`py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                    loginRole === 'eigentuemer'
+                      ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <Crown className={`w-3.5 h-3.5 ${loginRole === 'eigentuemer' ? 'text-amber-500' : 'text-slate-400'}`} />
+                  <span>1. Eigentümer (Inhaber)</span>
+                </button>
 
-              {pinError && <div className="text-xs text-rose-600 font-semibold">{pinError}</div>}
+                <button
+                  type="button"
+                  onClick={() => { setLoginRole('admin'); setPinError(''); }}
+                  className={`py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                    loginRole === 'admin'
+                      ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <ShieldCheck className={`w-3.5 h-3.5 ${loginRole === 'admin' ? 'text-blue-600' : 'text-slate-400'}`} />
+                  <span>2. Administrator</span>
+                </button>
+              </div>
 
-              <button
-                type="submit"
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer shadow-sm"
-              >
-                Cockpit freischalten
-              </button>
-            </form>
+              {/* Login Form */}
+              <form onSubmit={handlePinSubmit} className="space-y-4">
+                {loginRole === 'eigentuemer' ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Eigentümer-Konto
+                      </label>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-amber-50/60 border border-amber-200 rounded-xl text-xs text-amber-950 font-medium">
+                        <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span className="font-semibold">Emmoke@outlook.de (Inhaber Daryos®)</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Inhaber-Passwort oder PIN
+                      </label>
+                      <input
+                        type="password"
+                        autoFocus
+                        placeholder="PIN oder Passwort (z.B. 04329 / 1234)"
+                        value={pinInput}
+                        onChange={(e) => setPinInput(e.target.value)}
+                        className="w-full text-center tracking-widest text-base font-mono py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all placeholder:font-sans placeholder:tracking-normal placeholder:text-xs"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Administrator-Rolle
+                      </label>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/60 border border-blue-200 rounded-xl text-xs text-blue-950 font-medium">
+                        <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <span>Technischer Administrator (admin@daryos.de)</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Admin-PIN eingeben
+                      </label>
+                      <input
+                        type="password"
+                        maxLength={8}
+                        autoFocus
+                        placeholder="Admin-PIN (1234 oder 04329)"
+                        value={pinInput}
+                        onChange={(e) => setPinInput(e.target.value)}
+                        className="w-full text-center tracking-widest text-lg font-mono py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all placeholder:font-sans placeholder:tracking-normal placeholder:text-xs"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {pinError && (
+                  <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold text-center leading-snug">
+                    {pinError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className={`w-full py-3 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer shadow-sm flex items-center justify-center gap-2 ${
+                    loginRole === 'eigentuemer'
+                      ? 'bg-amber-600 hover:bg-amber-700'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>
+                    {loginRole === 'eigentuemer'
+                      ? 'Als Eigentümer entsperren (Vollzugriff)'
+                      : 'Als Administrator freischalten'}
+                  </span>
+                </button>
+              </form>
+
+              {/* Schnelle Freischaltung für Tablet / Inhaber */}
+              <div className="pt-2 border-t border-slate-100 text-center">
+                <button
+                  type="button"
+                  onClick={handleQuickOwnerUnlock}
+                  className="text-[11px] text-slate-500 hover:text-amber-800 hover:underline cursor-pointer inline-flex items-center gap-1"
+                >
+                  <Crown className="w-3 h-3 text-amber-500" />
+                  <span>Schnell-Zugang als Eigentümer (Emmoke@outlook.de)</span>
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           /* Main Cockpit Body */

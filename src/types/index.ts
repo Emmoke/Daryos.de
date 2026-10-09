@@ -2,6 +2,12 @@ export type Language = 'de' | 'en' | 'tr' | 'ku' | 'ar';
 
 export type ServiceType = 'strom' | 'gas' | 'internet' | 'kfz';
 
+export interface AuthUser {
+  role: 'eigentuemer' | 'admin';
+  name: string;
+  email: string;
+}
+
 export type ConsultationType = 'vor-ort' | 'telefon' | 'video' | 'whatsapp';
 
 export interface ContractRecord {

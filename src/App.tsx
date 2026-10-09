@@ -13,7 +13,7 @@ import { Footer } from './components/Footer';
 import { LegalModals } from './components/LegalModals';
 import { AdminCockpit, TariffPricingConfig } from './components/AdminCockpit';
 import { PartnerLogosBanner } from './components/ProviderLogos';
-import { Language, ServiceType } from './types';
+import { Language, ServiceType, AuthUser } from './types';
 import { MessageSquare, Phone } from 'lucide-react';
 
 const defaultPricing: TariffPricingConfig = {
@@ -35,6 +35,45 @@ export default function App() {
   const [bookingNotes, setBookingNotes] = useState<string>('');
   const [legalModal, setLegalModal] = useState<'impressum' | 'datenschutz' | null>(null);
   const [adminCockpitOpen, setAdminCockpitOpen] = useState<boolean>(false);
+
+  // Authentifizierter Nutzer (NUR Eigentümer und Administratoren)
+  const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
+    try {
+      const session = localStorage.getItem('daryos_admin_session') === 'true';
+      if (!session) return null;
+      const role = (localStorage.getItem('daryos_auth_role') as 'eigentuemer' | 'admin') || 'eigentuemer';
+      const email = localStorage.getItem('daryos_auth_email') || 'Emmoke@outlook.de';
+      const name = localStorage.getItem('daryos_auth_name') || (role === 'eigentuemer' ? 'Daryos Inhaber' : 'Administrator');
+      return { role, email, name };
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const handleLoginSuccess = (user: AuthUser) => {
+    try {
+      localStorage.setItem('daryos_admin_session', 'true');
+      localStorage.setItem('daryos_auth_role', user.role);
+      localStorage.setItem('daryos_auth_email', user.email);
+      localStorage.setItem('daryos_auth_name', user.name);
+    } catch (e) {
+      // ignore
+    }
+    setAuthUser(user);
+  };
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('daryos_admin_session');
+      localStorage.removeItem('daryos_auth_role');
+      localStorage.removeItem('daryos_auth_email');
+      localStorage.removeItem('daryos_auth_name');
+    } catch (e) {
+      // ignore
+    }
+    setAuthUser(null);
+    setAdminCockpitOpen(false);
+  };
   const [pricingConfig, setPricingConfig] = useState<TariffPricingConfig>(() => {
     try {
       const saved = localStorage.getItem('daryos_pricing_config');
@@ -97,6 +136,8 @@ export default function App() {
         onLanguageChange={setCurrentLang}
         onOpenBooking={scrollToBooking}
         onOpenAdmin={() => setAdminCockpitOpen(true)}
+        authUser={authUser}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Sections */}
@@ -157,6 +198,8 @@ export default function App() {
       <Footer
         currentLang={currentLang}
         onOpenLegal={setLegalModal}
+        onOpenAdmin={() => setAdminCockpitOpen(true)}
+        authUser={authUser}
       />
 
       {/* Legal Modals (Impressum & Datenschutz) */}
@@ -166,12 +209,15 @@ export default function App() {
         currentLang={currentLang}
       />
 
-      {/* Berater- & Tablet-Cockpit (Admin & Controlling) */}
+      {/* Berater- & Tablet-Cockpit (Admin & Controlling) - NUR für Eigentümer & Admin */}
       <AdminCockpit
         isOpen={adminCockpitOpen}
         onClose={() => setAdminCockpitOpen(false)}
         pricingConfig={pricingConfig}
         onUpdatePricing={handleUpdatePricing}
+        authUser={authUser}
+        onLoginSuccess={handleLoginSuccess}
+        onLogout={handleLogout}
       />
 
       {/* Floating Quick Action Button for Mobile / Quick Contact (capped to <= 15% mobile viewport) */}

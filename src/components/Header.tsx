@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Mail, MapPin, Clock, Globe, Menu, X, CalendarCheck, ShieldCheck, Tablet } from 'lucide-react';
-import { Language } from '../types';
+import { Phone, Mail, MapPin, Clock, Globe, Menu, X, CalendarCheck, ShieldCheck, Tablet, Lock, Crown, LogOut } from 'lucide-react';
+import { Language, AuthUser } from '../types';
 import { translations } from '../data/translations';
 import { Logo } from './Logo';
 
@@ -9,9 +9,18 @@ interface HeaderProps {
   onLanguageChange: (lang: Language) => void;
   onOpenBooking: () => void;
   onOpenAdmin: () => void;
+  authUser: AuthUser | null;
+  onLogout: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ currentLang, onLanguageChange, onOpenBooking, onOpenAdmin }) => {
+export const Header: React.FC<HeaderProps> = ({
+  currentLang,
+  onLanguageChange,
+  onOpenBooking,
+  onOpenAdmin,
+  authUser,
+  onLogout,
+}) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isOpenNow, setIsOpenNow] = useState(false);
   const t = translations[currentLang];
@@ -138,14 +147,50 @@ export const Header: React.FC<HeaderProps> = ({ currentLang, onLanguageChange, o
 
         {/* Zone 3: Primary Action - Calm and distinguished */}
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={onOpenAdmin}
-            className="hidden md:flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-200 hover:text-white bg-[#121319] hover:bg-[#181922] rounded-lg border border-blue-500/30 transition-colors cursor-pointer"
-            title="Daryos CRM, Kundenverwaltung, KI-Cockpit & Fristen-Wächter"
-          >
-            <Tablet className="w-3.5 h-3.5 text-blue-400" />
-            <span>CRM & KI-Cockpit</span>
-          </button>
+          {/* KI-Cockpit & Automatisierung - NUR für authentifizierte Eigentümer & Admins sichtbar */}
+          {authUser ? (
+            <div className="hidden md:flex items-center gap-1.5">
+              <button
+                onClick={onOpenAdmin}
+                className={`flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-lg border shadow-xs transition-all cursor-pointer ${
+                  authUser.role === 'eigentuemer'
+                    ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/50'
+                    : 'bg-blue-600/15 hover:bg-blue-600/25 text-blue-300 border-blue-500/50'
+                }`}
+                title={`Angemeldet als ${authUser.name} (${authUser.email})`}
+              >
+                {authUser.role === 'eigentuemer' ? (
+                  <Crown className="w-3.5 h-3.5 text-amber-400" />
+                ) : (
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                )}
+                <span>
+                  {authUser.role === 'eigentuemer' ? 'Eigentümer-Cockpit' : 'Admin-Cockpit'}
+                </span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/40 text-slate-300 font-mono">
+                  {authUser.role === 'eigentuemer' ? 'Inhaber' : 'Admin'}
+                </span>
+              </button>
+
+              <button
+                onClick={onLogout}
+                className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-rose-500/30"
+                title="Cockpit sperren & abmelden"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            /* Diskreter Zugang für Eigentümer / Admin, fällt Besuchern nicht störend auf */
+            <button
+              onClick={onOpenAdmin}
+              className="hidden md:flex items-center justify-center p-2 text-slate-500 hover:text-slate-300 hover:bg-slate-900 rounded-lg transition-colors cursor-pointer"
+              title="Eigentümer- & Admin-Zugang (Geschützt)"
+              aria-label="Eigentümer & Admin Zugang"
+            >
+              <Lock className="w-3.5 h-3.5" />
+            </button>
+          )}
 
           <button
             onClick={onOpenBooking}
@@ -221,16 +266,54 @@ export const Header: React.FC<HeaderProps> = ({ currentLang, onLanguageChange, o
             </a>
           </nav>
           <div className="pt-3 border-t border-white/[0.08] flex flex-col gap-2">
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenAdmin();
-              }}
-              className="w-full py-2.5 bg-[#121319] text-slate-200 border border-white/[0.08] font-medium rounded-lg text-xs text-center flex items-center justify-center gap-2"
-            >
-              <Tablet className="w-4 h-4 text-blue-400" />
-              <span>CRM & Admin-Cockpit</span>
-            </button>
+            {authUser ? (
+              <>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAdmin();
+                  }}
+                  className={`w-full py-2.5 font-bold rounded-lg text-xs text-center flex items-center justify-center gap-2 border ${
+                    authUser.role === 'eigentuemer'
+                      ? 'bg-amber-500/15 text-amber-300 border-amber-500/40'
+                      : 'bg-blue-600/20 text-blue-300 border-blue-500/40'
+                  }`}
+                >
+                  {authUser.role === 'eigentuemer' ? (
+                    <Crown className="w-4 h-4 text-amber-400" />
+                  ) : (
+                    <Tablet className="w-4 h-4 text-blue-400" />
+                  )}
+                  <span>
+                    {authUser.role === 'eigentuemer'
+                      ? 'Eigentümer-Cockpit (Emmoke)'
+                      : 'Admin-Cockpit'}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onLogout();
+                  }}
+                  className="w-full py-2 bg-slate-900 text-slate-400 hover:text-rose-300 text-xs text-center flex items-center justify-center gap-1.5 rounded-lg border border-white/[0.06]"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Cockpit sperren & abmelden</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenAdmin();
+                }}
+                className="w-full py-2 text-slate-500 hover:text-slate-300 text-xs text-center flex items-center justify-center gap-1.5"
+              >
+                <Lock className="w-3 h-3" />
+                <span>Eigentümer- & Admin-Zugang</span>
+              </button>
+            )}
 
             <button
               onClick={() => {
