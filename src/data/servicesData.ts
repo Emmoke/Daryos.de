@@ -4,18 +4,18 @@ export const servicesData: ServiceDetail[] = [
   {
     id: 'strom',
     title: 'Stromvertrag',
-    tagline: 'Günstiger Öko- oder Normalstrom mit verlässlicher Preisgarantie.',
+    tagline: 'Tarife für Ihren Verbrauch vergleichen – mit Blick auf Preis, Laufzeit und Vertragsbedingungen.',
     badge: '⚡ Strom',
     image: '/src/assets/images/strom_energy_clean_1791468917569.jpg',
     description:
-      'Steigende Stromkosten belasten private Haushalte und Gewerbetreibende in Leipzig spürbar. Wir durchforsten über 800 geprüfte Stromtarife – inklusive Ökostrom-Optionen, Neukunden-Boni und Festpreisverträgen bis zu 24 Monate. Wir schützen Sie vor unerwarteten Preiserhöhungen Ihres Grundversorgers.',
-    savingsHint: 'Durchschnittliche Ersparnis: 180 € – 380 € pro Jahr',
+      'Wir vergleichen verfügbare Stromtarife anhand Ihrer Angaben. Dabei berücksichtigen wir unter anderem Arbeitspreis, Grundpreis, Laufzeit, Preisgarantie und mögliche Bonusbedingungen. Welche Optionen passen, hängt von Ihrem Verbrauch und Ihrer Wohnadresse ab.',
+    savingsHint: 'Individuelles Sparpotenzial nach Tarifprüfung',
     bulletPoints: [
-      '100% Preisgarantie gegen Marktschwankungen',
+      'Preisgarantie und deren Umfang im Angebot prüfen',
       'Ökostrom aus zertifizierter Wasserkraft oder Solar',
       'Keine Vorkasse oder dubiose Tarifmodelle',
       'Fristgerechte Kündigung beim Altversorger',
-      'Unterbrechungsfreie gesetzliche Versorgungssicherheit',
+      'Wechselablauf und Versorgungssicherheit verständlich erklärt',
     ],
     requiredDocs: [
       'Letzte Stromrechnung (oder Vorjahresverbrauch in kWh)',
@@ -27,18 +27,18 @@ export const servicesData: ServiceDetail[] = [
   {
     id: 'gas',
     title: 'Gasvertrag',
-    tagline: 'Wärme zu fairen Preisen – Heizkosten effektiv dämpfen.',
+    tagline: 'Gasangebote nach Verbrauch und Vertragsbedingungen vergleichen.',
     badge: '🔥 Gas',
     image: '/src/assets/images/gas_heating_warm_1791468927843.jpg',
     description:
-      'Die Heizperiode bringt oft böse Überraschungen bei der Jahresabrechnung. Wir vergleichen transparente Erdgas- und Biogastarife mit planbaren Festpreisen. Durch einen Wechsel sichern Sie sich günstige Arbeitspreise je Kilowattstunde und sparen hunderte Euro bei Gasthermen und Zentralheizungen.',
-    savingsHint: 'Durchschnittliche Ersparnis: 250 € – 620 € pro Jahr',
+      'Wir vergleichen verfügbare Gasangebote und erläutern Arbeitspreis, Grundpreis, Laufzeit und Preisgarantie. Die tatsächlichen Kosten hängen vom Jahresverbrauch, der Adresse und den jeweiligen Vertragsbedingungen ab.',
+    savingsHint: 'Individuelles Sparpotenzial nach Tarifprüfung',
     bulletPoints: [
       'Erhalt stabiler Arbeitspreise über den gesamten Winter',
       'Biogas-Beimischung für umweltbewusste Haushalte',
       'Vermeidung teurer Grundversorgungstarife',
       'Transparente monatliche Abschläge ohne Nachzahlungsfalle',
-      'Komplette Ummeldung durch Daryos ohne Ausfallrisiko',
+      'Unterstützung beim Wechsel nach Ihrer Zustimmung',
     ],
     requiredDocs: [
       'Letzte Gasabrechnung (Jahresverbrauch in kWh oder m³)',
@@ -50,16 +50,16 @@ export const servicesData: ServiceDetail[] = [
   {
     id: 'internet',
     title: 'Internet & Festnetz',
-    tagline: 'Highspeed Glasfaser, DSL & Kabel ohne versteckte Router-Kosten.',
+    tagline: 'Internetoptionen transparent nach Preis, Geschwindigkeit und Laufzeit vergleichen.',
     badge: '🌐 Internet & Festnetz',
     image: '/src/assets/images/fiber_internet_speed_1791468940279.jpg',
     description:
-      'Zu langsames WLAN oder überteuerte Altverträge? Wir prüfen die maximale Bandbreite an Ihrer Leipziger Adresse – egal ob Glasfaser (FTTH), Highspeed-Kabel (bis 1.000 Mbit/s) oder stabiles VDSL. Mit attraktiven Wechselboni, Cashback und kostenloser Rufnummernmitnahme sparen Sie bares Geld.',
-    savingsHint: 'Durchschnittliche Ersparnis: 120 € – 240 € pro Jahr + Wechselbonus',
+      'Wir helfen beim Vergleich verfügbarer DSL-, Kabel- und Glasfaserangebote. Verfügbarkeit, tatsächliche Geschwindigkeit, Routerkosten, Bonusbedingungen und mögliche Kosten nach der Aktionsphase sollten vor Abschluss geprüft werden.',
+    savingsHint: 'Verfügbarkeit und Gesamtkosten individuell prüfen',
     bulletPoints: [
       'Verfügbarkeitsprüfung für Glasfaser, Kabel und VDSL',
       'Maximale Download- & Upload-Geschwindigkeit zum Bestpreis',
-      'Garantierte Rufnummernmitnahme vom Altanbieter',
+      'Rufnummernmitnahme bei Bedarf mit dem Anbieter klären',
       'Inklusive Fritz!Box / WLAN-Hardware-Beratung',
       'Lückenloser Übergang am Schalttag',
     ],
@@ -73,12 +73,12 @@ export const servicesData: ServiceDetail[] = [
   {
     id: 'kfz',
     title: 'Autoversicherung',
-    tagline: 'Umfassender KFZ-Schutz: Haftpflicht, Teil- & Vollkasko optimiert.',
+    tagline: 'Autoversicherungen nach Beitrag, Deckung und individuellen Angaben vergleichen.',
     badge: '🚗 Autoversicherung',
     image: '/src/assets/images/car_insurance_mobility_1791468952430.jpg',
     description:
-      'KFZ-Tarife ändern sich jährlich massiv. Wir überprüfen Ihre Schadensfreiheitsklasse (SF-Klasse), Fahrleistung, Fahrerkreis und Deckungsumfang. Egal ob Neuwagen, Gebrauchter oder Elektrofahrzeug: Wir finden Policen mit bestem Schutz gegen Wildschäden, Marderbiss, grobe Fahrlässigkeit und Rabattschutz.',
-    savingsHint: 'Durchschnittliche Ersparnis: 150 € – 450 € pro Jahr',
+      'Wir unterstützen beim Vergleich von Haftpflicht, Teilkasko und Vollkasko. Entscheidend sind unter anderem Fahrleistung, Fahrerkreis, Schadenfreiheitsklasse, Selbstbeteiligung und die konkreten Versicherungsbedingungen.',
+    savingsHint: 'Individuelle Prüfung von Beitrag und Deckung',
     bulletPoints: [
       'Optimierung von Haftpflicht, Teil- & Vollkasko',
       'Erhalt und Übertragung von SF-Rabatten',
