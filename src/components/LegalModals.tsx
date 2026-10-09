@@ -51,7 +51,7 @@ export const LegalModals: React.FC<LegalModalsProps> = ({ activeModal, onClose }
             <div className="space-y-2">
               <h4 className="font-bold text-white text-sm">Tätigkeitsbereich:</h4>
               <p>
-                Vermittlung und unabhängige Beratung von Tarifen für Strom-, Gas-, Telekommunikationsverträge sowie KFZ-Versicherungen gemäß den geltenden deutschen Gewerbebestimmungen.
+                Beratung und Vermittlung von Strom-, Gas-, Telekommunikations- und Kfz-Angeboten unserer Vertragspartner. Versicherungsvermittlung erfolgt nur, soweit die dafür erforderlichen gesetzlichen Voraussetzungen erfüllt sind.
               </p>
             </div>
 

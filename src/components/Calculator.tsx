@@ -44,7 +44,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
   // Postleitzahl (PLZ) state - Standard ist Leipzig 04329 (Daryos Firmensitz)
   const [plz, setPlz] = useState<string>('04329');
 
-  // Zeit / Vertragslaufzeit & Preisgarantie (12 Monate, 24 Monate oder flexibel 1 Monat)
+  // Illustrative contract-duration options
   const [laufzeitOption, setLaufzeitOption] = useState<'12' | '24' | 'flex'>('12');
 
   // Strom states
@@ -314,11 +314,11 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
               </div>
             </div>
 
-            {/* Laufzeit & Preisgarantie */}
+            {/* Example contract duration */}
             <div className="md:col-span-7 space-y-1">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
                 <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                <span>Vertragslaufzeit & Preisgarantie</span>
+                <span>Vertragslaufzeit (Beispiel)</span>
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <button
@@ -344,7 +344,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
                   }`}
                 >
                   <span className="font-bold">24 Monate</span>
-                  <span className="text-[9px] text-slate-400 font-mono">Langzeit-Schutz</span>
+                  <span className="text-[9px] text-slate-400 font-mono">Laufzeit-Beispiel</span>
                 </button>
 
                 <button
@@ -366,7 +366,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
                   {laufzeitOption === '12'
                     ? '12 Monate Laufzeit (Beispiel)'
                     : laufzeitOption === '24'
-                    ? '24 Monate planbare Budgetsicherheit'
+                    ? '24 Monate Laufzeit (Beispiel)'
                     : '1 Monat Kündigungsfrist, flexibel anpassbar'}
                 </span>
               </div>

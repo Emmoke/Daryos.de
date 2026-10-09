@@ -19,7 +19,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ currentLang }) =
           {t.reviews.sectionTitle}
         </h2>
         <p className="text-sm text-slate-400 leading-relaxed">
-          Echte Kundenstimmen veröffentlichen wir nur mit Zustimmung der betreffenden Personen. Aktuell werden auf dieser Website keine verifizierten Bewertungen angezeigt.
+          {t.reviews.emptyMessage}
         </p>
       </div>
     </section>

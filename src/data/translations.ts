@@ -138,6 +138,7 @@ export interface TranslationSchema {
     sectionTitle: string;
     filterAll: string;
     savedText: string;
+    emptyMessage: string;
   };
   faq: {
     sectionSub: string;
@@ -258,9 +259,9 @@ export const translations: Record<Language, TranslationSchema> = {
       step4Desc: 'Wenn Sie sich entscheiden, unterstützen wir Sie bei den vereinbarten Schritten des Anbieterwechsels.',
     },
     audit: {
-      title: 'Digitaler Rechnungs- & Vertrags-Check',
+      title: 'Persönliche Rechnungsprüfung anfragen',
       subtitle: 'Laden Sie Ihre letzte Rechnung hoch oder fotografieren Sie Ihren Zähler für eine unverbindliche Ersteinschätzung.',
-      dragText: 'Rechnung oder Vertrag hier ablegen',
+      dragText: 'Rechnung zur späteren Prüfung auswählen (bleibt lokal)',
       orClick: 'oder Datei vom Gerät auswählen (PDF, JPG, PNG)',
       privacyNote: 'Ihre Dokumente werden vertraulich gemäß DSGVO nur zur individuellen Tarifberatung verarbeitet.',
       analyzingText: 'Dokument wird digital analysiert...',
@@ -300,9 +301,10 @@ export const translations: Record<Language, TranslationSchema> = {
     },
     reviews: {
       sectionSub: 'Erfahrungsberichte',
-      sectionTitle: 'Was unsere Kunden in Leipzig und Umgebung sagen',
+      sectionTitle: 'Kundenstimmen',
       filterAll: 'Alle Bewertungen',
       savedText: 'Erzielte Ersparnis:',
+      emptyMessage: 'Aktuell zeigen wir hier noch keine Kundenbewertungen an. Echte Kundenstimmen veröffentlichen wir nur mit Zustimmung der betreffenden Personen.',
     },
     faq: {
       sectionSub: 'Antworten auf Ihre Fragen',
@@ -422,9 +424,9 @@ export const translations: Record<Language, TranslationSchema> = {
       step4Desc: 'If you choose an offer, we support you with the agreed steps of the provider switch.',
     },
     audit: {
-      title: 'Digital Bill & Contract Audit',
+      title: 'Request a personal bill review',
       subtitle: 'Upload your latest utility bill or snap a photo of your meter for a free preliminary evaluation.',
-      dragText: 'Drop your bill or contract here',
+      dragText: 'Select a bill for a later review (stays on this device)',
       orClick: 'or choose file from device (PDF, JPG, PNG)',
       privacyNote: 'Your documents are processed strictly in accordance with GDPR solely for individual rate consultation.',
       analyzingText: 'Digitally analyzing document...',
@@ -464,9 +466,10 @@ export const translations: Record<Language, TranslationSchema> = {
     },
     reviews: {
       sectionSub: 'Customer Stories',
-      sectionTitle: 'What our clients in Leipzig and Germany say',
+      sectionTitle: 'Customer feedback',
       filterAll: 'All Reviews',
       savedText: 'Savings achieved:',
+      emptyMessage: 'We are not displaying customer reviews here at this time. We publish genuine feedback only with the individuals’ consent.',
     },
     faq: {
       sectionSub: 'Got Questions?',
@@ -586,9 +589,9 @@ export const translations: Record<Language, TranslationSchema> = {
       step4Desc: 'Teklifi seçerseniz sağlayıcı değişikliğinin kararlaştırılan adımlarında size destek oluruz.',
     },
     audit: {
-      title: 'Dijital Fatura ve Sözleşme Kontrolü',
+      title: 'Kişisel fatura incelemesi talep edin',
       subtitle: 'Faturanızın fotoğrafını yükleyin veya sayacınızı çekin, ücretsiz ilk değerlendirmeyi yapalım.',
-      dragText: 'Faturanızı buraya sürükleyin',
+      dragText: 'Daha sonra incelenmek üzere fatura seçin (cihazınızda kalır)',
       orClick: 'veya cihazınızdan dosya seçin (PDF, JPG, PNG)',
       privacyNote: 'Belgeleriniz KVKK/DSGVO kapsamında gizli tutulur.',
       analyzingText: 'Belge taranıyor...',
@@ -628,9 +631,10 @@ export const translations: Record<Language, TranslationSchema> = {
     },
     reviews: {
       sectionSub: 'Müşteri Memnuniyeti',
-      sectionTitle: 'Leipzig ve Çevresindeki Müşterilerimizin Yorumları',
+      sectionTitle: 'Müşteri yorumları',
       filterAll: 'Tüm Yorumlar',
       savedText: 'Elde Edilen Tasarruf:',
+      emptyMessage: 'Şu anda burada müşteri yorumu göstermiyoruz. Gerçek müşteri görüşlerini yalnızca ilgili kişilerin izniyle yayımlıyoruz.',
     },
     faq: {
       sectionSub: 'Aklınıza Takılanlar',
@@ -750,9 +754,9 @@ export const translations: Record<Language, TranslationSchema> = {
       step4Desc: 'Heke hûn pêşniyarekê hilbijêrin, em di gavên lihevkirî yên guherîna dabînkerê de alîkariya we dikin.',
     },
     audit: {
-      title: 'Kontrola Dijîtal a Fatureyê',
+      title: 'Daxwaza kontrolkirina kesane ya fatureyê',
       subtitle: 'Wêneya fatureya xwe an saeta xwe bar bikin, em binirxînin.',
-      dragText: 'Fatureya xwe li vir deynin',
+      dragText: 'Ji bo kontrolkirina paşê fatûreyê hilbijêrin (li ser amûra we dimîne)',
       orClick: 'an ji telefon/kompîturê hilbijêrin (PDF, JPG, PNG)',
       privacyNote: 'Belgeyên we li gorî qanûna parastina daneyan nehênî dimînin.',
       analyzingText: 'Belge tê kontrolkirin...',
@@ -792,9 +796,10 @@ export const translations: Record<Language, TranslationSchema> = {
     },
     reviews: {
       sectionSub: 'Nêrînên Xerîdaran',
-      sectionTitle: 'Xerîdarên me li Leipzig çi dibêjin?',
+      sectionTitle: 'Nêrînên xerîdaran',
       filterAll: 'Hemû Nêrîn',
       savedText: 'Tasarrufa bidestxistî:',
+      emptyMessage: 'Niha em li vir şîroveyên xerîdaran nîşan nadin. Em nêrînên rastîn tenê bi destûra kesên têkildar diweşînin.',
     },
     faq: {
       sectionSub: 'Pirs û Bersiv',
@@ -914,9 +919,9 @@ export const translations: Record<Language, TranslationSchema> = {
       step4Desc: 'إذا اخترت عرضاً، ندعمك في الخطوات المتفق عليها لتبديل المزود.',
     },
     audit: {
-      title: 'الفحص الرقمي للفواتير والعقود',
+      title: 'طلب مراجعة شخصية للفاتورة',
       subtitle: 'ارفع صورة فاتورتك أو عداد الكهرباء للحصول على تقييم مجاني فوري.',
-      dragText: 'اسحب الفاتورة أو العقد إلى هنا',
+      dragText: 'اختر فاتورة للمراجعة لاحقاً (تبقى على جهازك)',
       orClick: 'أو اختر ملفاً من جهازك (PDF, JPG, PNG)',
       privacyNote: 'مستنداتك محمية تماماً وفق معايير الخصوصية الأوروبية وتستخدم فقط لغرض الاستشارة.',
       analyzingText: 'جاري فحص المستند رقمياً...',
@@ -956,9 +961,10 @@ export const translations: Record<Language, TranslationSchema> = {
     },
     reviews: {
       sectionSub: 'تجارب عملائنا',
-      sectionTitle: 'ماذا يقول عملاؤنا في لايبزيغ وحولها؟',
+      sectionTitle: 'آراء العملاء',
       filterAll: 'جميع التقييمات',
       savedText: 'المبلغ الموفر:',
+      emptyMessage: 'لا نعرض حالياً تقييمات للعملاء هنا. لا ننشر آراء العملاء الحقيقية إلا بموافقة أصحابها.',
     },
     faq: {
       sectionSub: 'إجابات على استفساراتك',

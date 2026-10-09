@@ -6,7 +6,6 @@ import { translations } from '../data/translations';
 interface BookingSectionProps {
   currentLang: Language;
   preselectedService?: ServiceType | 'all';
-  initialNotes?: string;
 }
 
 export const BookingSection: React.FC<BookingSectionProps> = ({
@@ -33,7 +32,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
       case 'gas': return 'Gasvertrag';
       case 'internet': return 'Internet & Festnetz';
       case 'kfz': return 'Autoversicherung';
-      default: return 'Rundum-Tarifvergleich';
+      default: return 'Beratung zu mehreren Bereichen';
     }
   };
 

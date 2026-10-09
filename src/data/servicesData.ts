@@ -4,7 +4,7 @@ export const servicesData: ServiceDetail[] = [
   {
     id: 'strom',
     title: 'Stromvertrag',
-    tagline: 'Günstiger Öko- oder Normalstrom mit verlässlicher Preisgarantie.',
+    tagline: 'Passende Stromangebote unserer Vertragspartner persönlich prüfen lassen.',
     badge: '⚡ Strom',
     image: '/src/assets/images/strom_energy_clean_1791468917569.jpg',
     description:
@@ -14,7 +14,7 @@ export const servicesData: ServiceDetail[] = [
       'Preis- und Vertragsbedingungen individuell vergleichen',
       'Ökostrom aus zertifizierter Wasserkraft oder Solar',
       'Keine Vorkasse oder dubiose Tarifmodelle',
-      'Fristgerechte Kündigung beim Altversorger',
+      'Unterstützung bei der Abstimmung des Anbieterwechsels',
       'Unterbrechungsfreie gesetzliche Versorgungssicherheit',
     ],
     requiredDocs: [
@@ -36,8 +36,8 @@ export const servicesData: ServiceDetail[] = [
     bulletPoints: [
       'Arbeitspreise und Vertragslaufzeit gemeinsam prüfen',
       'Biogas-Beimischung für umweltbewusste Haushalte',
-      'Vermeidung teurer Grundversorgungstarife',
-      'Transparente monatliche Abschläge ohne Nachzahlungsfalle',
+      'Vergleich mit verfügbaren Alternativen',
+      'Abschläge und Vertragsbedingungen vor einem Wechsel prüfen',
       'Unterstützung beim Wechsel nach vorheriger Abstimmung',
     ],
     requiredDocs: [
@@ -54,12 +54,12 @@ export const servicesData: ServiceDetail[] = [
     badge: '🌐 Internet & Festnetz',
     image: '/src/assets/images/fiber_internet_speed_1791468940279.jpg',
     description:
-      'Zu langsames WLAN oder überteuerte Altverträge? Wir prüfen die maximale Bandbreite an Ihrer Leipziger Adresse – egal ob Glasfaser (FTTH), Highspeed-Kabel (bis 1.000 Mbit/s) oder stabiles VDSL. Mit attraktiven Wechselboni, Cashback und kostenloser Rufnummernmitnahme sparen Sie bares Geld.',
+      'Wir besprechen mit Ihnen, welche Internetangebote an Ihrer Adresse verfügbar sein könnten. Verfügbarkeit, Geschwindigkeit, Laufzeit, Kosten und Rufnummernmitnahme müssen beim jeweiligen Anbieter geprüft werden.',
     savingsHint: 'Verfügbarkeit und Konditionen individuell prüfen lassen',
     bulletPoints: [
       'Verfügbarkeitsprüfung für Glasfaser, Kabel und VDSL',
       'Maximale Download- & Upload-Geschwindigkeit zum Bestpreis',
-      'Garantierte Rufnummernmitnahme vom Altanbieter',
+      'Prüfung, ob eine Rufnummernmitnahme möglich ist',
       'Inklusive Fritz!Box / WLAN-Hardware-Beratung',
       'Lückenloser Übergang am Schalttag',
     ],
@@ -84,7 +84,7 @@ export const servicesData: ServiceDetail[] = [
       'Erhalt und Übertragung von SF-Rabatten',
       'Schutz bei grober Fahrlässigkeit & erweiterte Wildschadenklausel',
       'Sonderkündigungsrecht bei Beitragserhöhungen nutzen',
-      'Stichtag 30. November sowie ganzjährige Wechselberatung',
+      'Prüfung von Laufzeiten und möglichen Wechselzeitpunkten',
     ],
     requiredDocs: [
       'Fahrzeugschein (Zulassungsbescheinigung Teil I)',
@@ -101,21 +101,21 @@ export const faqData: FaqItem[] = [
     id: 'f1',
     question: 'Kostet mich die Beratung oder der Wechsel etwas?',
     answer:
-      'Nein, unsere Beratung und der gesamte Wechselservice sind für Sie als Endkunde zu 100% kostenlos. Wir finanzieren uns über reguläre Vermittlungsprovisionen der jeweiligen Versorger und Versicherer, bleiben dabei jedoch unabhängig und empfehlen stets den Tarif, der für Ihre Anforderungen am günstigsten ist.',
+      'Die Erstberatung ist kostenlos. Bei erfolgreicher Vermittlung können wir vom jeweiligen Anbieter eine Provision erhalten. Wir prüfen verfügbare Angebote unserer Vertragspartner; ein vollständiger Marktvergleich wird nicht zugesagt. Sie entscheiden selbst, ob Sie ein Angebot annehmen.',
     category: 'allgemein',
   },
   {
     id: 'f2',
     question: 'Droht mir beim Strom- oder Gasanbieterwechsel ein Versorgungsausfall?',
     answer:
-      'Nein, keinesfalls! In Deutschland ist die lückenlose Energieversorgung gesetzlich durch das Energiewirtschaftsgesetz (EnWG) garantiert. Es gibt zu keinem Zeitpunkt eine Strom- oder Gasunterbrechung. Sie merken vom Wechsel technisch überhaupt nichts – die Leitungen und Zähler bleiben exakt dieselben.',
+      'Der Wechsel des Strom- oder Gaslieferanten erfolgt grundsätzlich über den bestehenden Netzanschluss. Konkrete Abläufe und Voraussetzungen hängen vom Vertrag und den beteiligten Anbietern ab. Lassen Sie sich die Wechselbedingungen vor einem Auftrag erklären.',
     category: 'strom',
   },
   {
     id: 'f3',
     question: 'Was passiert mit meinem Altvertrag? Muss ich selbst kündigen?',
     answer:
-      'In den allermeisten Fällen müssen Sie gar nichts kündigen. Der neue Versorger übernimmt die Kündigung bei Ihrem bisherigen Anbieter vollautomatisch im Zuge des Wechsels. Lediglich bei sehr kurzen Sonderkündigungsfristen (z.B. nach einer plötzlichen Preiserhöhung) empfehlen wir eine vorsorgliche Eigenkündigung, bei der wir Sie mit Musterschreiben unterstützen.',
+      'Wer kündigt und wann, hängt vom Vertrag und dem vereinbarten Ablauf ab. Kündigen Sie nicht, bevor Zuständigkeit und Fristen geklärt sind. Wir besprechen mit Ihnen, welche Schritte im konkreten Fall übernommen werden können.',
     category: 'allgemein',
   },
   {

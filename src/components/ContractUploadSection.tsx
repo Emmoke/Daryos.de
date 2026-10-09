@@ -42,7 +42,7 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
         {/* Section Header */}
         <div className="text-center mb-12 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-semibold border border-blue-500/20">
-            <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+            <FileCheck className="w-3.5 h-3.5 text-orange-400" />
             <span>Persönlicher Rechnungs-Check</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
