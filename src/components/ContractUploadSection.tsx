@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { UploadCloud, FileCheck, CheckCircle2, MessageSquare, Mail, RefreshCw, AlertCircle, Shield, ShieldCheck, Zap, Sparkles } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { FileCheck, MessageSquare, Shield, UploadCloud } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../data/translations';
 
@@ -13,67 +13,10 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<{
-    tariffType: string;
-    consumption: string;
-    potential: string;
-    safeInstallment: string;
-    nachzahlungProtection: string;
-  } | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [clientPhone, setClientPhone] = useState('');
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
-    setIsAnalyzing(true);
-    setAnalysisResult(null);
-
-    // Realistic intelligent client-side document processing
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      const fileNameLower = file.name.toLowerCase();
-      const isGas = fileNameLower.includes('gas') || fileNameLower.includes('heizung');
-      const isStrom = fileNameLower.includes('strom') || fileNameLower.includes('energie') || !isGas;
-
-      const detected = {
-        tariffType: isGas ? 'Gas-Vertragsdokument / Jahresabrechnung' : 'Strom-Rechnung & Zähler erfasst',
-        consumption: isGas ? 'ca. 18.000 kWh Jahresverbrauch erkannt' : 'ca. 3.400 kWh Jahresverbrauch erkannt',
-        potential: isGas ? 'ca. 420 € – 580 € Ersparnis pro Jahr möglich' : 'ca. 260 € – 380 € Ersparnis pro Jahr möglich',
-        safeInstallment: isGas ? 'Empfohlener Abschlag: ca. 110 € / Monat' : 'Empfohlener Abschlag: ca. 85 € / Monat',
-        nachzahlungProtection: 'Daryos® Nachzahlungs-Schutz aktiv: Verhindert böse Nachzahlungen!',
-      };
-
-      setAnalysisResult(detected);
-
-      // Queue into localStorage for the business owner's tablet / AdminCockpit
-      try {
-        const existing = JSON.parse(localStorage.getItem('daryos_ki_leads') || '[]');
-        const newLead = {
-          id: `web-${Date.now()}`,
-          date: new Date().toLocaleDateString('de-DE'),
-          clientName: 'Webseiten-Kunde (Rechnungs-Upload)',
-          clientEmail: 'kunde.web@leipzig.de',
-          clientPhone: clientPhone || '+49 176 ...',
-          service: isGas ? 'gas' : 'strom',
-          currentProvider: isGas ? 'Stadtwerke Leipzig (Gas)' : 'Vattenfall / Grundversorgung',
-          annualKwh: isGas ? 18000 : 3400,
-          currentMonthly: isGas ? 150 : 115,
-          currentAnnual: isGas ? 1800 : 1380,
-          meterNumber: 'ZLR-' + Math.floor(10000 + Math.random() * 90000),
-          bestOfferName: isGas ? 'Daryos Gas-Garant 24M' : 'Daryos Grünstrom 12M',
-          bestOfferProvider: isGas ? 'E.ON Energie' : 'Yello Strom',
-          bestOfferAnnual: isGas ? 1320 : 1035,
-          bestOfferMonthly: isGas ? 110 : 86,
-          calculatedSavings: isGas ? 480 : 345,
-          provisionExpected: isGas ? 80 : 65,
-          aiConfidence: 97,
-          status: 'neu',
-          notes: `Per Web-Upload eingereicht: ${file.name}. Nachzahlungs-Schutz angefordert.`,
-        };
-        localStorage.setItem('daryos_ki_leads', JSON.stringify([newLead, ...existing]));
-      } catch (e) {}
-    }, 1300);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -86,23 +29,12 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
 
   const handleReset = () => {
     setSelectedFile(null);
-    setAnalysisResult(null);
-    setIsAnalyzing(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const sendFileToWhatsApp = () => {
-    const fileName = selectedFile ? selectedFile.name : 'Rechnung';
-    const message = `Hallo Daryos, ich habe meine Rechnung (${fileName}) hochgeladen. Bitte prüfen Sie mein Einsparpotenzial und berechnen Sie den optimalen monatlichen Abschlag für mich (Nachzahlungs-Schutz).`;
-    window.open(`https://wa.me/4917643416174?text=${encodeURIComponent(message)}`, '_blank');
-  };
-
-  const sendFileToEmail = () => {
-    const subject = encodeURIComponent('Anfrage: Kostenloser Rechnungs-Check & Nachzahlungs-Schutz bei Daryos');
-    const body = encodeURIComponent(
-      `Hallo Herr Daryos,\n\nanbei sende ich Ihnen meine aktuelle Abrechnung für einen unverbindlichen Tarifvergleich und Abschlags-Check.\n\nMeine Telefonnummer: ${clientPhone || '+49 ...'}\n\nBitte prüfen Sie, wie viel ich sparen kann und wie mein monatlicher Abschlag optimal eingestellt wird, damit ich keine Nachzahlung bekomme.\n\nMit freundlichen Grüßen`
-    );
-    window.location.href = `mailto:daryos.kreis@gmail.com?subject=${subject}&body=${body}`;
+  const openWhatsApp = () => {
+    const message = 'Hallo Daryos, ich möchte meine Strom- oder Gasabrechnung persönlich prüfen lassen. Wie kann ich Ihnen das Dokument sicher zukommen lassen?';
+    return `https://wa.me/4917643416174?text=${encodeURIComponent(message)}`;
   };
 
   return (
@@ -112,13 +44,13 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
         <div className="text-center mb-12 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-semibold border border-blue-500/20">
             <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-            <span>KI-Rechnungs-Check & Nachzahlungs-Schutz</span>
+            <span>Persönlicher Rechnungs-Check</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             {t.audit.title}
           </h2>
           <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
-            Laden Sie einfach Ihre letzte Strom- oder Gasabrechnung hoch. Unsere KI ermittelt in Sekunden Ihr Sparpotenzial und berechnet den idealen monatlichen Abschlag – damit Sie nie wieder Nachzahlungen fürchten müssen!
+            Fragen Sie eine persönliche Prüfung Ihrer Strom- oder Gasabrechnung an. Wir besprechen mit Ihnen passende Angebote unserer Vertragspartner. Eine Ersparnis oder ein bestimmter Abschlag kann nicht garantiert werden.
           </p>
         </div>
 
@@ -165,14 +97,14 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
 
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <div className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>100% Datenschutz nach DSGVO</span>
-                </div>
-                <div className="inline-flex items-center gap-1.5 text-[11px] text-blue-300 bg-blue-950/40 px-3 py-1.5 rounded-lg border border-blue-500/30 font-semibold">
-                  <Shield className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Inkl. 0 € Nachzahlungs-Schutz</span>
+                <Shield className="w-3.5 h-3.5 text-blue-400" />
+                <span>Keine automatische Übertragung oder Analyse</span>
                 </div>
               </div>
+              <p className="max-w-xl mx-auto mt-4 text-xs text-slate-400">
+                Die ausgewählte Datei bleibt auf diesem Gerät. Diese Website lädt sie nicht hoch und analysiert sie nicht.
+                Wenn Sie WhatsApp öffnen, müssen Sie die Datei dort selbst anhängen und die Nachricht selbst absenden.
+              </p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -200,71 +132,20 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
                 </button>
               </div>
 
-              {/* Status and Extraction Preview */}
-              {isAnalyzing && (
-                <div className="p-6 bg-slate-950/80 rounded-2xl border border-slate-800 text-center space-y-3">
-                  <RefreshCw className="w-6 h-6 text-blue-400 animate-spin mx-auto" />
-                  <div className="text-sm font-semibold text-slate-200">
-                    KI liest Zählernummer, Verbrauch und Tarifkonditionen aus...
-                  </div>
-                </div>
-              )}
-
-              {analysisResult && (
-                <div className="bg-slate-950 p-6 rounded-2xl border border-emerald-500/30 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-emerald-400 text-sm font-bold">
-                      <CheckCircle2 className="w-5 h-5" />
-                      <span>{t.audit.analysisSuccess}</span>
-                    </div>
-                    <span className="text-[11px] font-mono font-bold text-blue-300 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
-                      KI-Score: 98%
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
-                      <span className="text-slate-400 block mb-0.5">{t.audit.detectedProvider}</span>
-                      <span className="font-semibold text-white">{analysisResult.tariffType}</span>
-                    </div>
-                    <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
-                      <span className="text-slate-400 block mb-0.5">{t.audit.detectedConsumption}</span>
-                      <span className="font-semibold text-blue-400">{analysisResult.consumption}</span>
-                    </div>
-                  </div>
-
-                  {/* Savings & Safe Installment */}
-                  <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-300 text-xs font-semibold text-center space-y-1">
-                    <div className="text-sm font-bold">{analysisResult.potential}</div>
-                    <div className="text-[11px] text-slate-300">{analysisResult.safeInstallment}</div>
-                  </div>
-
-                  {/* Protection Banner */}
-                  <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-xl flex items-center gap-2.5 text-xs text-blue-200">
-                    <ShieldCheck className="w-5 h-5 text-blue-400 shrink-0" />
-                    <span>{analysisResult.nachzahlungProtection}</span>
-                  </div>
-
-                  {/* Dispatch actions */}
-                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={sendFileToWhatsApp}
-                      className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      <span>Ergebnis per WhatsApp prüfen lassen</span>
-                    </button>
-
-                    <button
-                      onClick={sendFileToEmail}
-                      className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
-                    >
-                      <Mail className="w-4 h-4" />
-                      <span>Angebot per E-Mail anfordern</span>
-                    </button>
-                  </div>
-                </div>
-              )}
+              <div className="space-y-4">
+                <p className="text-xs text-slate-400">
+                  Die Datei wurde nicht übertragen. Sie können über WhatsApp Kontakt aufnehmen und sie dort bei Bedarf selbst anhängen.
+                </p>
+                <a
+                  href={openWhatsApp()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 shadow-md"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>WhatsApp öffnen und Prüfung anfragen</span>
+                </a>
+              </div>
             </div>
           )}
         </div>
