@@ -26,54 +26,10 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
-    setIsAnalyzing(true);
+    setIsAnalyzing(false);
+    // Do not pretend to perform OCR or calculate savings locally.
+    // No file content or customer details are stored or sent by this page.
     setAnalysisResult(null);
-
-    // Realistic intelligent client-side document processing
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      const fileNameLower = file.name.toLowerCase();
-      const isGas = fileNameLower.includes('gas') || fileNameLower.includes('heizung');
-      const isStrom = fileNameLower.includes('strom') || fileNameLower.includes('energie') || !isGas;
-
-      const detected = {
-        tariffType: isGas ? 'Gas-Vertragsdokument / Jahresabrechnung' : 'Strom-Rechnung & Zähler erfasst',
-        consumption: isGas ? 'ca. 18.000 kWh Jahresverbrauch erkannt' : 'ca. 3.400 kWh Jahresverbrauch erkannt',
-        potential: isGas ? 'ca. 420 € – 580 € Ersparnis pro Jahr möglich' : 'ca. 260 € – 380 € Ersparnis pro Jahr möglich',
-        safeInstallment: isGas ? 'Empfohlener Abschlag: ca. 110 € / Monat' : 'Empfohlener Abschlag: ca. 85 € / Monat',
-        nachzahlungProtection: 'Daryos® Nachzahlungs-Schutz aktiv: Verhindert böse Nachzahlungen!',
-      };
-
-      setAnalysisResult(detected);
-
-      // Queue into localStorage for the business owner's tablet / AdminCockpit
-      try {
-        const existing = JSON.parse(localStorage.getItem('daryos_ki_leads') || '[]');
-        const newLead = {
-          id: `web-${Date.now()}`,
-          date: new Date().toLocaleDateString('de-DE'),
-          clientName: 'Webseiten-Kunde (Rechnungs-Upload)',
-          clientEmail: 'kunde.web@leipzig.de',
-          clientPhone: clientPhone || '+49 176 ...',
-          service: isGas ? 'gas' : 'strom',
-          currentProvider: isGas ? 'Stadtwerke Leipzig (Gas)' : 'Vattenfall / Grundversorgung',
-          annualKwh: isGas ? 18000 : 3400,
-          currentMonthly: isGas ? 150 : 115,
-          currentAnnual: isGas ? 1800 : 1380,
-          meterNumber: 'ZLR-' + Math.floor(10000 + Math.random() * 90000),
-          bestOfferName: isGas ? 'Daryos Gas-Garant 24M' : 'Daryos Grünstrom 12M',
-          bestOfferProvider: isGas ? 'E.ON Energie' : 'Yello Strom',
-          bestOfferAnnual: isGas ? 1320 : 1035,
-          bestOfferMonthly: isGas ? 110 : 86,
-          calculatedSavings: isGas ? 480 : 345,
-          provisionExpected: isGas ? 80 : 65,
-          aiConfidence: 97,
-          status: 'neu',
-          notes: `Per Web-Upload eingereicht: ${file.name}. Nachzahlungs-Schutz angefordert.`,
-        };
-        localStorage.setItem('daryos_ki_leads', JSON.stringify([newLead, ...existing]));
-      } catch (e) {}
-    }, 1300);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -93,14 +49,14 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
 
   const sendFileToWhatsApp = () => {
     const fileName = selectedFile ? selectedFile.name : 'Rechnung';
-    const message = `Hallo Daryos, ich habe meine Rechnung (${fileName}) hochgeladen. Bitte prüfen Sie mein Einsparpotenzial und berechnen Sie den optimalen monatlichen Abschlag für mich (Nachzahlungs-Schutz).`;
+    const message = `Hallo Daryos, ich möchte meine Rechnung (${fileName}) zur Prüfung senden. Bitte teilen Sie mir mit, welche Unterlagen Sie benötigen.`;
     window.open(`https://wa.me/4917643416174?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const sendFileToEmail = () => {
-    const subject = encodeURIComponent('Anfrage: Kostenloser Rechnungs-Check & Nachzahlungs-Schutz bei Daryos');
+    const subject = encodeURIComponent('Anfrage: Persönliche Prüfung meiner Strom- oder Gasrechnung');
     const body = encodeURIComponent(
-      `Hallo Herr Daryos,\n\nanbei sende ich Ihnen meine aktuelle Abrechnung für einen unverbindlichen Tarifvergleich und Abschlags-Check.\n\nMeine Telefonnummer: ${clientPhone || '+49 ...'}\n\nBitte prüfen Sie, wie viel ich sparen kann und wie mein monatlicher Abschlag optimal eingestellt wird, damit ich keine Nachzahlung bekomme.\n\nMit freundlichen Grüßen`
+      `Hallo Herr Daryos,\n\nanbei sende ich Ihnen meine aktuelle Abrechnung für einen unverbindlichen Tarifvergleich.\n\nMeine Telefonnummer: ${clientPhone || '+49 ...'}\n\nBitte prüfen Sie, wie viel ich sparen kann und wie mein monatlicher Abschlag optimal eingestellt wird, damit ich keine Nachzahlung bekomme.\n\nMit freundlichen Grüßen`
     );
     window.location.href = `mailto:daryos.kreis@gmail.com?subject=${subject}&body=${body}`;
   };
@@ -112,13 +68,13 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
         <div className="text-center mb-12 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-semibold border border-blue-500/20">
             <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-            <span>KI-Rechnungs-Check & Nachzahlungs-Schutz</span>
+            <span>Persönliche Prüfung nach Kontaktaufnahme</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             {t.audit.title}
           </h2>
           <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
-            Laden Sie einfach Ihre letzte Strom- oder Gasabrechnung hoch. Unsere KI ermittelt in Sekunden Ihr Sparpotenzial und berechnet den idealen monatlichen Abschlag – damit Sie nie wieder Nachzahlungen fürchten müssen!
+            Wählen Sie eine Datei nur aus, wenn Sie sie anschließend selbst über WhatsApp oder E-Mail teilen möchten. Auf dieser Website findet keine automatische Dokumentenanalyse statt. Einsparungen oder Abschläge können erst nach Prüfung der tatsächlichen Unterlagen eingeschätzt werden.
           </p>
         </div>
 
@@ -166,11 +122,11 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <div className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>100% Datenschutz nach DSGVO</span>
+                  <span>Datei bleibt zunächst auf Ihrem Gerät</span>
                 </div>
                 <div className="inline-flex items-center gap-1.5 text-[11px] text-blue-300 bg-blue-950/40 px-3 py-1.5 rounded-lg border border-blue-500/30 font-semibold">
                   <Shield className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Inkl. 0 € Nachzahlungs-Schutz</span>
+                  <span>Keine automatische Analyse</span>
                 </div>
               </div>
             </div>
@@ -200,12 +156,35 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
                 </button>
               </div>
 
+              <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                <p className="text-sm text-slate-300">
+                  Die Datei wird auf dieser Seite <strong>nicht automatisch ausgewertet oder übertragen</strong>.
+                  Für eine Prüfung öffnen Sie WhatsApp oder E-Mail und hängen Sie die Datei dort selbst an.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={sendFileToWhatsApp}
+                    className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs"
+                  >
+                    WhatsApp öffnen – Datei selbst anhängen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={sendFileToEmail}
+                    className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs"
+                  >
+                    E-Mail öffnen – Datei selbst anhängen
+                  </button>
+                </div>
+              </div>
+
               {/* Status and Extraction Preview */}
               {isAnalyzing && (
                 <div className="p-6 bg-slate-950/80 rounded-2xl border border-slate-800 text-center space-y-3">
                   <RefreshCw className="w-6 h-6 text-blue-400 animate-spin mx-auto" />
                   <div className="text-sm font-semibold text-slate-200">
-                    KI liest Zählernummer, Verbrauch und Tarifkonditionen aus...
+                    Die Datei wird nicht automatisch analysiert.
                   </div>
                 </div>
               )}
@@ -252,7 +231,7 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
                       className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
                     >
                       <MessageSquare className="w-4 h-4" />
-                      <span>Ergebnis per WhatsApp prüfen lassen</span>
+                      <span>WhatsApp öffnen und Datei selbst anhängen</span>
                     </button>
 
                     <button
@@ -260,7 +239,7 @@ export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ cu
                       className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
                     >
                       <Mail className="w-4 h-4" />
-                      <span>Angebot per E-Mail anfordern</span>
+                      <span>E-Mail öffnen und Datei selbst anhängen</span>
                     </button>
                   </div>
                 </div>

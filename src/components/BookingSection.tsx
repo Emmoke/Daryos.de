@@ -54,33 +54,8 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     setConfirmedData(data);
     setIsSubmitted(true);
 
-    // Queue into daryos_ki_leads for Admin Cockpit tablet view
-    try {
-      const existing = JSON.parse(localStorage.getItem('daryos_ki_leads') || '[]');
-      const newLead = {
-        id: `book-${Date.now()}`,
-        date: new Date().toLocaleDateString('de-DE'),
-        clientName: fullName,
-        clientEmail: email || 'termin@leipzig.de',
-        clientPhone: phone,
-        service: serviceType === 'all' ? 'gas' : serviceType,
-        currentProvider: 'Terminbuchung / Neuanfrage',
-        annualKwh: 14000,
-        currentMonthly: 130,
-        currentAnnual: 1560,
-        meterNumber: 'TERMIN-' + selectedTime,
-        bestOfferName: 'Daryos Spar-Garant',
-        bestOfferProvider: 'Top-Partner',
-        bestOfferAnnual: 1180,
-        bestOfferMonthly: 98,
-        calculatedSavings: 380,
-        provisionExpected: 80,
-        aiConfidence: 95,
-        status: 'neu',
-        notes: `Termin am ${selectedDate} um ${selectedTime} Uhr (${consultationType}). Notizen: ${notes || 'Keine'}`,
-      };
-      localStorage.setItem('daryos_ki_leads', JSON.stringify([newLead, ...existing]));
-    } catch (err) {}
+    // Privacy: do not persist personal booking details in browser storage.
+    // The user can explicitly continue via WhatsApp from the confirmation screen.
   };
 
   const getServiceLabel = (st: ServiceType | 'all') => {
