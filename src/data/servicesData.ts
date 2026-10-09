@@ -1,4 +1,4 @@
-import { ServiceDetail, ReviewItem, FaqItem } from '../types';
+import { ServiceDetail, FaqItem } from '../types';
 
 export const servicesData: ServiceDetail[] = [
   {
@@ -9,9 +9,9 @@ export const servicesData: ServiceDetail[] = [
     image: '/src/assets/images/strom_energy_clean_1791468917569.jpg',
     description:
       'Steigende Stromkosten belasten private Haushalte und Gewerbetreibende in Leipzig spürbar. Wir durchforsten über 800 geprüfte Stromtarife – inklusive Ökostrom-Optionen, Neukunden-Boni und Festpreisverträgen bis zu 24 Monate. Wir schützen Sie vor unerwarteten Preiserhöhungen Ihres Grundversorgers.',
-    savingsHint: 'Durchschnittliche Ersparnis: 180 € – 380 € pro Jahr',
+    savingsHint: 'Passende Partnerangebote individuell prüfen lassen',
     bulletPoints: [
-      '100% Preisgarantie gegen Marktschwankungen',
+      'Preis- und Vertragsbedingungen individuell vergleichen',
       'Ökostrom aus zertifizierter Wasserkraft oder Solar',
       'Keine Vorkasse oder dubiose Tarifmodelle',
       'Fristgerechte Kündigung beim Altversorger',
@@ -32,13 +32,13 @@ export const servicesData: ServiceDetail[] = [
     image: '/src/assets/images/gas_heating_warm_1791468927843.jpg',
     description:
       'Die Heizperiode bringt oft böse Überraschungen bei der Jahresabrechnung. Wir vergleichen transparente Erdgas- und Biogastarife mit planbaren Festpreisen. Durch einen Wechsel sichern Sie sich günstige Arbeitspreise je Kilowattstunde und sparen hunderte Euro bei Gasthermen und Zentralheizungen.',
-    savingsHint: 'Durchschnittliche Ersparnis: 250 € – 620 € pro Jahr',
+    savingsHint: 'Passende Partnerangebote individuell prüfen lassen',
     bulletPoints: [
-      'Erhalt stabiler Arbeitspreise über den gesamten Winter',
+      'Arbeitspreise und Vertragslaufzeit gemeinsam prüfen',
       'Biogas-Beimischung für umweltbewusste Haushalte',
       'Vermeidung teurer Grundversorgungstarife',
       'Transparente monatliche Abschläge ohne Nachzahlungsfalle',
-      'Komplette Ummeldung durch Daryos ohne Ausfallrisiko',
+      'Unterstützung beim Wechsel nach vorheriger Abstimmung',
     ],
     requiredDocs: [
       'Letzte Gasabrechnung (Jahresverbrauch in kWh oder m³)',
@@ -55,7 +55,7 @@ export const servicesData: ServiceDetail[] = [
     image: '/src/assets/images/fiber_internet_speed_1791468940279.jpg',
     description:
       'Zu langsames WLAN oder überteuerte Altverträge? Wir prüfen die maximale Bandbreite an Ihrer Leipziger Adresse – egal ob Glasfaser (FTTH), Highspeed-Kabel (bis 1.000 Mbit/s) oder stabiles VDSL. Mit attraktiven Wechselboni, Cashback und kostenloser Rufnummernmitnahme sparen Sie bares Geld.',
-    savingsHint: 'Durchschnittliche Ersparnis: 120 € – 240 € pro Jahr + Wechselbonus',
+    savingsHint: 'Verfügbarkeit und Konditionen individuell prüfen lassen',
     bulletPoints: [
       'Verfügbarkeitsprüfung für Glasfaser, Kabel und VDSL',
       'Maximale Download- & Upload-Geschwindigkeit zum Bestpreis',
@@ -78,7 +78,7 @@ export const servicesData: ServiceDetail[] = [
     image: '/src/assets/images/car_insurance_mobility_1791468952430.jpg',
     description:
       'KFZ-Tarife ändern sich jährlich massiv. Wir überprüfen Ihre Schadensfreiheitsklasse (SF-Klasse), Fahrleistung, Fahrerkreis und Deckungsumfang. Egal ob Neuwagen, Gebrauchter oder Elektrofahrzeug: Wir finden Policen mit bestem Schutz gegen Wildschäden, Marderbiss, grobe Fahrlässigkeit und Rabattschutz.',
-    savingsHint: 'Durchschnittliche Ersparnis: 150 € – 450 € pro Jahr',
+    savingsHint: 'Versicherungsangebote und Vermittlerrolle individuell prüfen',
     bulletPoints: [
       'Optimierung von Haftpflicht, Teil- & Vollkasko',
       'Erhalt und Übertragung von SF-Rabatten',
@@ -93,64 +93,6 @@ export const servicesData: ServiceDetail[] = [
       'Führerscheindaten der eingetragenen Fahrer',
     ],
     providersExample: ['HUK-Coburg', 'Allianz', 'VHV Versicherungen', 'AXA', 'Ergo', 'DEVK', 'R+V', 'Generali'],
-  },
-];
-
-export const reviewsData: ReviewItem[] = [
-  {
-    id: 'r1',
-    name: 'Familie Müller',
-    location: 'Leipzig-Paunsdorf',
-    service: 'gas',
-    rating: 5,
-    date: 'Vor 2 Wochen',
-    savings: '430 € / Jahr bei Gas & Strom',
-    comment:
-      'Herr Daryos hat sich unsere alte Gasabrechnung angeschaut und sofort gesehen, dass wir seit Jahren viel zu viel zahlen. Der Wechsel lief komplett ohne Aufwand für uns – kein einziger Brief, kein Papierkram. Großartige Beratung!',
-  },
-  {
-    id: 'r2',
-    name: 'Mehmet Yilmaz',
-    location: 'Leipzig-Zentrum',
-    service: 'strom',
-    rating: 5,
-    date: 'Vor 1 Monat',
-    savings: '290 € / Jahr bei Strom',
-    comment:
-      'Sehr professionell und freundlich. Die Beratung war auch auf Türkisch möglich, was für meine Eltern eine riesige Hilfe war. Innerhalb von 20 Minuten war alles geregelt.',
-  },
-  {
-    id: 'r3',
-    name: 'Karolin Sommer',
-    location: 'Leipzig-Gohlis',
-    service: 'kfz',
-    rating: 5,
-    date: 'Vor 3 Wochen',
-    savings: '215 € / Jahr bei KFZ',
-    comment:
-      'Ich wollte meine Autoversicherung wechseln, blickte aber bei den vielen Tarifen nicht durch. Daryos hat mir die Konditionen super transparent erklärt und gleichzeitig besseren Versicherungsschutz bei Vollkasko herausgeholt.',
-  },
-  {
-    id: 'r4',
-    name: 'Tariq Al-Mansoor',
-    location: 'Leipzig-Schönefeld',
-    service: 'internet',
-    rating: 5,
-    date: 'Vor 2 Monaten',
-    savings: '180 € / Jahr + Glasfaser 250 Mbit/s',
-    comment:
-      'Wir hatten ständig Verbindungsabbrüche mit unserem alten Internetanbieter. Daryos hat die Glasfaser-Leitung geprüft und uns einen modernen Tarif mit Router eingerichtet. Top Service!',
-  },
-  {
-    id: 'r5',
-    name: 'Stefan Berger',
-    location: 'Markkleeberg',
-    service: 'allgemein',
-    rating: 5,
-    date: 'Vor 1 Monat',
-    savings: 'Insgesamt 720 € / Jahr gebündelt',
-    comment:
-      'Habe direkt alle 4 Verträge (Strom, Gas, Internet, 2 Autos) prüfen lassen. Ehrliche Empfehlungen ohne Aufschwatzen unnötiger Optionen. Absolute Empfehlung für jeden in Leipzig!',
   },
 ];
 

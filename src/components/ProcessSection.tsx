@@ -104,8 +104,8 @@ export const ProcessSection: React.FC<ProcessSectionProps> = ({ currentLang }) =
             <ShieldCheck className="w-7 h-7" />
           </div>
           <div className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            <span className="font-bold text-white">Gesetzliche Versorgungsgarantie: </span>
-            In Deutschland ist eine Unterbrechung von Strom oder Gas beim Anbieterwechsel gesetzlich ausgeschlossen (§ 36 EnWG). Sie behalten durchgehend Licht und Wärme – zu deutlich besseren Konditionen.
+            <span className="font-bold text-white">Ihre Entscheidung: </span>
+            Ein Anbieterwechsel wird erst nach Ihrer Zustimmung angestoßen. Ob ein Wechsel möglich und wirtschaftlich sinnvoll ist, hängt von den verfügbaren Angeboten und Ihrer individuellen Situation ab.
           </div>
         </div>
       </div>

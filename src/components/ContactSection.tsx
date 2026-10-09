@@ -145,15 +145,14 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ currentLang }) =
               </div>
             </div>
 
-            {/* Embedded Google Map */}
+            {/* The map provider is contacted only after the visitor chooses the external link. */}
             <div className="space-y-3">
-              <div className="rounded-2xl overflow-hidden border border-slate-800 h-64 bg-slate-950 relative">
-                <iframe
-                  title="Standort Daryos Leipzig"
-                  className="w-full h-full border-0"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2492.203112260408!2d12.4411111!3d51.3438889!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47a6f95f4e0c3d2f%3A0x123456789abcdef!2sRotfuchsstra%C3%9Fe%201%2C%2004329%20Leipzig!5e0!3m2!1sde!2sde!4v1680000000000!5m2!1sde!2sde"
-                  loading="lazy"
-                />
+              <div className="rounded-2xl border border-slate-800 h-64 bg-slate-950 flex flex-col items-center justify-center text-center p-6">
+                <MapPin className="w-8 h-8 text-orange-400 mb-3" />
+                <p className="text-sm font-bold text-white">Rotfuchsstraße 1, 04329 Leipzig</p>
+                <p className="text-xs text-slate-400 mt-2 max-w-sm">
+                  Eine Karte wird erst geöffnet, wenn Sie den externen Kartenlink auswählen.
+                </p>
               </div>
 
               <div className="flex justify-end">

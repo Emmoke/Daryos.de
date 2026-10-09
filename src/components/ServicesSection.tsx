@@ -79,7 +79,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ currentLang, o
                   {/* Provider Logos Mini Bar on Card */}
                   <div className="pt-2 border-t border-white/[0.04]">
                     <span className="text-[10px] font-semibold text-slate-400 block mb-1.5 uppercase tracking-wider">
-                      Verglichene Anbieter (Auszug):
+                      Anbieterbeispiele (keine Aussage zu Partnerschaft oder Verfügbarkeit):
                     </span>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {service.providersExample.slice(0, 3).map((prov, pIdx) => (
@@ -168,7 +168,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ currentLang, o
             <div>
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
                 <Building2 className="w-4 h-4 text-blue-400" />
-                <span>{t.services.modalProvidersTitle}</span>
+                <span>Anbieterbeispiele – Verfügbarkeit bitte individuell prüfen</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {activeModalService.providersExample.map((p, i) => (

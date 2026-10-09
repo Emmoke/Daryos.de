@@ -5,10 +5,9 @@ import { translations } from '../data/translations';
 
 interface ContractUploadSectionProps {
   currentLang: Language;
-  onOpenBooking: () => void;
 }
 
-export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ currentLang, onOpenBooking }) => {
+export const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ currentLang }) => {
   const t = translations[currentLang];
   const fileInputRef = useRef<HTMLInputElement>(null);
 

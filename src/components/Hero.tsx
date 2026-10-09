@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, MessageSquare, Calculator, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, MessageSquare, Calculator, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../data/translations';
 
@@ -39,17 +39,15 @@ export const Hero: React.FC<HeroProps> = ({ currentLang, onOpenBooking, onScroll
 
             {/* Display Headline with Balanced Wrapping - Calm & elegant typography */}
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.15] text-balance">
-              {t.hero.titleStart}{' '}
-              <span className="text-blue-400 font-bold">{t.hero.titleStrom}</span>,{' '}
-              <span className="text-slate-200">{t.hero.titleGas}</span>,{' '}
-              <span className="text-slate-200">{t.hero.titleInternet}</span> &{' '}
-              <span className="text-slate-200">{t.hero.titleKfz}</span>{' '}
-              {t.hero.titleEnd}
+              {t.hero.titleStart}
             </h1>
 
             {/* Value Proposition */}
             <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl">
               {t.hero.subtitle}
+            </p>
+            <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
+              {t.hero.commissionDisclosure}
             </p>
 
             {/* Action Buttons */}
@@ -81,35 +79,6 @@ export const Hero: React.FC<HeroProps> = ({ currentLang, onOpenBooking, onScroll
               </a>
             </div>
 
-            {/* Claim-to-Proof Metric Strips */}
-            <div className="pt-8 border-t border-white/[0.08] grid grid-cols-3 gap-6 max-w-xl">
-              <div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono tabular-nums">
-                  {t.hero.stat1Number}
-                </div>
-                <div className="text-xs text-slate-400 mt-0.5 leading-snug">
-                  {t.hero.stat1Label}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-blue-400 font-mono tabular-nums">
-                  {t.hero.stat2Number}
-                </div>
-                <div className="text-xs text-slate-400 mt-0.5 leading-snug">
-                  {t.hero.stat2Label}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-slate-200 font-mono tabular-nums">
-                  {t.hero.stat3Number}
-                </div>
-                <div className="text-xs text-slate-400 mt-0.5 leading-snug">
-                  {t.hero.stat3Label}
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Quick Highlight Card on the right */}
@@ -127,15 +96,15 @@ export const Hero: React.FC<HeroProps> = ({ currentLang, onOpenBooking, onScroll
               <div className="space-y-3.5 text-xs text-slate-300">
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Kein mühsamer Papierkram oder Hotline-Warteschleifen</span>
+                  <span>Persönlicher Kontakt per Telefon oder WhatsApp</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Schutz vor auslaufenden Preisgarantien und Preissprüngen</span>
+                  <span>Vergleich passender Angebote unserer Vertragspartner</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Persönliche Beratung auf Deutsch, Türkisch, Kurdisch & Arabisch</span>
+                  <span>Sie entscheiden selbst, ob Sie ein Angebot annehmen</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />

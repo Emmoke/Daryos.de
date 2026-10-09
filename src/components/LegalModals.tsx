@@ -30,7 +30,7 @@ export const LegalModals: React.FC<LegalModalsProps> = ({ activeModal, onClose }
             </div>
 
             <div className="space-y-2">
-              <h4 className="font-bold text-white text-sm">Angaben gemäß § 5 TMG:</h4>
+              <h4 className="font-bold text-white text-sm">Angaben gemäß § 5 DDG:</h4>
               <p>
                 <strong>Daryos® Tarifoptimierung & Wechselservice</strong><br />
                 Inhaber: Daryos Kreis<br />
@@ -58,7 +58,7 @@ export const LegalModals: React.FC<LegalModalsProps> = ({ activeModal, onClose }
             <div className="space-y-2">
               <h4 className="font-bold text-white text-sm">Haftung für Inhalte und Links:</h4>
               <p className="text-slate-400 text-xs">
-                Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Wir prüfen externe Links sorgfältig, übernehmen jedoch keine Haftung für fremde Inhalte.
+                Als Diensteanbieter sind wir für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Für Inhalte externer Seiten sind deren Betreiber verantwortlich.
               </p>
             </div>
           </div>
@@ -74,7 +74,7 @@ export const LegalModals: React.FC<LegalModalsProps> = ({ activeModal, onClose }
             <div className="space-y-2">
               <h4 className="font-bold text-white text-sm">1. Datenschutz auf einen Blick</h4>
               <p>
-                Wir nehmen den Schutz Ihrer persönlichen Daten sehr ernst. Personenbezogene Daten (z. B. Name, Telefonnummer, Zählernummern oder Vertragsrechnungen), die Sie uns im Rahmen einer Terminanfrage, eines Rechner-Checks oder per WhatsApp übermitteln, werden vertraulich und ausschließlich zur Bearbeitung Ihres Beratungsanliegens verarbeitet.
+                Diese Website überträgt keine Dateien und wertet keine Rechnungen aus. Die Terminmaske erfasst keine Kontaktdaten und sendet keine Anfrage automatisch. Wenn Sie WhatsApp, Telefon oder E-Mail verwenden, verarbeiten wir die von Ihnen dort mitgeteilten Angaben zur Bearbeitung Ihres Anliegens.
               </p>
             </div>
 
@@ -89,17 +89,17 @@ export const LegalModals: React.FC<LegalModalsProps> = ({ activeModal, onClose }
             <div className="space-y-2">
               <h4 className="font-bold text-white text-sm">3. Datenerfassung auf dieser Website</h4>
               <p>
-                • <strong>Online-Kundenbewertungen:</strong> Wenn Sie eine Bewertung auf unserer Webseite verfassen, geschieht dies auf Grundlage Ihrer freiwilligen Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Es werden ausschließlich die von Ihnen eingegebenen Angaben (z. B. Name/Pseudonym, Wohnort/Stadtteil, Bewertungstext, Sterne) verarbeitet und öffentlich angezeigt. Sie können Ihre Bewertung und Einwilligung jederzeit formlos per E-Mail an daryos.kreis@gmail.com mit Wirkung für die Zukunft löschen lassen.<br />
-                • <strong>Online-Terminanfrage & Rechner:</strong> Die von Ihnen eingegebenen Daten dienen der Vorbereitung und Durchführung Ihres individuellen Tarifangebots.<br />
-                • <strong>Dokumenten-Audit:</strong> Dokumente werden nur mit Ihrer ausdrücklichen Einwilligung zur Prüfung von Kündigungsfristen und Sparpotenzialen herangezogen.<br />
-                • <strong>Keine Weitergabe an Dritte:</strong> Eine Weitergabe an Versorger oder Versicherer erfolgt erst nach Ihrer gesonderten Vollmacht im Wechselauftrag.
+                • <strong>Kontaktaufnahme:</strong> Wenn Sie uns über einen externen Kommunikationsdienst kontaktieren, werden die dort von Ihnen übermittelten Daten zur Bearbeitung Ihrer Anfrage verwendet. Der jeweilige Dienst verarbeitet Daten in eigener Verantwortung.<br />
+                • <strong>Dateiauswahl:</strong> Eine auf dieser Seite ausgewählte Datei wird nicht an Daryos übertragen oder hier analysiert. Um sie zu teilen, müssen Sie sie selbst in einem Kommunikationsdienst anhängen.<br />
+                • <strong>Beispielrechner:</strong> Die Berechnung verwendet im Programm hinterlegte Beispielwerte und übermittelt keine Eingaben an Daryos. Sie ist kein konkretes Tarifangebot.<br />
+                • <strong>Externe Inhalte:</strong> Schriftarten werden lokal durch das System bereitgestellt. Eine Kartenansicht wird nicht eingebettet; der externe Kartendienst wird erst nach Auswahl des Links geöffnet. Anbieterlogos werden lokal dargestellt.
               </p>
             </div>
 
             <div className="space-y-2">
               <h4 className="font-bold text-white text-sm">4. Ihre Rechte</h4>
               <p className="text-slate-400 text-xs">
-                Sie haben jederzeit das Recht auf unentgeltliche Auskunft über Herkunft, Empfänger und Zweck Ihrer gespeicherten personenbezogenen Daten sowie ein Recht auf Berichtigung, Sperrung oder Löschung dieser Daten.
+                Sie haben im Rahmen der gesetzlichen Voraussetzungen Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Außerdem können Sie sich bei einer Datenschutzaufsichtsbehörde beschweren.
               </p>
             </div>
           </div>

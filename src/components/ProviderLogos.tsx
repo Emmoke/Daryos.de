@@ -552,16 +552,16 @@ export const PartnerLogosBanner: React.FC<PartnerLogosBannerProps> = ({ onSelect
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-400">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Geprüftes Partner- & Versorgernetzwerk</span>
+              <span>Beispiele bekannter Anbieter</span>
               <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Offizielle Original-Logos
+                Anbieterlogos
               </span>
             </div>
             <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-              Unabhängiger Vergleich aus über 100+ zertifizierten Anbietern
+              Angebote unserer Vertragspartner
             </h3>
             <p className="text-xs sm:text-sm text-slate-400 max-w-2xl">
-              Wir vergleichen die Tarife aller großen Versorger in Leipzig und bundesweit – garantiert neutral und für Sie zu 100% kostenlos.
+              Die Logos zeigen Marktbeispiele und sind keine Aussage über eine aktuelle Partnerschaft oder die Verfügbarkeit eines konkreten Tarifs. Wir prüfen passende Angebote unserer Vertragspartner individuell.
             </p>
           </div>
 
@@ -582,7 +582,7 @@ export const PartnerLogosBanner: React.FC<PartnerLogosBannerProps> = ({ onSelect
                     : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
                 }`}
               >
-                {cat === 'alle' ? 'Alle Partner' : cat === 'strom' ? '⚡ Strom' : cat === 'gas' ? '🔥 Gas' : cat === 'internet' ? '🌐 Internet' : '🚗 KFZ'}
+                {cat === 'alle' ? 'Alle Anbieter' : cat === 'strom' ? '⚡ Strom' : cat === 'gas' ? '🔥 Gas' : cat === 'internet' ? '🌐 Internet' : '🚗 KFZ'}
               </button>
             ))}
           </div>
@@ -596,7 +596,7 @@ export const PartnerLogosBanner: React.FC<PartnerLogosBannerProps> = ({ onSelect
               className="bg-white rounded-xl p-3 shadow-sm border border-slate-200/90 hover:border-blue-500/50 hover:shadow-md transition-all flex flex-col items-center justify-between text-center group min-h-[112px]"
             >
               <div className="h-10 flex items-center justify-center w-full px-1">
-                <ProviderLogo id={brand.id} size="md" variant="light" preferWebImage={true} />
+                <ProviderLogo id={brand.id} size="md" variant="light" />
               </div>
               <div className="w-full pt-1.5 border-t border-slate-100 flex flex-col items-center">
                 <span className="text-[10px] text-slate-700 font-bold truncate w-full">{brand.subtitle}</span>
@@ -610,15 +610,15 @@ export const PartnerLogosBanner: React.FC<PartnerLogosBannerProps> = ({ onSelect
         <div className="pt-2 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs text-slate-400 border-t border-white/[0.04]">
           <span className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>100% Unterbrechungsfreie Versorgung garantiert</span>
+            <span>Vertragsschluss nur mit Ihrer Zustimmung</span>
           </span>
           <span className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-            <span>Keine Vorkasse & faire Preisgarantien</span>
+            <span>Konditionen werden individuell geprüft</span>
           </span>
           <span className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Kostenloser Kündigungs- & Wechselservice</span>
+            <span>Unterstützung beim Wechsel nach Vereinbarung</span>
           </span>
         </div>
 

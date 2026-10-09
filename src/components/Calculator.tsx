@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { Language, ServiceType } from '../types';
 import { translations } from '../data/translations';
-import { TariffPricingConfig } from './AdminCockpit';
 import { ProviderLogo } from './ProviderLogos';
 import {
   getRegionInfoForPlz,
@@ -33,13 +32,11 @@ import {
 interface CalculatorProps {
   currentLang: Language;
   onApplySavingsToBooking: (service: ServiceType, savingsText: string) => void;
-  pricingConfig?: TariffPricingConfig;
 }
 
 export const CalculatorComponent: React.FC<CalculatorProps> = ({
   currentLang,
   onApplySavingsToBooking,
-  pricingConfig,
 }) => {
   const t = translations[currentLang];
   const [activeTab, setActiveTab] = useState<ServiceType>('gas');
@@ -86,20 +83,6 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
     if (laufzeitOption === 'flex') return 1.09;
     return 1.0; // 12 Monate Standard
   }, [laufzeitOption]);
-
-  // Active pricing config fallback (from admin settings if adjusted)
-  const currentPricing = pricingConfig || {
-    stromArbeitspreis: 26.8,
-    stromGrundpreis: 10.5,
-    gasArbeitspreis: 8.4,
-    gasGrundpreis: 11.2,
-    internetPromoPrice: 29.9,
-    kfzAvgSavingsPercent: 26,
-    provisionStrom: 65,
-    provisionGas: 80,
-    provisionInternet: 50,
-    provisionKfz: 90,
-  };
 
   // Aktuell ausgewählter Anbieter-Tarif je Sparte
   const currentStromTariff = useMemo<ProviderTariffDetail>(() => {
@@ -164,8 +147,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
     setGasCurrentRate(estPayment);
   };
 
-  // REALISTISCHE & MATHEMATISCH EXAKTE BERECHNUNG:
-  // Invariante: annualCurrent = optimizedAnnual + savings (ohne Abweichungen)
+  // The calculator uses illustrative prices stored in the app, not live provider quotes.
 
   const calculateStromSavings = () => {
     const annualCurrent = Math.max(120, stromCurrentRate * 12);
@@ -175,16 +157,8 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
       stromKwh * (effArbeitspreis / 100) + currentStromTariff.grundpreis * 12
     );
 
-    let savings = 0;
-    let finalOptimized = optimizedAnnual;
-
-    if (annualCurrent > optimizedAnnual) {
-      savings = annualCurrent - optimizedAnnual;
-    } else {
-      // Kunde zahlt bereits einen günstigen Tarif; Optimierung durch Wechselbonus / Cashback
-      savings = Math.max(50, Math.round(annualCurrent * 0.12));
-      finalOptimized = annualCurrent - savings;
-    }
+    const savings = Math.max(0, annualCurrent - optimizedAnnual);
+    const finalOptimized = optimizedAnnual;
 
     return {
       annualCurrent,
@@ -203,15 +177,8 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
       gasKwh * (effArbeitspreis / 100) + currentGasTariff.grundpreis * 12
     );
 
-    let savings = 0;
-    let finalOptimized = optimizedAnnual;
-
-    if (annualCurrent > optimizedAnnual) {
-      savings = annualCurrent - optimizedAnnual;
-    } else {
-      savings = Math.max(90, Math.round(annualCurrent * 0.14));
-      finalOptimized = annualCurrent - savings;
-    }
+    const savings = Math.max(0, annualCurrent - optimizedAnnual);
+    const finalOptimized = optimizedAnnual;
 
     return {
       annualCurrent,
@@ -228,15 +195,8 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
     const monthlyRate = currentInternetTariff.arbeitspreis;
     const optimizedAnnual = Math.round(monthlyRate * 12);
 
-    let savings = 0;
-    let finalOptimized = optimizedAnnual;
-
-    if (annualCurrent > optimizedAnnual) {
-      savings = annualCurrent - optimizedAnnual;
-    } else {
-      savings = Math.max(60, Math.round(annualCurrent * 0.18));
-      finalOptimized = annualCurrent - savings;
-    }
+    const savings = Math.max(0, annualCurrent - optimizedAnnual);
+    const finalOptimized = optimizedAnnual;
 
     return {
       annualCurrent,
@@ -255,15 +215,8 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
     const covFactor = kfzCoverage === 'vollkasko' ? 1.0 : kfzCoverage === 'teilkasko' ? 0.75 : 0.55;
     const calculatedAnnual = Math.round(currentKfzTariff.arbeitspreis * sfFactor * covFactor);
 
-    let savings = 0;
-    let finalOptimized = calculatedAnnual;
-
-    if (annualCurrent > calculatedAnnual) {
-      savings = annualCurrent - calculatedAnnual;
-    } else {
-      savings = Math.max(70, Math.round(annualCurrent * 0.20));
-      finalOptimized = annualCurrent - savings;
-    }
+    const savings = Math.max(0, annualCurrent - calculatedAnnual);
+    const finalOptimized = calculatedAnnual;
 
     return {
       annualCurrent,
@@ -310,7 +263,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
   };
 
   const shareViaWhatsApp = () => {
-    const text = `Hallo Daryos, ich habe meinen ${serviceLabel}-Tarif für PLZ ${plz} (${regionInfo.cityName}) im Rechner geprüft.\nBisherige Kosten: ${currentResult.annualCurrent} €/Jahr\nEmpfohlener Tarif: ${activeProviderTariff.providerName} (${activeProviderTariff.tariffName})\nOptimierte Kosten: ${currentResult.optimizedAnnual} €/Jahr (Abschlag: ca. ${currentResult.monthlyOptimized} €/Monat)\nMögliche Ersparnis: ca. ${currentResult.savings} €/Jahr.\nBitte um einen kostenlosen Tarif-Check mit Nachzahlungs-Schutz.`;
+    const text = `Hallo Daryos, ich habe eine unverbindliche Beispielrechnung für ${serviceLabel} und PLZ ${plz} erstellt. Sie basiert auf hinterlegten Beispielpreisen und ist kein Live-Angebot. Bitte prüfen Sie verfügbare Angebote Ihrer Vertragspartner für mich.`;
     window.open(`https://wa.me/4917643416174?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -322,13 +275,13 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
         <div className="text-center max-w-3xl mx-auto mb-10 space-y-2.5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-400 uppercase tracking-wider">
             <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-            <span>Postleitzahl-Genau & Reale Anbieterdaten</span>
+            <span>Unverbindliche Beispielrechnung – keine Live-Angebote</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             {t.calculator.title}
           </h2>
           <p className="text-sm sm:text-base text-slate-400">
-            Ermitteln Sie in wenigen Sekunden Ihr realistisches Einsparpotenzial für Ihre genaue Postleitzahl, Vertragslaufzeit und reale Anbieterangebote.
+            Diese Beispielrechnung nutzt hinterlegte Tarifwerte, keine aktuellen Live-Angebote. Tatsächliche Preise, Verfügbarkeit und Leistungen prüft Daryos individuell mit seinen Vertragspartnern.
           </p>
         </div>
 
@@ -378,7 +331,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
                   }`}
                 >
                   <span className="font-bold">12 Monate</span>
-                  <span className="text-[9px] text-emerald-400 font-mono">Bester Preis</span>
+                  <span className="text-[9px] text-emerald-400 font-mono">Laufzeit-Beispiel</span>
                 </button>
 
                 <button
@@ -411,7 +364,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
                 <Clock className="w-3 h-3 text-slate-500" />
                 <span>
                   {laufzeitOption === '12'
-                    ? '12 Monate volle Preisgarantie vor Erhöhungen geschützt'
+                    ? '12 Monate Laufzeit (Beispiel)'
                     : laufzeitOption === '24'
                     ? '24 Monate planbare Budgetsicherheit'
                     : '1 Monat Kündigungsfrist, flexibel anpassbar'}
@@ -960,7 +913,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
 
           </div>
 
-          {/* Results Output Panel - Echte Anbieter-Daten & Invariante Berechnung */}
+          {/* Indicative estimate based on locally stored sample prices */}
           <div className="lg:col-span-5 bg-[#0b0c10] p-6 sm:p-8 rounded-2xl border border-white/[0.08] shadow-xl flex flex-col justify-between space-y-6">
             <div className="space-y-4">
               
@@ -970,7 +923,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
                 </span>
                 <span className="text-xs text-blue-400 font-medium flex items-center gap-1">
                   <RefreshCw className="w-3.5 h-3.5" />
-                  <span>PLZ {plz || '04329'} Live</span>
+                  <span>Beispielwerte</span>
                 </span>
               </div>
 
@@ -990,32 +943,24 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
 
                 <div className="text-xs text-emerald-400 font-medium mt-2 flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 shrink-0" />
-                  <span>Reale Ersparnis gegenüber Grundversorger / aktuellem Vertrag</span>
+                  <span>Unverbindliche Rechendifferenz, kein Tarifangebot</span>
                 </div>
 
-                {/* Nachzahlungs-Schutz & optimaler Abschlag */}
                 <div className="text-[11px] text-blue-200 font-medium mt-2.5 p-3 rounded-xl bg-blue-950/40 border border-blue-500/20 space-y-1">
-                  <div className="flex items-center gap-1.5 text-blue-300 font-bold">
-                    <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
-                    <span>Daryos® Nachzahlungs-Schutz aktiv:</span>
-                  </div>
                   <div className="leading-relaxed text-slate-300">
-                    Empfohlener sicherer Monatsabschlag:{' '}
+                    Rechnerischer Monatsbetrag nach den hinterlegten Beispielwerten:{' '}
                     <strong className="text-white font-mono font-bold">
                       {currentResult.monthlyOptimized} € / Monat
                     </strong>
-                    . Keine bösen Nachzahlungen bei der Jahresendabrechnung!
+                    . Tatsächliche Preise und Abschläge können abweichen.
                   </div>
                 </div>
               </div>
 
-              {/* Highlight Card: Gewählter Top-Anbieter mit echten Konditionen */}
+              {/* Illustrative provider and tariff details */}
               <div className="p-4 bg-white/[0.03] rounded-xl border border-white/[0.08] space-y-2.5">
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                  <span>Gewählte Anbieter-Firma:</span>
-                  <span className="text-emerald-400 font-mono text-[10px]">
-                    ⭐ {activeProviderTariff.ratingScore} / 5.0
-                  </span>
+                  <span>Beispielanbieter und -tarif:</span>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -1054,7 +999,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
                 </div>
               </div>
 
-              {/* Exact Invariant Breakdown: Bisherige Kosten = Optimierte Kosten + Ersparnis */}
+              {/* Example cost comparison */}
               <div className="space-y-2 pt-1 text-xs">
                 <div className="flex justify-between text-slate-400">
                   <span>{t.calculator.previousAnnualCosts}</span>
@@ -1087,7 +1032,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
               </div>
 
               <p className="text-[11px] text-slate-400 leading-relaxed pt-1">
-                Garantierte Transparenz: Kostenrechnung basiert auf amtlichen Tariftabellen für PLZ {plz || '04329'} ({regionInfo.cityName}). Daryos übernimmt den kompletten Wechselservice ohne Zusatzgebühren für Sie.
+                Die regionale Einordnung und alle Tarifwerte sind Beispiele, keine aktuellen Anbieterangebote. Ein Wechselservice wird individuell besprochen.
               </p>
             </div>
 
