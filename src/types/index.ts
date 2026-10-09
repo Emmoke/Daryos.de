@@ -171,3 +171,98 @@ export interface AppointmentData {
   currentProvider?: string;
   notes?: string;
 }
+
+// 1. Kunden-Meldungen (Anfragen, Zähler-Uploads, Rückrufbitten)
+export interface CustomerMessage {
+  id: string;
+  date: string;
+  time: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  type: 'rechnung_upload' | 'rueckruf' | 'tarif_pruefung' | 'kuendigung' | 'frage';
+  title: string;
+  message: string;
+  service: ServiceType | 'allgemein';
+  status: 'neu' | 'in_bearbeitung' | 'erledigt';
+  priority: 'normal' | 'dringend';
+}
+
+// 2. Projekte & Wechselaufträge
+export interface OptimizationProject {
+  id: string;
+  projectNumber: string; // e.g. "PRJ-2026-081"
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  service: ServiceType;
+  title: string;
+  currentProvider: string;
+  targetProvider: string;
+  stage: '1_check' | '2_vergleich' | '3_angebot' | '4_auftrag' | '5_aktiv';
+  stageLabel: string;
+  progressPercent: number;
+  annualSavingsTarget: number;
+  deadlineDate: string;
+  assignedAdvisor: string;
+  status: 'in_bearbeitung' | 'wartet_auf_kunde' | 'erfolgreich' | 'pausiert';
+  lastAction: string;
+}
+
+// 3. Angebote & Tarifvergleiche
+export interface CustomerOffer {
+  id: string;
+  offerNumber: string; // e.g. "ANG-2026-012"
+  date: string;
+  validUntil: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  service: ServiceType;
+  currentProvider: string;
+  currentTariff: string;
+  currentMonthly: number;
+  currentAnnual: number;
+  recommendedProvider: string;
+  recommendedTariff: string;
+  recommendedMonthly: number;
+  recommendedAnnual: number;
+  annualSavings: number;
+  guaranteeMonths: number;
+  status: 'entwurf' | 'versendet' | 'angenommen' | 'abgelehnt';
+  notes?: string;
+}
+
+// 4. Rechnungsposition & Vollfunktions-Rechnung
+export interface InvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string; // e.g. "RE-2026-0042"
+  customerName: string;
+  customerAddress: string;
+  customerCity: string;
+  customerPostalCode: string;
+  customerEmail: string;
+  customerPhone?: string;
+  invoiceDate: string;
+  dueDate: string;
+  servicePeriod: string;
+  taxRate: number; // 19 or 0
+  taxType: 'standard_19' | 'kleinunternehmer_0' | 'provision_0';
+  items: InvoiceItem[];
+  subtotal: number;
+  taxAmount: number;
+  total: number;
+  status: 'offen' | 'bezahlt' | 'ueberfaellig' | 'storniert';
+  notes: string;
+  iban: string;
+  bic: string;
+  bankName: string;
+}

@@ -1015,17 +1015,17 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 text-slate-800 bg-slate-50">
       {/* Top Header & Quick Action Buttons */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h4 className="text-base font-bold text-white flex items-center gap-2">
+          <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <span>Kunden-CRM & Notizen-Zentrale</span>
-            <span className="text-[10px] font-mono px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded-full border border-blue-500/30">
+            <span className="text-[10px] font-mono px-2.5 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-200 font-bold">
               Daryos® CRM 2.0
             </span>
           </h4>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 mt-0.5">
             Zentrale Verwaltung aller Kundenkontakte, ihrer aktuellen Vertragslaufzeiten, Optimierungsprozesse & lückenloser Gesprächsprotokollierung.
           </p>
         </div>
@@ -1033,16 +1033,16 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={exportCrmCSV}
-            className="px-3 py-1.5 bg-[#181922] hover:bg-[#20222e] text-slate-300 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-white/[0.08] cursor-pointer"
+            className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-slate-300 cursor-pointer shadow-2xs"
             title="Kundenliste als CSV exportieren"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
             <span>CSV-Export</span>
           </button>
 
           <button
             onClick={() => setIsAddCustomerOpen(true)}
-            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-900/20"
+            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>+ Neuer Kunde</span>
@@ -1050,62 +1050,62 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
         </div>
       </div>
 
-      {/* KPI Summary Cards - Einheitliche Dark-Slate Farbgebung */}
+      {/* KPI Summary Cards - Einheitliche Helle Farbgebung */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <div className="p-3.5 bg-[#10121a] rounded-xl border border-slate-800/80">
+        <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-400">Gesamte Kundenkartei</span>
+            <span className="text-[11px] font-medium text-slate-500">Gesamte Kundenkartei</span>
             <Users className="w-4 h-4 text-slate-400" />
           </div>
-          <div className="text-xl font-bold text-white mt-1">{kpiTotalContacts}</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">Leipzig & Region</div>
+          <div className="text-xl font-bold text-slate-900 mt-1">{kpiTotalContacts}</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Leipzig & Region</div>
         </div>
 
-        <div className="p-3.5 bg-[#10121a] rounded-xl border border-slate-800/80">
+        <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-400">Laufende Optimierungen</span>
+            <span className="text-[11px] font-medium text-slate-500">Laufende Optimierungen</span>
             <TrendingUp className="w-4 h-4 text-slate-400" />
           </div>
-          <div className="text-xl font-bold text-white mt-1">{kpiActiveOptimizations} Prozesse</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">Aktiv in Pipeline</div>
+          <div className="text-xl font-bold text-slate-900 mt-1">{kpiActiveOptimizations} Prozesse</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Aktiv in Pipeline</div>
         </div>
 
-        <div className="p-3.5 bg-[#10121a] rounded-xl border border-slate-800/80">
+        <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-400">Fristen-Alarm (&lt; 90 T.)</span>
-            <BellRing className={`w-4 h-4 ${kpiExpiringContracts > 0 ? 'text-amber-400' : 'text-slate-500'}`} />
+            <span className="text-[11px] font-medium text-slate-500">Fristen-Alarm (&lt; 90 T.)</span>
+            <BellRing className={`w-4 h-4 ${kpiExpiringContracts > 0 ? 'text-amber-500' : 'text-slate-400'}`} />
           </div>
-          <div className={`text-xl font-bold mt-1 ${kpiExpiringContracts > 0 ? 'text-amber-400' : 'text-white'}`}>
+          <div className={`text-xl font-bold mt-1 ${kpiExpiringContracts > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
             {kpiExpiringContracts} Verträge
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">Kündigungsfristen</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Kündigungsfristen</div>
         </div>
 
-        <div className="p-3.5 bg-[#10121a] rounded-xl border border-slate-800/80">
+        <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-400">Offene Aufgaben</span>
-            <CalendarClock className={`w-4 h-4 ${kpiOpenTasksCount > 0 ? 'text-amber-400' : 'text-slate-500'}`} />
+            <span className="text-[11px] font-medium text-slate-500">Offene Aufgaben</span>
+            <CalendarClock className={`w-4 h-4 ${kpiOpenTasksCount > 0 ? 'text-amber-500' : 'text-slate-400'}`} />
           </div>
-          <div className={`text-xl font-bold mt-1 ${kpiOpenTasksCount > 0 ? 'text-amber-400' : 'text-white'}`}>
+          <div className={`text-xl font-bold mt-1 ${kpiOpenTasksCount > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
             {kpiOpenTasksCount} Rückrufe
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">Gesprächsprotokolle</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Gesprächsprotokolle</div>
         </div>
 
-        <div className="p-3.5 bg-[#10121a] rounded-xl border border-slate-800/80 col-span-2 lg:col-span-1">
+        <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-400">Erzielte Ersparnis p.a.</span>
-            <Sparkles className="w-4 h-4 text-emerald-400" />
+            <span className="text-[11px] font-medium text-slate-500">Erzielte Ersparnis p.a.</span>
+            <Sparkles className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="text-xl font-bold text-emerald-400 mt-1">
+          <div className="text-xl font-bold text-emerald-600 mt-1">
             +{kpiTotalSavings.toLocaleString('de-DE')} €
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">Kundenersparnis gesamt</div>
         </div>
       </div>
 
-      {/* Such- & Filter-Konsole (Kundenname / Vertragstyp) - Ruhiges, harmonisches Dark-Design */}
-      <div className="p-4 bg-[#10121a] rounded-xl border border-slate-800/90 space-y-3.5">
+      {/* Such- & Filter-Konsole (Kundenname / Vertragstyp) - Ruhiges, helles Design */}
+      <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3.5">
         {/* Leiste 1: Kundennamen-Suche, Sortierung & Direktsprung */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* Kundennamen-Eingabe */}
@@ -1116,12 +1116,12 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               placeholder="👤 Nach Kundenname filtern (z.B. Klaus, Weber, Richter, Demir, Schmidt)..."
               value={customerNameQuery}
               onChange={(e) => setCustomerNameQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2.5 bg-slate-950/70 border border-slate-800 focus:border-blue-500 rounded-lg text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-colors"
+              className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 focus:border-blue-500 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white transition-colors"
             />
             {customerNameQuery && (
               <button
                 onClick={() => setCustomerNameQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded hover:bg-slate-800"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-800 text-xs px-1.5 py-0.5 rounded hover:bg-slate-200"
                 title="Namensfilter leeren"
               >
                 ✕
@@ -1144,7 +1144,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                   }
                 }}
                 defaultValue=""
-                className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer"
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
                 title="Direktsprung zu einem Kundenstamm"
               >
                 <option value="" disabled>
@@ -1161,26 +1161,26 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
             </div>
 
             {/* Sortierung */}
-            <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-800">
-              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-transparent text-xs text-slate-300 focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs text-slate-700 focus:outline-none cursor-pointer"
               >
-                <option value="name_asc" className="bg-[#121319]">Name (A → Z)</option>
-                <option value="name_desc" className="bg-[#121319]">Name (Z → A)</option>
-                <option value="urgency" className="bg-[#121319]">Kündigungsfrist naht</option>
-                <option value="savings_desc" className="bg-[#121319]">Höchste Ersparnis</option>
-                <option value="recent" className="bg-[#121319]">Neueste zuerst</option>
+                <option value="name_asc">Name (A → Z)</option>
+                <option value="name_desc">Name (Z → A)</option>
+                <option value="urgency">Kündigungsfrist naht</option>
+                <option value="savings_desc">Höchste Ersparnis</option>
+                <option value="recent">Neueste zuerst</option>
               </select>
             </div>
           </div>
         </div>
 
         {/* Leiste 1b: Schnellauswahl beliebter Kunden (1-Klick Vorschläge) */}
-        <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400 pt-0.5">
-          <span className="text-[11px] text-slate-500 font-medium shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 pt-0.5">
+          <span className="text-[11px] text-slate-400 font-medium shrink-0">
             Schnellauswahl:
           </span>
           {contacts.slice(0, 6).map((c) => (
@@ -1189,8 +1189,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setCustomerNameQuery(c.fullName === customerNameQuery ? '' : c.fullName)}
               className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer border ${
                 customerNameQuery.toLowerCase() === c.fullName.toLowerCase()
-                  ? 'bg-blue-600/20 text-blue-300 border-blue-500/40'
-                  : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border-slate-800'
+                  ? 'bg-blue-50 text-blue-700 border-blue-300 font-bold'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
               }`}
             >
               {c.fullName}
@@ -1199,7 +1199,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
           {customerNameQuery && (
             <button
               onClick={() => setCustomerNameQuery('')}
-              className="text-[11px] text-slate-500 hover:text-slate-300 underline ml-1 cursor-pointer"
+              className="text-[11px] text-slate-500 hover:text-slate-800 underline ml-1 cursor-pointer"
             >
               Filter leeren
             </button>
@@ -1207,9 +1207,9 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
         </div>
 
         {/* Leiste 2: Vertragstyp-Filter (Sparte) mit einheitlichen Buttons */}
-        <div className="pt-2 border-t border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="pt-2 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs font-medium text-slate-400 mr-1 flex items-center gap-1.5">
+            <span className="text-xs font-medium text-slate-500 mr-1 flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-slate-400" />
               <span>Vertragstyp:</span>
             </span>
@@ -1219,12 +1219,14 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setContractTypeFilter('alle')}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors border ${
                 contractTypeFilter === 'alle'
-                  ? 'bg-blue-600 text-white border-blue-500'
-                  : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border-slate-800'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
               }`}
             >
               <span>Alle</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/40 font-mono">
+              <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                contractTypeFilter === 'alle' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
                 {contractTypeCounts.alle}
               </span>
             </button>
@@ -1234,13 +1236,15 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setContractTypeFilter('strom')}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors border ${
                 contractTypeFilter === 'strom'
-                  ? 'bg-blue-600 text-white border-blue-500'
-                  : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border-slate-800'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
               <span>Strom</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/40 font-mono">
+              <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                contractTypeFilter === 'strom' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
                 {contractTypeCounts.strom}
               </span>
             </button>
@@ -1250,13 +1254,15 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setContractTypeFilter('gas')}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors border ${
                 contractTypeFilter === 'gas'
-                  ? 'bg-blue-600 text-white border-blue-500'
-                  : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border-slate-800'
+                  ? 'bg-orange-600 text-white border-orange-600 shadow-2xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
               }`}
             >
               <Flame className="w-3.5 h-3.5" />
               <span>Gas</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/40 font-mono">
+              <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                contractTypeFilter === 'gas' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
                 {contractTypeCounts.gas}
               </span>
             </button>
@@ -1266,13 +1272,15 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setContractTypeFilter('internet')}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors border ${
                 contractTypeFilter === 'internet'
-                  ? 'bg-blue-600 text-white border-blue-500'
-                  : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border-slate-800'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
               }`}
             >
               <Wifi className="w-3.5 h-3.5" />
               <span>Internet & DSL</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/40 font-mono">
+              <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                contractTypeFilter === 'internet' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
                 {contractTypeCounts.internet}
               </span>
             </button>
@@ -1282,13 +1290,15 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setContractTypeFilter('kfz')}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors border ${
                 contractTypeFilter === 'kfz'
-                  ? 'bg-blue-600 text-white border-blue-500'
-                  : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border-slate-800'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
               }`}
             >
               <Car className="w-3.5 h-3.5" />
               <span>KFZ & Flotte</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/40 font-mono">
+              <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                contractTypeFilter === 'kfz' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
                 {contractTypeCounts.kfz}
               </span>
             </button>
@@ -1298,13 +1308,15 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setContractTypeFilter('kombi')}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors border ${
                 contractTypeFilter === 'kombi'
-                  ? 'bg-blue-600 text-white border-blue-500'
-                  : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border-slate-800'
+                  ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
               }`}
             >
               <Sparkle className="w-3.5 h-3.5" />
               <span>Kombi (Strom+Gas)</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/40 font-mono">
+              <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                contractTypeFilter === 'kombi' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
                 {contractTypeCounts.kombi}
               </span>
             </button>
@@ -1312,14 +1324,14 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
           {/* Filter-Kombination Toggle (ODER vs. UND) */}
           <div className="flex items-center gap-2 text-xs shrink-0 self-end md:self-center">
-            <span className="text-slate-500 text-[11px] font-medium">Logik:</span>
-            <div className="p-0.5 bg-slate-950 rounded-lg border border-slate-800 flex items-center">
+            <span className="text-slate-400 text-[11px] font-medium">Logik:</span>
+            <div className="p-0.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center">
               <button
                 onClick={() => setFilterLogic('or')}
                 className={`px-2.5 py-1 rounded text-[11px] font-semibold cursor-pointer transition-colors ${
                   filterLogic === 'or'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
                 title="Zeigt Kontakte, die den Namen ODER den Vertragstyp erfüllen"
               >
@@ -1329,8 +1341,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                 onClick={() => setFilterLogic('and')}
                 className={`px-2.5 py-1 rounded text-[11px] font-semibold cursor-pointer transition-colors ${
                   filterLogic === 'and'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
                 title="Zeigt Kontakte, die sowohl den Namen ALS AUCH den Vertragstyp erfüllen"
               >
@@ -1341,16 +1353,16 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
         </div>
 
         {/* Leiste 3: Status-Filter & Freitext-Suchfeld */}
-        <div className="pt-2 border-t border-slate-800/80 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="pt-2 border-t border-slate-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Status-Filter Buttons */}
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-            <span className="text-[11px] text-slate-500 font-medium shrink-0">Status:</span>
+            <span className="text-[11px] text-slate-400 font-medium shrink-0">Status:</span>
             <button
               onClick={() => setStatusFilter('alle')}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer transition-colors whitespace-nowrap border ${
                 statusFilter === 'alle'
-                  ? 'bg-slate-700 text-white border-slate-600'
-                  : 'text-slate-400 hover:text-white bg-slate-900/60 border-slate-800'
+                  ? 'bg-slate-700 text-white border-slate-700'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100 border-slate-200'
               }`}
             >
               Alle Status
@@ -1359,8 +1371,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setStatusFilter('in_optimierung')}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer transition-colors whitespace-nowrap border ${
                 statusFilter === 'in_optimierung'
-                  ? 'bg-blue-600 text-white border-blue-500'
-                  : 'text-slate-400 hover:text-white bg-slate-900/60 border-slate-800'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100 border-slate-200'
               }`}
             >
               In Optimierung ({kpiActiveOptimizations})
@@ -1369,8 +1381,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setStatusFilter('fristen_alarm')}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer transition-colors whitespace-nowrap border ${
                 statusFilter === 'fristen_alarm'
-                  ? 'bg-blue-600 text-white border-blue-500'
-                  : 'text-slate-400 hover:text-white bg-slate-900/60 border-slate-800'
+                  ? 'bg-amber-600 text-white border-amber-600'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100 border-slate-200'
               }`}
             >
               Fristen-Alarm ({kpiExpiringContracts})
@@ -1379,8 +1391,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setStatusFilter('mit_aufgaben')}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer transition-colors whitespace-nowrap border ${
                 statusFilter === 'mit_aufgaben'
-                  ? 'bg-blue-600 text-white border-blue-500'
-                  : 'text-slate-400 hover:text-white bg-slate-900/60 border-slate-800'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100 border-slate-200'
               }`}
             >
               Rückrufe ({kpiOpenTasksCount})
@@ -1389,8 +1401,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setStatusFilter('erfolgreich')}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer transition-colors whitespace-nowrap border ${
                 statusFilter === 'erfolgreich'
-                  ? 'bg-blue-600 text-white border-blue-500'
-                  : 'text-slate-400 hover:text-white bg-slate-900/60 border-slate-800'
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100 border-slate-200'
               }`}
             >
               Aktiv
@@ -1399,18 +1411,18 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
           {/* Globale Freitextsuche */}
           <div className="relative min-w-[220px]">
-            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="KD-Nr., Telefon, Zähler, Notizen..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-6 py-1.5 bg-slate-950/70 border border-slate-800 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full pl-8 pr-6 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs"
               >
                 ✕
               </button>
@@ -1418,20 +1430,20 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
           </div>
         </div>
 
-        {/* Leiste 4: Aktive Filter & Schnellauswertung - Einheitliches Dark-Slate Design */}
+        {/* Leiste 4: Aktive Filter & Schnellauswertung */}
         {(customerNameQuery || contractTypeFilter !== 'alle' || searchQuery || statusFilter !== 'alle') && (
-          <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-slate-400 font-medium">
+              <span className="text-[11px] text-slate-500 font-medium">
                 Aktive Filter:
               </span>
 
               {customerNameQuery && (
-                <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700 text-[11px] font-medium flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-medium flex items-center gap-1">
                   <span>Name: "{customerNameQuery}"</span>
                   <button
                     onClick={() => setCustomerNameQuery('')}
-                    className="hover:text-white cursor-pointer ml-0.5"
+                    className="hover:text-blue-900 cursor-pointer ml-0.5"
                   >
                     ✕
                   </button>
@@ -1439,11 +1451,11 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               )}
 
               {contractTypeFilter !== 'alle' && (
-                <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700 text-[11px] font-medium flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-medium flex items-center gap-1">
                   <span>Vertragstyp: {contractTypeFilter.toUpperCase()}</span>
                   <button
                     onClick={() => setContractTypeFilter('alle')}
-                    className="hover:text-white cursor-pointer ml-0.5"
+                    className="hover:text-blue-900 cursor-pointer ml-0.5"
                   >
                     ✕
                   </button>
@@ -1451,11 +1463,11 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               )}
 
               {searchQuery && (
-                <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700 text-[11px] font-medium flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-medium flex items-center gap-1">
                   <span>Text: "{searchQuery}"</span>
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="hover:text-white cursor-pointer ml-0.5"
+                    className="hover:text-blue-900 cursor-pointer ml-0.5"
                   >
                     ✕
                   </button>
@@ -1463,24 +1475,24 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               )}
 
               {statusFilter !== 'alle' && (
-                <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700 text-[11px] font-medium flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-medium flex items-center gap-1">
                   <span>Status: {statusFilter}</span>
                   <button
                     onClick={() => setStatusFilter('alle')}
-                    className="hover:text-white cursor-pointer ml-0.5"
+                    className="hover:text-blue-900 cursor-pointer ml-0.5"
                   >
                     ✕
                   </button>
                 </span>
               )}
 
-              <span className="text-[10px] text-slate-500 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono">
+              <span className="text-[10px] text-slate-500 px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono">
                 {filterLogic.toUpperCase()}
               </span>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold text-slate-300">
+              <span className="text-xs font-semibold text-slate-700">
                 {filteredContacts.length} von {contacts.length} Treffer
               </span>
               <button
@@ -1490,7 +1502,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                   setSearchQuery('');
                   setStatusFilter('alle');
                 }}
-                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-medium cursor-pointer transition-colors"
+                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium cursor-pointer transition-colors"
               >
                 ✕ Filter zurücksetzen
               </button>
@@ -1502,10 +1514,10 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
       {/* Contact Cards List */}
       <div className="space-y-4">
         {filteredContacts.length === 0 ? (
-          <div className="p-12 text-center bg-[#121319] rounded-2xl border border-white/[0.08] space-y-3">
-            <Users className="w-8 h-8 text-slate-500 mx-auto" />
-            <div className="text-sm font-bold text-white">Keine Kundenkontakte gefunden</div>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">
+          <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+            <Users className="w-8 h-8 text-slate-400 mx-auto" />
+            <div className="text-sm font-bold text-slate-900">Keine Kundenkontakte gefunden</div>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
               Für Ihre Filterkriterien (Name: {customerNameQuery || '-'}, Vertragstyp: {contractTypeFilter || '-'}) liegen aktuell keine Treffer vor. Sie können die Filter zurücksetzen oder direkt einen neuen Kundenkontakt anlegen.
             </p>
             <button
@@ -1515,7 +1527,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                 setSearchQuery('');
                 setStatusFilter('alle');
               }}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold cursor-pointer transition-all"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all shadow-xs"
             >
               Filter zurücksetzen
             </button>
@@ -1535,52 +1547,52 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
             return (
               <div
                 key={contact.id}
-                className="bg-[#10121a] hover:bg-[#131622] rounded-xl border border-slate-800/80 transition-all p-4 sm:p-5 space-y-4"
+                className="bg-white hover:border-slate-300 rounded-xl border border-slate-200 shadow-2xs transition-all p-4 sm:p-5 space-y-4"
               >
                 {/* Top Row: Customer Identity & Fast Actions */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-800/70 pb-3.5">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-200 font-bold text-sm shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 font-bold text-sm shrink-0">
                       {contact.fullName.charAt(0)}
                     </div>
 
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-bold text-white text-sm sm:text-base">
+                        <span className="font-bold text-slate-900 text-sm sm:text-base">
                           {renderHighlightedName(contact.fullName, customerNameQuery)}
                         </span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800/80 text-slate-300 border border-slate-700">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-bold">
                           {contact.customerNumber}
                         </span>
                         {contact.city && (
-                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-slate-500" />
+                          <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-slate-400" />
                             <span>{contact.postalCode} {contact.city}</span>
                           </span>
                         )}
                         {openTasksForThisClient.length > 0 && (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 font-medium">
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold">
                             {openTasksForThisClient.length} Rückruf offen
                           </span>
                         )}
                       </div>
 
-                      <div className="text-xs text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1">
                         <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3 text-slate-500" />
-                          <a href={`tel:${contact.phone}`} className="hover:text-blue-400 transition-colors">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          <a href={`tel:${contact.phone}`} className="hover:text-blue-600 transition-colors">
                             {contact.phone}
                           </a>
                         </span>
                         <span>•</span>
                         <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3 text-slate-500" />
-                          <a href={`mailto:${contact.email}`} className="hover:text-blue-400 transition-colors">
+                          <Mail className="w-3 h-3 text-slate-400" />
+                          <a href={`mailto:${contact.email}`} className="hover:text-blue-600 transition-colors">
                             {contact.email}
                           </a>
                         </span>
                         <span>•</span>
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-slate-400">
                           Kunde seit: {contact.customerSince}
                         </span>
                       </div>
@@ -1591,7 +1603,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                           {contact.tags.map((tag, tIdx) => (
                             <span
                               key={tIdx}
-                              className="text-[10px] px-2 py-0.2 rounded bg-slate-900 text-slate-400 border border-slate-800"
+                              className="text-[10px] px-2 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200 font-medium"
                             >
                               #{tag}
                             </span>
@@ -1601,35 +1613,35 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                     </div>
                   </div>
 
-                  {/* Right Action Buttons - Einheitliche Buttons */}
+                  {/* Right Action Buttons */}
                   <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
                     {/* Add Protocol / Note Button */}
                     <button
                       onClick={() => handleOpenAddNoteModal(contact)}
-                      className="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
+                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
                       title="Neues Gesprächsprotokoll oder Notiz erfassen"
                     >
-                      <StickyNote className="w-3.5 h-3.5 text-slate-400" />
+                      <StickyNote className="w-3.5 h-3.5 text-slate-500" />
                       <span>+ Protokoll</span>
                     </button>
 
                     {/* WhatsApp Quick Link */}
                     <button
                       onClick={() => handleOpenWhatsApp(contact)}
-                      className="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
+                      className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
                       title="WhatsApp-Chat starten"
                     >
-                      <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+                      <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
                       <span className="hidden sm:inline">WhatsApp</span>
                     </button>
 
                     {/* Mail Quick Link */}
                     <button
                       onClick={() => handleOpenMail(contact)}
-                      className="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
+                      className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
                       title="E-Mail senden"
                     >
-                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                      <Mail className="w-3.5 h-3.5 text-blue-600" />
                       <span className="hidden sm:inline">E-Mail</span>
                     </button>
 
@@ -1639,17 +1651,17 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                         setTargetCustomerForProcess(contact);
                         setIsAddProcessOpen(true);
                       }}
-                      className="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
+                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
                       title="Weiteren Optimierungsprozess für diesen Kunden starten"
                     >
-                      <Plus className="w-3.5 h-3.5 text-slate-400" />
+                      <Plus className="w-3.5 h-3.5 text-slate-500" />
                       <span>+ Sparte</span>
                     </button>
 
                     {/* Full Dossier Modal */}
                     <button
                       onClick={() => setSelectedCustomer(contact)}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white border border-blue-500 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       <span>Kunden-Dossier</span>
@@ -1660,27 +1672,27 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                 {/* SECTION A: Aktuelle Vertragslaufzeiten (Contract Durations) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-blue-600" />
                       <span>Aktuelle Verträge & Vertragslaufzeiten ({contact.contracts.length})</span>
                     </span>
 
                     {contact.contracts.length > 0 && (
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-[11px] text-slate-500 font-medium">
                         Fristen-Überwachung aktiv
                       </span>
                     )}
                   </div>
 
                   {contact.contracts.length === 0 ? (
-                    <div className="p-3 bg-black/40 rounded-xl border border-white/[0.04] text-xs text-slate-400 flex items-center justify-between">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 flex items-center justify-between">
                       <span>Noch keine Bestandsverträge hinterlegt (Neukunde in Optimierungsphase).</span>
                       <button
                         onClick={() => {
                           setTargetCustomerForProcess(contact);
                           setIsAddProcessOpen(true);
                         }}
-                        className="text-blue-400 hover:underline text-[11px]"
+                        className="text-blue-600 font-semibold hover:underline text-[11px]"
                       >
                         + Jetzt Vertrag erfassen
                       </button>
@@ -1702,44 +1714,44 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                             key={ct.id}
                             className={`p-3 rounded-lg border text-xs space-y-2 transition-colors ${
                               isTypeMatched
-                                ? 'bg-slate-900/90 border-blue-500/80 shadow-sm'
-                                : 'bg-[#0c0e14] border-slate-800/80'
+                                ? 'bg-blue-50/60 border-blue-300 shadow-2xs'
+                                : 'bg-slate-50 border-slate-200'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="space-y-0.5">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-slate-100 uppercase text-[11px] tracking-wide">
+                                  <span className="font-bold text-slate-900 uppercase text-[11px] tracking-wide">
                                     {ct.service === 'strom' && '⚡ Strom'}
                                     {ct.service === 'gas' && '🔥 Gas'}
                                     {ct.service === 'internet' && '🌐 Internet'}
                                     {ct.service === 'kfz' && '🚗 KFZ'}
                                   </span>
                                   {isTypeMatched && (
-                                    <span className="text-[9px] font-medium px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40">
+                                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 border border-blue-200">
                                       Gefiltert
                                     </span>
                                   )}
-                                  <span className="text-slate-400 font-medium">· {ct.provider}</span>
+                                  <span className="text-slate-600 font-medium">· {ct.provider}</span>
                                 </div>
-                                <div className="text-[11px] text-slate-300 font-medium truncate max-w-[200px]">
+                                <div className="text-[11px] text-slate-700 font-medium truncate max-w-[200px]">
                                   {ct.tariffName}
                                 </div>
                               </div>
 
-                              {/* Status Ampel Badge - Ruhig und unaufdringlich */}
+                              {/* Status Ampel Badge */}
                               <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 ${
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 border ${
                                   isCritical
-                                    ? 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
                                     : isWarning
-                                    ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
-                                    : 'bg-slate-800/80 text-slate-300 border border-slate-700/60'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                 }`}
                               >
-                                {isCritical && <AlertOctagon className="w-3 h-3 text-rose-400" />}
-                                {isWarning && <BellRing className="w-3 h-3 text-amber-400" />}
-                                {!isCritical && !isWarning && <CheckCircle className="w-3 h-3 text-slate-400" />}
+                                {isCritical && <AlertOctagon className="w-3 h-3 text-rose-600" />}
+                                {isWarning && <BellRing className="w-3 h-3 text-amber-600" />}
+                                {!isCritical && !isWarning && <CheckCircle className="w-3 h-3 text-emerald-600" />}
                                 <span>
                                   {isCritical
                                     ? `Noch ${daysRemaining} Tage!`
@@ -1752,20 +1764,20 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
                             {/* Runtime Dates & Progress Bar */}
                             <div className="space-y-1">
-                              <div className="flex justify-between text-[10px] text-slate-400">
+                              <div className="flex justify-between text-[10px] text-slate-500">
                                 <span>Beginn: {ct.startDate}</span>
-                                <span className="font-semibold text-slate-200">Ende: {ct.endDate} ({ct.durationMonths}M)</span>
+                                <span className="font-semibold text-slate-800">Ende: {ct.endDate} ({ct.durationMonths}M)</span>
                               </div>
 
                               {/* Progress bar */}
-                              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                              <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                 <div
                                   className={`h-full rounded-full transition-all duration-500 ${
                                     isCritical
                                       ? 'bg-rose-500'
                                       : isWarning
-                                      ? 'bg-amber-400'
-                                      : 'bg-blue-500'
+                                      ? 'bg-amber-500'
+                                      : 'bg-blue-600'
                                   }`}
                                   style={{ width: `${progressPct}%` }}
                                 />
@@ -1773,10 +1785,10 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                             </div>
 
                             {/* Monthly installment & quick action */}
-                            <div className="flex items-center justify-between text-[11px] pt-1 border-t border-white/[0.04]">
-                              <div className="text-slate-400">
+                            <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200">
+                              <div className="text-slate-600">
                                 Abschlag:{' '}
-                                <strong className="text-blue-300 font-mono">
+                                <strong className="text-slate-900 font-mono">
                                   {ct.currentMonthlyInstallment} € / Monat
                                 </strong>
                                 {ct.meterNumber && (
@@ -1797,10 +1809,10 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                                     ct.annualKwh
                                   )
                                 }
-                                className="px-2 py-1 bg-[#1a1b26] hover:bg-[#222433] text-blue-300 hover:text-white rounded text-[10px] font-semibold border border-blue-500/30 flex items-center gap-1 cursor-pointer"
+                                className="px-2 py-1 bg-white hover:bg-blue-50 text-blue-700 hover:text-blue-800 rounded text-[10px] font-semibold border border-blue-200 shadow-2xs flex items-center gap-1 cursor-pointer transition-colors"
                                 title="Abschlags- und Nachzahlungs-Schutz prüfen"
                               >
-                                <ShieldCheck className="w-3 h-3 text-blue-400" />
+                                <ShieldCheck className="w-3 h-3 text-blue-600" />
                                 <span>Abschlag prüfen</span>
                               </button>
                             </div>
@@ -1814,20 +1826,20 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                 {/* SECTION B: Status der laufenden Optimierungsprozesse (Pipeline Tracker) */}
                 <div className="space-y-2.5 pt-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
                       <span>Laufende Optimierungsprozesse ({contact.optimizationProcesses.length})</span>
                     </span>
 
                     {contact.totalAnnualSavingsCalculated > 0 && (
-                      <span className="text-xs font-bold text-emerald-400">
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                         Ersparnis: +{contact.totalAnnualSavingsCalculated} € / Jahr
                       </span>
                     )}
                   </div>
 
                   {contact.optimizationProcesses.length === 0 ? (
-                    <div className="p-3 bg-black/40 rounded-xl border border-white/[0.04] text-xs text-slate-400">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500">
                       Kein aktiver Optimierungsprozess in Bearbeitung.
                     </div>
                   ) : (
@@ -1839,22 +1851,22 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                         return (
                           <div
                             key={proc.id}
-                            className="p-3.5 bg-black/60 rounded-xl border border-white/[0.06] space-y-3"
+                            className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3"
                           >
                             {/* Process Header */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold uppercase text-white bg-slate-800 px-2 py-0.5 rounded">
+                                <span className="text-xs font-bold uppercase text-slate-800 bg-white border border-slate-200 px-2 py-0.5 rounded shadow-2xs">
                                   {proc.service}
                                 </span>
-                                <span className="text-xs text-slate-300">
+                                <span className="text-xs text-slate-700">
                                   <strong>{proc.currentProvider}</strong>
                                   {proc.targetProvider && ` ➔ ${proc.targetProvider} (${proc.targetTariff})`}
                                 </span>
                               </div>
 
                               <div className="flex items-center gap-2">
-                                <span className="text-xs text-emerald-400 font-bold bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/30">
+                                <span className="text-xs text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                                   +{proc.potentialAnnualSavings} €/Jahr Ersparnis
                                 </span>
 
@@ -1865,7 +1877,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                                   className={`text-[11px] font-bold px-2 py-1 rounded-lg border cursor-pointer focus:outline-none ${stageInfo.color}`}
                                 >
                                   {STAGE_ORDER.map((stKey) => (
-                                    <option key={stKey} value={stKey} className="bg-[#121319] text-white">
+                                    <option key={stKey} value={stKey}>
                                       {STAGE_CONFIG[stKey].label}
                                     </option>
                                   ))}
@@ -1888,17 +1900,17 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                                         onClick={() => handleSetStage(contact, proc.id, stageKey)}
                                         className={`flex-1 flex flex-col items-center p-1.5 rounded-lg text-center cursor-pointer transition-all border ${
                                           isCurrent
-                                            ? `${item.color} shadow-sm shadow-blue-500/20 ring-1 ring-blue-500/30 font-bold`
+                                            ? `${item.color} shadow-2xs font-bold`
                                             : isPassed
-                                            ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300'
-                                            : 'bg-black/30 border-white/[0.04] text-slate-500 hover:text-slate-300'
+                                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                            : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
                                         }`}
                                       >
                                         <div className="flex items-center gap-1 text-[10px]">
                                           {isPassed ? (
-                                            <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                                            <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
                                           ) : (
-                                            <span className="w-3.5 h-3.5 rounded-full bg-black/60 flex items-center justify-center text-[9px] shrink-0 font-mono">
+                                            <span className="w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[9px] shrink-0 font-mono font-bold">
                                               {sIdx + 1}
                                             </span>
                                           )}
@@ -1909,7 +1921,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                                       {sIdx < STAGE_ORDER.length - 1 && (
                                         <ChevronRight
                                           className={`w-3 h-3 shrink-0 ${
-                                            isPassed ? 'text-emerald-500' : 'text-slate-700'
+                                            isPassed ? 'text-emerald-500' : 'text-slate-300'
                                           }`}
                                         />
                                       )}
@@ -1920,8 +1932,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                             </div>
 
                             {/* Process Footer: Notes and 1-Click Advance */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-white/[0.04] text-xs">
-                              <div className="text-[11px] text-slate-400 italic truncate max-w-md">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-slate-200 text-xs">
+                              <div className="text-[11px] text-slate-500 italic truncate max-w-md">
                                 "{proc.notes}"
                               </div>
 
@@ -1929,7 +1941,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                                 {currentIdx < STAGE_ORDER.length - 1 && (
                                   <button
                                     onClick={() => handleAdvanceStage(contact, proc.id)}
-                                    className="px-2.5 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer shadow-sm"
+                                    className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer shadow-xs transition-colors"
                                     title="Prozess auf nächsten Schritt vorrücken"
                                   >
                                     <span>Nächster Schritt</span>
@@ -1945,17 +1957,17 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                   )}
                 </div>
 
-                {/* SECTION C: Gesprächsprotokolle & Interne Notizen (Neu!) */}
-                <div className="space-y-2 pt-2 border-t border-white/[0.06]">
+                {/* SECTION C: Gesprächsprotokolle & Interne Notizen */}
+                <div className="space-y-2 pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                        <StickyNote className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <StickyNote className="w-3.5 h-3.5 text-amber-500" />
                         <span>Gesprächsprotokolle & Notizen ({sortedNotes.length})</span>
                       </span>
 
                       {sortedNotes.some(n => n.pinned) && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 font-bold">
                           <Pin className="w-2.5 h-2.5" />
                           <span>Angepinnt</span>
                         </span>
@@ -1965,7 +1977,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleOpenAddNoteModal(contact)}
-                        className="px-2 py-1 bg-[#1a1c26] hover:bg-[#222533] text-amber-300 hover:text-white rounded-md text-[11px] font-semibold border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+                        className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-md text-[11px] font-bold border border-amber-200 flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         <Plus className="w-3 h-3" />
                         <span>Neuer Eintrag</span>
@@ -1974,7 +1986,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                       {sortedNotes.length > 0 && (
                         <button
                           onClick={() => setExpandedNotesMap(prev => ({ ...prev, [contact.id]: !prev[contact.id] }))}
-                          className="px-2 py-1 text-[11px] text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
+                          className="px-2 py-1 text-[11px] text-slate-600 hover:text-slate-900 flex items-center gap-1 cursor-pointer"
                         >
                           <span>{isNotesExpanded ? 'Einklappen' : `Historie (${sortedNotes.length})`}</span>
                           {isNotesExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
@@ -1987,24 +1999,24 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                   {!isNotesExpanded && sortedNotes.length > 0 && (
                     <div
                       onClick={() => setExpandedNotesMap(prev => ({ ...prev, [contact.id]: true }))}
-                      className="p-2.5 bg-black/40 hover:bg-black/60 rounded-xl border border-white/[0.06] flex items-center justify-between gap-3 text-xs cursor-pointer group transition-all"
+                      className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-between gap-3 text-xs cursor-pointer group transition-all"
                     >
                       <div className="flex items-center gap-2 truncate">
                         {sortedNotes[0].pinned && (
-                          <Pin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <Pin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                         )}
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono uppercase ${NOTE_TYPE_CONFIG[sortedNotes[0].type]?.color}`}>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono uppercase font-bold ${NOTE_TYPE_CONFIG[sortedNotes[0].type]?.color}`}>
                           {NOTE_TYPE_CONFIG[sortedNotes[0].type]?.label}
                         </span>
-                        <span className="font-semibold text-slate-200 truncate">
+                        <span className="font-semibold text-slate-800 truncate">
                           {sortedNotes[0].title}:
                         </span>
-                        <span className="text-slate-400 truncate italic">
+                        <span className="text-slate-500 truncate italic">
                           "{sortedNotes[0].content}"
                         </span>
                       </div>
 
-                      <span className="text-[11px] text-blue-400 group-hover:underline shrink-0 whitespace-nowrap">
+                      <span className="text-[11px] text-blue-600 group-hover:underline shrink-0 whitespace-nowrap font-medium">
                         Alle {sortedNotes.length} anzeigen ➔
                       </span>
                     </div>
@@ -2012,11 +2024,11 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
                   {/* Empty state when no notes exist yet */}
                   {sortedNotes.length === 0 && (
-                    <div className="p-3 bg-black/30 rounded-xl border border-dashed border-white/[0.08] text-xs text-slate-400 flex items-center justify-between">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-xs text-slate-500 flex items-center justify-between">
                       <span>Noch kein Gesprächsprotokoll erfasst. Halten Sie Telefonate & Beratungsinhalte hier fest.</span>
                       <button
                         onClick={() => handleOpenAddNoteModal(contact)}
-                        className="text-amber-400 hover:underline text-[11px] font-semibold flex items-center gap-1"
+                        className="text-amber-700 hover:underline text-[11px] font-bold flex items-center gap-1"
                       >
                         <Plus className="w-3 h-3" />
                         <span>Jetzt notieren</span>
@@ -2035,8 +2047,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                             key={entry.id}
                             className={`p-3.5 rounded-xl border text-xs space-y-2 transition-all ${
                               entry.pinned
-                                ? 'bg-[#181612] border-amber-500/40 shadow-sm shadow-amber-900/10'
-                                : 'bg-black/60 border-white/[0.06]'
+                                ? 'bg-amber-50/50 border-amber-300 shadow-2xs'
+                                : 'bg-slate-50 border-slate-200'
                             }`}
                           >
                             {/* Note Card Header */}
@@ -2046,12 +2058,12 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                                   {typeInfo.badge}
                                 </span>
 
-                                <span className="font-bold text-white text-xs">
+                                <span className="font-bold text-slate-900 text-xs">
                                   {entry.title}
                                 </span>
 
                                 {entry.pinned && (
-                                  <span className="text-[10px] text-amber-400 flex items-center gap-0.5 font-semibold">
+                                  <span className="text-[10px] text-amber-700 flex items-center gap-0.5 font-bold">
                                     <Pin className="w-3 h-3" />
                                     <span>Angepinnt</span>
                                   </span>
@@ -2066,8 +2078,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => handleTogglePinNote(contact, entry.id)}
-                                  className={`p-1 rounded hover:bg-white/[0.08] transition-colors cursor-pointer ${
-                                    entry.pinned ? 'text-amber-400' : 'text-slate-500 hover:text-slate-300'
+                                  className={`p-1 rounded hover:bg-slate-200 transition-colors cursor-pointer ${
+                                    entry.pinned ? 'text-amber-600' : 'text-slate-400 hover:text-slate-700'
                                   }`}
                                   title={entry.pinned ? 'Anpinnung lösen' : 'Notiz oben anpinnen'}
                                 >
@@ -2077,7 +2089,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteNote(contact, entry.id)}
-                                  className="p-1 text-slate-500 hover:text-rose-400 rounded hover:bg-white/[0.08] transition-colors cursor-pointer"
+                                  className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-200 transition-colors cursor-pointer"
                                   title="Eintrag löschen"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -2086,7 +2098,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                             </div>
 
                             {/* Note Content Text */}
-                            <p className="text-slate-300 leading-relaxed whitespace-pre-line text-xs pl-0.5">
+                            <p className="text-slate-700 leading-relaxed whitespace-pre-line text-xs pl-0.5">
                               {entry.content}
                             </p>
 
@@ -2094,11 +2106,11 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                             {entry.actionRequired && (
                               <div className={`p-2 rounded-lg border flex items-center justify-between gap-2 text-[11px] ${
                                 entry.actionDone
-                                  ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300'
-                                  : 'bg-amber-950/20 border-amber-500/30 text-amber-200'
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                  : 'bg-amber-50 border-amber-200 text-amber-900'
                               }`}>
                                 <div className="flex items-center gap-1.5">
-                                  <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+                                  <CalendarClock className="w-3.5 h-3.5 shrink-0 text-amber-600" />
                                   <span>
                                     Wiedervorlage / Rückruf: <strong>{entry.followUpDate || 'Zeitnah'}</strong>
                                   </span>
@@ -2109,8 +2121,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                                   onClick={() => handleToggleActionDone(contact, entry.id)}
                                   className={`px-2 py-0.5 rounded font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-colors ${
                                     entry.actionDone
-                                      ? 'bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/40'
-                                      : 'bg-amber-500 hover:bg-amber-400 text-black font-semibold'
+                                      ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                      : 'bg-amber-500 hover:bg-amber-600 text-white font-bold'
                                   }`}
                                 >
                                   {entry.actionDone ? (
@@ -2138,18 +2150,18 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
       {/* MODAL: Neues Gesprächsprotokoll / Notiz anlegen */}
       {isAddNoteModalOpen && targetCustomerForNote && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#121319] border border-white/[0.1] rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl text-slate-800">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center">
                   <StickyNote className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">
+                  <h3 className="text-sm font-bold text-slate-900">
                     Gesprächsprotokoll & Notiz erfassen
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-500">
                     Für: <strong>{targetCustomerForNote.fullName}</strong> ({targetCustomerForNote.customerNumber})
                   </p>
                 </div>
@@ -2159,7 +2171,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                   setIsAddNoteModalOpen(false);
                   setTargetCustomerForNote(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-[#181922] cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2168,7 +2180,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
             <form onSubmit={handleAddNoteSubmit} className="space-y-4 text-xs">
               {/* Note Type Selector */}
               <div>
-                <label className="block text-slate-400 mb-1.5">Kontakt- / Notiz-Typ</label>
+                <label className="block text-slate-600 mb-1.5 font-medium">Kontakt- / Notiz-Typ</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(Object.keys(NOTE_TYPE_CONFIG) as NoteType[]).map((tKey) => {
                     const item = NOTE_TYPE_CONFIG[tKey];
@@ -2181,8 +2193,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                         onClick={() => setNoteType(tKey)}
                         className={`p-2 rounded-lg border text-center font-bold cursor-pointer transition-all ${
                           isSelected
-                            ? `${item.color} shadow-sm ring-1 ring-blue-500/30`
-                            : 'bg-[#151722] border-white/[0.04] text-slate-400 hover:text-white'
+                            ? `${item.color} shadow-xs ring-2 ring-blue-500/20`
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                         }`}
                       >
                         {item.badge}
@@ -2195,30 +2207,30 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               {/* Title & Author */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">Thema / Betreff</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Thema / Betreff</label>
                   <input
                     type="text"
                     placeholder="z.B. Abschlagsanpassung Gas, Kündigungsberatung..."
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">Berater / Bearbeiter</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Berater / Bearbeiter</label>
                   <input
                     type="text"
                     value={noteAuthor}
                     onChange={(e) => setNoteAuthor(e.target.value)}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
               </div>
 
               {/* Protocol Content */}
               <div>
-                <label className="block text-slate-400 mb-1">
+                <label className="block text-slate-600 mb-1 font-medium">
                   Gesprächsprotokoll / Notizinhalt *
                 </label>
                 <textarea
@@ -2227,71 +2239,71 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                   placeholder="Was wurde besprochen? Welche Wünsche hat der Kunde? Welche Angebote oder Zusagen wurden gemacht?"
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
-                  className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500 leading-relaxed"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white leading-relaxed"
                 />
               </div>
 
               {/* Date & Time */}
               <div>
-                <label className="block text-slate-400 mb-1">Datum & Uhrzeit des Gesprächs</label>
+                <label className="block text-slate-600 mb-1 font-medium">Datum & Uhrzeit des Gesprächs</label>
                 <input
                   type="text"
                   value={noteDate}
                   onChange={(e) => setNoteDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500 font-mono text-xs"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white font-mono text-xs"
                 />
               </div>
 
               {/* Action Required Checkbox */}
-              <div className="p-3 bg-black/40 rounded-xl border border-white/[0.06] space-y-2.5">
-                <label className="flex items-center gap-2 cursor-pointer text-slate-200">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
+                <label className="flex items-center gap-2 cursor-pointer text-slate-800">
                   <input
                     type="checkbox"
                     checked={noteActionRequired}
                     onChange={(e) => setNoteActionRequired(e.target.checked)}
-                    className="w-4 h-4 rounded bg-black border-white/[0.2] text-blue-600 focus:ring-0"
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-0"
                   />
                   <span className="font-semibold">Wiedervorlage oder Rückruf erforderlich?</span>
                 </label>
 
                 {noteActionRequired && (
                   <div className="pt-1">
-                    <label className="block text-slate-400 mb-1">Fällig am (Datum / Notiz):</label>
+                    <label className="block text-slate-600 mb-1 font-medium">Fällig am (Datum / Notiz):</label>
                     <input
                       type="date"
                       value={noteFollowUpDate}
                       onChange={(e) => setNoteFollowUpDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500"
                     />
                   </div>
                 )}
               </div>
 
               {/* Pin Note */}
-              <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+              <label className="flex items-center gap-2 cursor-pointer text-slate-700">
                 <input
                   type="checkbox"
                   checked={notePinned}
                   onChange={(e) => setNotePinned(e.target.checked)}
-                  className="w-4 h-4 rounded bg-black border-white/[0.2] text-amber-500 focus:ring-0"
+                  className="w-4 h-4 rounded text-amber-500 focus:ring-0"
                 />
                 <span>Wichtig: Diese Notiz oben in der Kundenakte anpinnen 📌</span>
               </label>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-white/[0.08]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {
                     setIsAddNoteModalOpen(false);
                     setTargetCustomerForNote(null);
                   }}
-                  className="px-4 py-2 bg-[#181922] text-slate-300 hover:text-white rounded-lg cursor-pointer"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer"
                 >
                   Abbrechen
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-black font-bold rounded-lg cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg cursor-pointer flex items-center gap-1.5 shadow-xs"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>Protokoll speichern</span>
@@ -2304,21 +2316,21 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
       {/* MODAL 1: Neuen Kundenkontakt anlegen */}
       {isAddCustomerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#121319] border border-white/[0.1] rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl text-slate-800">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center">
                   <UserPlus className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">Neuen Kundenkontakt anlegen</h3>
-                  <p className="text-[11px] text-slate-400">Erfassen Sie Kontaktdaten & die erste Optimierungsanfrage</p>
+                  <h3 className="text-sm font-bold text-slate-900">Neuen Kundenkontakt anlegen</h3>
+                  <p className="text-[11px] text-slate-500">Erfassen Sie Kontaktdaten & die erste Optimierungsanfrage</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsAddCustomerOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-[#181922] cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2327,46 +2339,46 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
             <form onSubmit={handleCreateCustomerSubmit} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">Vollständiger Name *</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Vollständiger Name *</label>
                   <input
                     type="text"
                     required
                     placeholder="z.B. Thomas Schmidt"
                     value={newCustName}
                     onChange={(e) => setNewCustName(e.target.value)}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">Telefon / Mobilfunk *</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Telefon / Mobilfunk *</label>
                   <input
                     type="tel"
                     required
                     placeholder="z.B. +49 176 12345678"
                     value={newCustPhone}
                     onChange={(e) => setNewCustPhone(e.target.value)}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">E-Mail-Adresse</label>
+                  <label className="block text-slate-600 mb-1 font-medium">E-Mail-Adresse</label>
                   <input
                     type="email"
                     placeholder="z.B. t.schmidt@leipzig-mail.de"
                     value={newCustEmail}
                     onChange={(e) => setNewCustEmail(e.target.value)}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">Bevorzugter Kontaktkanal</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Bevorzugter Kontaktkanal</label>
                   <select
                     value={newCustContactPref}
                     onChange={(e) => setNewCustContactPref(e.target.value as ConsultationType)}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   >
                     <option value="whatsapp">WhatsApp</option>
                     <option value="telefon">Telefon</option>
@@ -2378,36 +2390,36 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
-                  <label className="block text-slate-400 mb-1">Straße & Hausnummer</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Straße & Hausnummer</label>
                   <input
                     type="text"
                     value={newCustAddress}
                     onChange={(e) => setNewCustAddress(e.target.value)}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">PLZ & Ort</label>
+                  <label className="block text-slate-600 mb-1 font-medium">PLZ & Ort</label>
                   <div className="flex gap-1.5">
                     <input
                       type="text"
                       value={newCustPostal}
                       onChange={(e) => setNewCustPostal(e.target.value)}
-                      className="w-16 px-2 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                      className="w-16 px-2 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                     />
                     <input
                       type="text"
                       value={newCustCity}
                       onChange={(e) => setNewCustCity(e.target.value)}
-                      className="flex-1 px-2 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                      className="flex-1 px-2 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Initial Service / Optimization */}
-              <div className="p-3 bg-black/40 rounded-xl border border-white/[0.06] space-y-3">
-                <span className="text-[11px] font-bold text-blue-300 block">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <span className="text-[11px] font-bold text-blue-700 block">
                   Erste Optimierungs-Sparte
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -2418,8 +2430,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                       onClick={() => setNewCustService(srv)}
                       className={`p-2 rounded-lg border text-center font-bold cursor-pointer transition-colors ${
                         newCustService === srv
-                          ? 'bg-blue-600/30 border-blue-500 text-blue-300'
-                          : 'bg-[#151722] border-white/[0.04] text-slate-400 hover:text-white'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50'
                       }`}
                     >
                       {srv.toUpperCase()}
@@ -2429,66 +2441,66 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-slate-400 mb-1">Bisheriger Versorger</label>
+                    <label className="block text-slate-600 mb-1 font-medium">Bisheriger Versorger</label>
                     <input
                       type="text"
                       value={newCustProvider}
                       onChange={(e) => setNewCustProvider(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 mb-1">Monatlicher Abschlag (€)</label>
+                    <label className="block text-slate-600 mb-1 font-medium">Monatlicher Abschlag (€)</label>
                     <input
                       type="number"
                       value={newCustMonthly}
                       onChange={(e) => setNewCustMonthly(Number(e.target.value))}
-                      className="w-full px-3 py-1.5 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 mb-1">Jahresverbrauch (kWh)</label>
+                    <label className="block text-slate-600 mb-1 font-medium">Jahresverbrauch (kWh)</label>
                     <input
                       type="number"
                       value={newCustKwh}
                       onChange={(e) => setNewCustKwh(Number(e.target.value))}
-                      className="w-full px-3 py-1.5 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Kunden-Schlagwörter (Tags, kommagetrennt)</label>
+                <label className="block text-slate-600 mb-1 font-medium">Kunden-Schlagwörter (Tags, kommagetrennt)</label>
                 <input
                   type="text"
                   value={newCustTags}
                   onChange={(e) => setNewCustTags(e.target.value)}
-                  className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Interne Notizen / Beratungsziel</label>
+                <label className="block text-slate-600 mb-1 font-medium">Interne Notizen / Beratungsziel</label>
                 <textarea
                   rows={2}
                   value={newCustNotes}
                   onChange={(e) => setNewCustNotes(e.target.value)}
-                  className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-white/[0.08]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsAddCustomerOpen(false)}
-                  className="px-4 py-2 bg-[#181922] text-slate-300 hover:text-white rounded-lg cursor-pointer"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer"
                 >
                   Abbrechen
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg cursor-pointer flex items-center gap-1.5 shadow-xs"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>Kunden speichern</span>
@@ -2501,14 +2513,14 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
       {/* MODAL 2: Neuen Optimierungsprozess für bestehenden Kunden anlegen */}
       {isAddProcessOpen && targetCustomerForProcess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#121319] border border-white/[0.1] rounded-2xl max-w-lg w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-slate-800">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-sm font-bold text-white">
+                <h3 className="text-sm font-bold text-slate-900">
                   Neuen Optimierungsprozess starten
                 </h3>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500">
                   Für Kunde: <strong>{targetCustomerForProcess.fullName}</strong> ({targetCustomerForProcess.customerNumber})
                 </p>
               </div>
@@ -2517,7 +2529,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                   setIsAddProcessOpen(false);
                   setTargetCustomerForProcess(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-[#181922] cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2525,7 +2537,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
             <form onSubmit={handleAddProcessSubmit} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-slate-400 mb-1">Sparte auswählen</label>
+                <label className="block text-slate-600 mb-1 font-medium">Sparte auswählen</label>
                 <div className="grid grid-cols-4 gap-2">
                   {(['strom', 'gas', 'internet', 'kfz'] as ServiceType[]).map((srv) => (
                     <button
@@ -2534,8 +2546,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                       onClick={() => setProcService(srv)}
                       className={`p-2 rounded-lg border text-center font-bold cursor-pointer transition-colors ${
                         procService === srv
-                          ? 'bg-blue-600/30 border-blue-500 text-blue-300'
-                          : 'bg-[#151722] border-white/[0.04] text-slate-400 hover:text-white'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100'
                       }`}
                     >
                       {srv.toUpperCase()}
@@ -2546,64 +2558,64 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">Bisheriger Anbieter</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Bisheriger Anbieter</label>
                   <input
                     type="text"
                     required
                     value={procCurrentProvider}
                     onChange={(e) => setProcCurrentProvider(e.target.value)}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Aktueller Abschlag (€/M.)</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Aktueller Abschlag (€/M.)</label>
                   <input
                     type="number"
                     required
                     value={procMonthly}
                     onChange={(e) => setProcMonthly(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">Ziel-Anbieter (Vergleich)</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Ziel-Anbieter (Vergleich)</label>
                   <input
                     type="text"
                     value={procTargetProvider}
                     onChange={(e) => setProcTargetProvider(e.target.value)}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Ziel-Tarif</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Ziel-Tarif</label>
                   <input
                     type="text"
                     value={procTargetTariff}
                     onChange={(e) => setProcTargetTariff(e.target.value)}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">Kalkulierte Ersparnis (€/Jahr)</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Kalkulierte Ersparnis (€/Jahr)</label>
                   <input
                     type="number"
                     value={procSavings}
                     onChange={(e) => setProcSavings(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Start-Status</label>
+                  <label className="block text-slate-600 mb-1 font-medium">Start-Status</label>
                   <select
                     value={procStage}
                     onChange={(e) => setProcStage(e.target.value as OptimizationStage)}
-                    className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white font-medium"
                   >
                     {STAGE_ORDER.map((s) => (
                       <option key={s} value={s}>
@@ -2615,26 +2627,26 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Notizen zum Prozess</label>
+                <label className="block text-slate-600 mb-1 font-medium">Notizen zum Prozess</label>
                 <textarea
                   rows={2}
                   value={procNotes}
                   onChange={(e) => setProcNotes(e.target.value)}
-                  className="w-full px-3 py-2 bg-black/60 border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-white/[0.08]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsAddProcessOpen(false)}
-                  className="px-4 py-2 bg-[#181922] text-slate-300 hover:text-white rounded-lg cursor-pointer"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer"
                 >
                   Abbrechen
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg cursor-pointer"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg cursor-pointer shadow-xs transition-colors"
                 >
                   Prozess hinzufügen
                 </button>
@@ -2646,21 +2658,21 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
       {/* MODAL 3: Ausführliches Kunden-Dossier */}
       {selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#121319] border border-white/[0.1] rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
                   {selectedCustomer.fullName.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                     <span>{selectedCustomer.fullName}</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-blue-300">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-blue-700 font-semibold border border-slate-200">
                       {selectedCustomer.customerNumber}
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     Kunde seit {selectedCustomer.customerSince} · Leipzig
                   </p>
                 </div>
@@ -2669,16 +2681,16 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleOpenAddNoteModal(selectedCustomer)}
-                  className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                   title="Neues Protokoll anlegen"
                 >
-                  <StickyNote className="w-3.5 h-3.5" />
+                  <StickyNote className="w-3.5 h-3.5 text-amber-600" />
                   <span>+ Protokoll</span>
                 </button>
 
                 <button
                   onClick={() => exportCustomerDossierPDF(selectedCustomer)}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                   title="Kundenstammblatt inklusive Protokollen als PDF exportieren"
                 >
                   <FileDown className="w-3.5 h-3.5" />
@@ -2687,7 +2699,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
                 <button
                   onClick={() => setSelectedCustomer(null)}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-[#181922] cursor-pointer"
+                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg bg-slate-100 hover:bg-slate-200 cursor-pointer transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -2695,42 +2707,42 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
             </div>
 
             {/* Contact Specs */}
-            <div className="p-3.5 bg-black/50 rounded-xl border border-white/[0.06] grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               <div>
                 <span className="text-slate-500 text-[10px] block">Telefon / WhatsApp</span>
-                <span className="font-bold text-slate-200">{selectedCustomer.phone}</span>
+                <span className="font-bold text-slate-800">{selectedCustomer.phone}</span>
               </div>
               <div>
                 <span className="text-slate-500 text-[10px] block">E-Mail</span>
-                <span className="font-bold text-slate-200 truncate block">{selectedCustomer.email}</span>
+                <span className="font-bold text-slate-800 truncate block">{selectedCustomer.email}</span>
               </div>
               <div>
                 <span className="text-slate-500 text-[10px] block">Adresse</span>
-                <span className="text-slate-300 block">{selectedCustomer.address || 'Rotfuchsstr. 1, Leipzig'}</span>
+                <span className="text-slate-700 block">{selectedCustomer.address || 'Rotfuchsstr. 1, Leipzig'}</span>
               </div>
               <div>
                 <span className="text-slate-500 text-[10px] block">Präferenz</span>
-                <span className="font-bold text-blue-300 uppercase">{selectedCustomer.preferredContact}</span>
+                <span className="font-bold text-blue-700 uppercase">{selectedCustomer.preferredContact}</span>
               </div>
               <div>
                 <span className="text-slate-500 text-[10px] block">Realisierte Gesamtersparnis</span>
-                <span className="font-bold text-emerald-400">+{selectedCustomer.totalAnnualSavingsCalculated} € / Jahr</span>
+                <span className="font-bold text-emerald-600">+{selectedCustomer.totalAnnualSavingsCalculated} € / Jahr</span>
               </div>
               <div>
                 <span className="text-slate-500 text-[10px] block">Status</span>
-                <span className="font-bold text-white uppercase">{selectedCustomer.status}</span>
+                <span className="font-bold text-slate-800 uppercase">{selectedCustomer.status}</span>
               </div>
             </div>
 
             {/* Verträge & Laufzeiten */}
             <div className="space-y-2">
-              <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-blue-400" />
+              <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-blue-600" />
                 <span>Verträge & Laufzeiten ({selectedCustomer.contracts.length})</span>
               </h4>
 
               {selectedCustomer.contracts.length === 0 ? (
-                <div className="text-xs text-slate-500 italic p-3 bg-black/30 rounded-lg">
+                <div className="text-xs text-slate-500 italic p-3 bg-slate-50 rounded-lg border border-slate-200">
                   Keine Bestandsverträge hinterlegt.
                 </div>
               ) : (
@@ -2738,15 +2750,15 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                   {selectedCustomer.contracts.map((ct) => {
                     const daysRemaining = calculateDaysRemaining(ct.endDate);
                     return (
-                      <div key={ct.id} className="p-3 bg-black/40 rounded-xl border border-white/[0.06] text-xs flex items-center justify-between">
+                      <div key={ct.id} className="p-3 bg-white rounded-xl border border-slate-200 text-xs flex items-center justify-between shadow-xs">
                         <div>
-                          <div className="font-bold text-white uppercase">{ct.service} · {ct.provider} ({ct.tariffName})</div>
-                          <div className="text-slate-400 text-[11px]">
+                          <div className="font-bold text-slate-900 uppercase">{ct.service} · {ct.provider} ({ct.tariffName})</div>
+                          <div className="text-slate-500 text-[11px]">
                             Laufzeit: {ct.startDate} bis {ct.endDate} ({ct.durationMonths} Monate) · Abschlag: {ct.currentMonthlyInstallment} €/M.
                           </div>
                         </div>
                         <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                          daysRemaining <= 45 ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'
+                          daysRemaining <= 45 ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                         }`}>
                           {daysRemaining < 0 ? 'Beendet' : `Noch ${daysRemaining} Tage`}
                         </span>
@@ -2759,31 +2771,31 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
             {/* Laufende Optimierungen */}
             <div className="space-y-2">
-              <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
+              <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-cyan-600" />
                 <span>Optimierungs-Historie & Status ({selectedCustomer.optimizationProcesses.length})</span>
               </h4>
 
               <div className="space-y-2">
                 {selectedCustomer.optimizationProcesses.map((p) => (
-                  <div key={p.id} className="p-3 bg-black/40 rounded-xl border border-white/[0.06] text-xs space-y-1.5">
+                  <div key={p.id} className="p-3 bg-white rounded-xl border border-slate-200 text-xs space-y-1.5 shadow-xs">
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-white uppercase">{p.service} · {STAGE_CONFIG[p.stage].label}</span>
-                      <span className="text-emerald-400 font-bold">+{p.potentialAnnualSavings} € / Jahr</span>
+                      <span className="font-bold text-slate-900 uppercase">{p.service} · {STAGE_CONFIG[p.stage].label}</span>
+                      <span className="text-emerald-600 font-bold">+{p.potentialAnnualSavings} € / Jahr</span>
                     </div>
-                    <p className="text-slate-400 text-[11px]">{p.notes}</p>
-                    <div className="text-[10px] text-slate-500">Zuletzt aktualisiert: {p.lastUpdatedDate}</div>
+                    <p className="text-slate-600 text-[11px]">{p.notes}</p>
+                    <div className="text-[10px] text-slate-400">Zuletzt aktualisiert: {p.lastUpdatedDate}</div>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Chronik: Gesprächsprotokolle & Interne Notizen */}
-            <div className="space-y-3 pt-2 border-t border-white/[0.08]">
+            <div className="space-y-3 pt-2 border-t border-slate-200">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                    <StickyNote className="w-3.5 h-3.5 text-amber-400" />
+                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <StickyNote className="w-3.5 h-3.5 text-amber-600" />
                     <span>Gesprächsprotokolle & Chronik ({(selectedCustomer.noteEntries || []).length})</span>
                   </h4>
                 </div>
@@ -2792,10 +2804,10 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                   <button
                     type="button"
                     onClick={() => setDossierNoteFilter('alle')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
                       dossierNoteFilter === 'alle'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-[#181a24] text-slate-400 hover:text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     Alle
@@ -2805,10 +2817,10 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                       key={tKey}
                       type="button"
                       onClick={() => setDossierNoteFilter(tKey)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
                         dossierNoteFilter === tKey
-                          ? 'bg-amber-600 text-black font-bold'
-                          : 'bg-[#181a24] text-slate-400 hover:text-white'
+                          ? 'bg-amber-600 text-white font-bold'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                     >
                       {NOTE_TYPE_CONFIG[tKey].label}
@@ -2827,13 +2839,13 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
                 if (filteredEntries.length === 0) {
                   return (
-                    <div className="p-4 bg-black/40 rounded-xl border border-dashed border-white/[0.08] text-center text-xs text-slate-400 space-y-2">
+                    <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-center text-xs text-slate-500 space-y-2">
                       <p>Keine Einträge für diese Filterkategorie vorhanden.</p>
                       <button
                         onClick={() => handleOpenAddNoteModal(selectedCustomer, dossierNoteFilter !== 'alle' ? dossierNoteFilter : 'telefonat')}
-                        className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold cursor-pointer inline-flex items-center gap-1"
+                        className="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-semibold cursor-pointer inline-flex items-center gap-1 hover:bg-amber-200"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3 h-3 text-amber-700" />
                         <span>Neues Protokoll anlegen</span>
                       </button>
                     </div>
@@ -2848,10 +2860,10 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                       return (
                         <div
                           key={entry.id}
-                          className={`p-3.5 rounded-xl border text-xs space-y-2 transition-all ${
+                          className={`p-3.5 rounded-xl border text-xs space-y-2 transition-all shadow-xs ${
                             entry.pinned
-                              ? 'bg-[#191612] border-amber-500/50 shadow-sm shadow-amber-950/20'
-                              : 'bg-black/50 border-white/[0.08]'
+                              ? 'bg-amber-50/50 border-amber-300 shadow-sm'
+                              : 'bg-white border-slate-200'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -2859,25 +2871,25 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${typeInfo.color}`}>
                                 {typeInfo.badge}
                               </span>
-                              <span className="font-bold text-white text-xs">{entry.title}</span>
+                              <span className="font-bold text-slate-900 text-xs">{entry.title}</span>
                               {entry.pinned && (
-                                <span className="text-[10px] text-amber-400 flex items-center gap-0.5 font-semibold">
-                                  <Pin className="w-3 h-3" />
+                                <span className="text-[10px] text-amber-700 flex items-center gap-0.5 font-semibold">
+                                  <Pin className="w-3 h-3 text-amber-600" />
                                   <span>Angepinnt</span>
                                 </span>
                               )}
                             </div>
 
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="text-[10px] text-slate-500 font-mono">
+                              <span className="text-[10px] text-slate-400 font-mono">
                                 {entry.date} · {entry.author}
                               </span>
 
                               <button
                                 type="button"
                                 onClick={() => handleTogglePinNote(selectedCustomer, entry.id)}
-                                className={`p-1 rounded hover:bg-white/[0.08] transition-colors cursor-pointer ${
-                                  entry.pinned ? 'text-amber-400' : 'text-slate-500 hover:text-slate-300'
+                                className={`p-1 rounded hover:bg-slate-100 transition-colors cursor-pointer ${
+                                  entry.pinned ? 'text-amber-600' : 'text-slate-400 hover:text-slate-600'
                                 }`}
                                 title={entry.pinned ? 'Anpinnung lösen' : 'Notiz oben anpinnen'}
                               >
@@ -2887,7 +2899,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleDeleteNote(selectedCustomer, entry.id)}
-                                className="p-1 text-slate-500 hover:text-rose-400 rounded hover:bg-white/[0.08] transition-colors cursor-pointer"
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-100 transition-colors cursor-pointer"
                                 title="Eintrag löschen"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -2895,18 +2907,18 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                             </div>
                           </div>
 
-                          <p className="text-slate-300 leading-relaxed whitespace-pre-line text-xs pl-0.5">
+                          <p className="text-slate-700 leading-relaxed whitespace-pre-line text-xs pl-0.5">
                             {entry.content}
                           </p>
 
                           {entry.actionRequired && (
                             <div className={`p-2 rounded-lg border flex items-center justify-between gap-2 text-[11px] ${
                               entry.actionDone
-                                ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300'
-                                : 'bg-amber-950/20 border-amber-500/30 text-amber-200'
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                : 'bg-amber-50 border-amber-300 text-amber-900'
                             }`}>
                               <div className="flex items-center gap-1.5">
-                                <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+                                <CalendarClock className="w-3.5 h-3.5 shrink-0 text-amber-700" />
                                 <span>
                                   Wiedervorlage / Rückruf: <strong>{entry.followUpDate || 'Zeitnah'}</strong>
                                 </span>
@@ -2917,8 +2929,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                                 onClick={() => handleToggleActionDone(selectedCustomer, entry.id)}
                                 className={`px-2 py-0.5 rounded font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-colors ${
                                   entry.actionDone
-                                    ? 'bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/40'
-                                    : 'bg-amber-500 hover:bg-amber-400 text-black font-semibold'
+                                    ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300'
+                                    : 'bg-amber-500 hover:bg-amber-600 text-white font-semibold shadow-xs'
                                 }`}
                               >
                                 {entry.actionDone ? (

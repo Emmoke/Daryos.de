@@ -39,9 +39,21 @@ import {
   Users
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { ServiceType, ContractRecord, KiAuditLead, NachzahlungCalculation, CustomerContact } from '../types';
+import { 
+  ServiceType, 
+  ContractRecord, 
+  KiAuditLead, 
+  NachzahlungCalculation, 
+  CustomerContact,
+  CustomerMessage,
+  OptimizationProject,
+  CustomerOffer,
+  Invoice
+} from '../types';
 import { ProviderLogo } from './ProviderLogos';
 import { CrmModule } from './CrmModule';
+import { InvoiceBuilder } from './InvoiceBuilder';
+import { CustomerMessagesTab, ProjectsTab, OffersTab, InvoicesTab } from './CockpitTabs';
 
 export interface TariffPricingConfig {
   stromArbeitspreis: number; // in ct/kWh (e.g. 26.8)
@@ -75,8 +87,23 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string>('');
   
-  // Navigation tabs
-  const [activeTab, setActiveTab] = useState<'ki_inbox' | 'crm' | 'vertraege' | 'nachzahlung' | 'buchhaltung' | 'tarife' | 'automatisierung'>('crm');
+  // Navigation tabs: Kunden-Meldungen, Projekte, Angebote, Rechnungen, Rechnung erstellen, Vertragsliste, CRM, Nachzahlung, Tarife
+  const [activeTab, setActiveTab] = useState<
+    | 'meldungen'
+    | 'projekte'
+    | 'angebote'
+    | 'rechnungen'
+    | 'rechnung_erstellen'
+    | 'vertraege'
+    | 'crm'
+    | 'nachzahlung'
+    | 'tarife'
+    | 'ki_inbox'
+    | 'automatisierung'
+  >('meldungen');
+
+  // Selected invoice for builder
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
 
   // Config state
   const [config, setConfig] = useState<TariffPricingConfig>(pricingConfig);
@@ -940,6 +967,427 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
     ];
   });
 
+  // 2.6 Kunden-Meldungen State
+  const [customerMessages, setCustomerMessages] = useState<CustomerMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem('daryos_customer_messages');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        id: 'msg-1',
+        date: '09.10.2026',
+        time: '09:42 Uhr',
+        customerName: 'Klaus Ebersbach',
+        customerEmail: 'klaus.ebersbach@web.de',
+        customerPhone: '+49 174 5544332',
+        type: 'rechnung_upload',
+        title: 'Neue Stadtwerke-Jahresrechnung eingegangen',
+        message: 'Guten Tag Herr Kreis, habe die neue Jahresabrechnung der Stadtwerke Leipzig mit 148 € Nachforderung erhalten. Bitte prüfen, ob wir vor Ablauf der Frist zu Yello wechseln können.',
+        service: 'strom',
+        status: 'neu',
+        priority: 'dringend'
+      },
+      {
+        id: 'msg-2',
+        date: '08.10.2026',
+        time: '16:15 Uhr',
+        customerName: 'Dr. Annette Richter',
+        customerEmail: 'richter.praxis@arcor.de',
+        customerPhone: '+49 170 9988776',
+        type: 'rueckruf',
+        title: 'Rückrufbitte wegen Preisanpassung Gas',
+        message: 'Bitte um einen kurzen Anruf bezüglich der angekündigten Erhöhung des Arbeitspreises für meine Praxisräume in Leipzig-Gohlis.',
+        service: 'gas',
+        status: 'in_bearbeitung',
+        priority: 'normal'
+      },
+      {
+        id: 'msg-3',
+        date: '08.10.2026',
+        time: '11:20 Uhr',
+        customerName: 'Markus Schmidt',
+        customerEmail: 'markus.schmidt.le@gmail.com',
+        customerPhone: '+49 176 1122334',
+        type: 'tarif_pruefung',
+        title: 'Glasfaser-Verfügbarkeit Leipzig-Ost',
+        message: 'Hallo Herr Kreis, mein alter Vodafone DSL-Vertrag läuft im November aus. Haben Sie das Telekom Glasfaser-Angebot mit 250 Mbit/s schon vorbereitet?',
+        service: 'internet',
+        status: 'neu',
+        priority: 'normal'
+      },
+      {
+        id: 'msg-4',
+        date: '07.10.2026',
+        time: '14:05 Uhr',
+        customerName: 'Familie Demir',
+        customerEmail: 'demir.familie@gmail.com',
+        customerPhone: '+49 173 8899001',
+        type: 'frage',
+        title: 'Status Wechselauftrag Vattenfall',
+        message: 'Wollten nachfragen, ob die Kündigungsbestätigung der Stadtwerke für Gas schon eingegangen ist.',
+        service: 'gas',
+        status: 'in_bearbeitung',
+        priority: 'normal'
+      },
+      {
+        id: 'msg-5',
+        date: '05.10.2026',
+        time: '10:30 Uhr',
+        customerName: 'Jens Brauer',
+        customerEmail: 'j.brauer@leipzig-mail.de',
+        customerPhone: '+49 172 3344556',
+        type: 'kuendigung',
+        title: 'Kündigungsbestätigung eingetroffen',
+        message: 'Kündigungsbestätigung ist heute per Post eingetroffen. Ersparnis wie besprochen ca. 379 €/Jahr. Vielen Dank für die Vermittlung!',
+        service: 'strom',
+        status: 'erledigt',
+        priority: 'normal'
+      }
+    ];
+  });
+
+  // 2.7 Optimierungsprojekte State
+  const [optimizationProjects, setOptimizationProjects] = useState<OptimizationProject[]>(() => {
+    try {
+      const saved = localStorage.getItem('daryos_projects');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        id: 'prj-101',
+        projectNumber: 'PRJ-2026-041',
+        customerName: 'Klaus Ebersbach',
+        customerPhone: '+49 174 5544332',
+        customerEmail: 'klaus.ebersbach@web.de',
+        service: 'strom',
+        title: 'Stromoptimierung Stadtwerke -> Yello Klima Plus',
+        currentProvider: 'Stadtwerke Leipzig (Grundversorgung)',
+        targetProvider: 'Yello Strom',
+        stage: '3_angebot',
+        stageLabel: '3. Angebot versendet',
+        progressPercent: 60,
+        annualSavingsTarget: 379,
+        deadlineDate: '28.10.2026',
+        assignedAdvisor: 'Daryos Kreis',
+        status: 'in_bearbeitung',
+        lastAction: 'Kalkulation & Angebot per E-Mail vorgelegt'
+      },
+      {
+        id: 'prj-102',
+        projectNumber: 'PRJ-2026-042',
+        customerName: 'Dr. Annette Richter',
+        customerPhone: '+49 170 9988776',
+        customerEmail: 'richter.praxis@arcor.de',
+        service: 'gas',
+        title: 'Erdgasoptimierung Praxis Montana -> E.ON Fix 24M',
+        currentProvider: 'Montana Erdgas Fix',
+        targetProvider: 'E.ON Energie Deutschland',
+        stage: '2_vergleich',
+        stageLabel: '2. Tarifvergleich läuft',
+        progressPercent: 40,
+        annualSavingsTarget: 540,
+        deadlineDate: '15.11.2026',
+        assignedAdvisor: 'Daryos Kreis',
+        status: 'in_bearbeitung',
+        lastAction: '26.000 kWh Lastgangdaten abgeglichen'
+      },
+      {
+        id: 'prj-103',
+        projectNumber: 'PRJ-2026-043',
+        customerName: 'Markus Schmidt',
+        customerPhone: '+49 176 1122334',
+        customerEmail: 'markus.schmidt.le@gmail.com',
+        service: 'internet',
+        title: 'Highspeed-Glasfaser 250 Mbit/s Leipzig-Ost',
+        currentProvider: 'Vodafone DSL 50',
+        targetProvider: 'Telekom Deutschland',
+        stage: '4_auftrag',
+        stageLabel: '4. Wechselauftrag erteilt',
+        progressPercent: 80,
+        annualSavingsTarget: 180,
+        deadlineDate: '05.11.2026',
+        assignedAdvisor: 'Daryos Kreis',
+        status: 'in_bearbeitung',
+        lastAction: 'Rufnummern-Portierungsvollmacht unterzeichnet'
+      },
+      {
+        id: 'prj-104',
+        projectNumber: 'PRJ-2026-044',
+        customerName: 'Familie Demir',
+        customerPhone: '+49 173 8899001',
+        customerEmail: 'demir.familie@gmail.com',
+        service: 'gas',
+        title: 'Kombi-Wechsel Strom & Gas zu EnBW',
+        currentProvider: 'Stadtwerke Leipzig (Alt)',
+        targetProvider: 'EnBW Energie',
+        stage: '5_aktiv',
+        stageLabel: '5. Zähler aktiv & Ersparnis realisiert',
+        progressPercent: 100,
+        annualSavingsTarget: 490,
+        deadlineDate: '01.10.2026',
+        assignedAdvisor: 'Daryos Kreis',
+        status: 'erfolgreich',
+        lastAction: 'Belieferung aktiv, Provision abgerechnet'
+      },
+      {
+        id: 'prj-105',
+        projectNumber: 'PRJ-2026-045',
+        customerName: 'Autohaus & Logistik Krause',
+        customerPhone: '+49 171 7766554',
+        customerEmail: 'krause.logistik@web.de',
+        service: 'kfz',
+        title: 'Fuhrpark-Versicherungsoptimierung 6 Transporter',
+        currentProvider: 'Allianz Gewerbe',
+        targetProvider: 'VHV FlottenSchutz',
+        stage: '5_aktiv',
+        stageLabel: '5. Flotte aktiv versichert',
+        progressPercent: 100,
+        annualSavingsTarget: 860,
+        deadlineDate: '18.05.2026',
+        assignedAdvisor: 'Daryos Kreis',
+        status: 'erfolgreich',
+        lastAction: 'Flottenrabatt wirksam, Jahresersparnis 860 €'
+      }
+    ];
+  });
+
+  // 2.8 Angebote & Tarifvergleiche State
+  const [customerOffers, setCustomerOffers] = useState<CustomerOffer[]>(() => {
+    try {
+      const saved = localStorage.getItem('daryos_offers');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        id: 'ang-1',
+        offerNumber: 'ANG-2026-018',
+        date: '08.10.2026',
+        validUntil: '24.10.2026',
+        customerName: 'Klaus Ebersbach',
+        customerEmail: 'klaus.ebersbach@web.de',
+        customerPhone: '+49 174 5544332',
+        service: 'strom',
+        currentProvider: 'Stadtwerke Leipzig (Grundversorgung)',
+        currentTariff: 'Basis-Strom Leipzig',
+        currentMonthly: 118,
+        currentAnnual: 1416,
+        recommendedProvider: 'Yello Strom',
+        recommendedTariff: 'Yello Strom Klima Plus',
+        recommendedMonthly: 86,
+        recommendedAnnual: 1037,
+        annualSavings: 379,
+        guaranteeMonths: 12,
+        status: 'versendet',
+        notes: 'Preisgarantie 12 Monate, 100% Ökostrom zertifiziert.'
+      },
+      {
+        id: 'ang-2',
+        offerNumber: 'ANG-2026-019',
+        date: '07.10.2026',
+        validUntil: '30.10.2026',
+        customerName: 'Dr. Annette Richter',
+        customerEmail: 'richter.praxis@arcor.de',
+        customerPhone: '+49 170 9988776',
+        service: 'gas',
+        currentProvider: 'Montana Erdgas Fix',
+        currentTariff: 'Standard-Gas 2024',
+        currentMonthly: 180,
+        currentAnnual: 2160,
+        recommendedProvider: 'E.ON Energie Deutschland',
+        recommendedTariff: 'E.ON Erdgas Direkt 24M',
+        recommendedMonthly: 135,
+        recommendedAnnual: 1620,
+        annualSavings: 540,
+        guaranteeMonths: 24,
+        status: 'angenommen',
+        notes: '24 Monate volle Energiepreisgarantie für Praxisräume.'
+      },
+      {
+        id: 'ang-3',
+        offerNumber: 'ANG-2026-020',
+        date: '08.10.2026',
+        validUntil: '15.11.2026',
+        customerName: 'Markus Schmidt',
+        customerEmail: 'markus.schmidt.le@gmail.com',
+        customerPhone: '+49 176 1122334',
+        service: 'internet',
+        currentProvider: 'Vodafone DSL 50',
+        currentTariff: 'Red Internet DSL 50',
+        currentMonthly: 44.90,
+        currentAnnual: 538.80,
+        recommendedProvider: 'Telekom Deutschland',
+        recommendedTariff: 'MagentaZuhause XL Glasfaser (250 Mbit/s)',
+        recommendedMonthly: 29.90,
+        recommendedAnnual: 358.80,
+        annualSavings: 180,
+        guaranteeMonths: 24,
+        status: 'entwurf',
+        notes: 'Inklusive WLAN-Router Gutschrift und kostenloser Glasfaser-Bereitstellung.'
+      },
+      {
+        id: 'ang-4',
+        offerNumber: 'ANG-2026-021',
+        date: '06.10.2026',
+        validUntil: '20.10.2026',
+        customerName: 'Familie Reinhardt',
+        customerEmail: 'reinhardt.leipzig@t-online.de',
+        customerPhone: '+49 160 8899001',
+        service: 'strom',
+        currentProvider: 'Vattenfall Easy',
+        currentTariff: 'Vattenfall Easy Strom',
+        currentMonthly: 96,
+        currentAnnual: 1152,
+        recommendedProvider: 'Stadtwerke Leipzig',
+        recommendedTariff: 'L-Strom bestPreis 12M',
+        recommendedMonthly: 74,
+        recommendedAnnual: 888,
+        annualSavings: 264,
+        guaranteeMonths: 12,
+        status: 'angenommen',
+        notes: 'Regionaltarif mit lokaler Betreuung.'
+      }
+    ];
+  });
+
+  // 2.9 Rechnungen State
+  const [invoices, setInvoices] = useState<Invoice[]>(() => {
+    try {
+      const saved = localStorage.getItem('daryos_invoices');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        id: 'inv-1',
+        invoiceNumber: 'RE-2026-0038',
+        customerName: 'Dr. Annette Richter',
+        customerAddress: 'Gohliser Str. 18',
+        customerCity: 'Leipzig',
+        customerPostalCode: '04105',
+        customerEmail: 'richter.praxis@arcor.de',
+        customerPhone: '+49 170 9988776',
+        invoiceDate: '02.10.2026',
+        dueDate: '16.10.2026',
+        servicePeriod: 'September 2026',
+        taxRate: 19,
+        taxType: 'standard_19',
+        items: [
+          {
+            id: 'it-1',
+            description: 'Vermittlungsprovision Erdgasoptimierung Praxisräume Montana -> E.ON',
+            quantity: 1,
+            unitPrice: 80.0,
+            total: 80.0
+          }
+        ],
+        subtotal: 80.0,
+        taxAmount: 15.20,
+        total: 95.20,
+        status: 'bezahlt',
+        notes: 'Zahlbar innerhalb von 14 Tagen. Betrag dankend erhalten am 04.10.2026.',
+        iban: 'DE89 8605 5592 1102 3344 55',
+        bic: 'LEIPDEDDXXX',
+        bankName: 'Sparkasse Leipzig'
+      },
+      {
+        id: 'inv-2',
+        invoiceNumber: 'RE-2026-0039',
+        customerName: 'Familie Demir',
+        customerAddress: 'Bornaische Str. 55',
+        customerCity: 'Leipzig',
+        customerPostalCode: '04277',
+        customerEmail: 'demir.familie@gmail.com',
+        customerPhone: '+49 173 8899001',
+        invoiceDate: '05.10.2026',
+        dueDate: '19.10.2026',
+        servicePeriod: 'Oktober 2026',
+        taxRate: 19,
+        taxType: 'standard_19',
+        items: [
+          {
+            id: 'it-2',
+            description: 'Erfolgsabhängige Provision Tarifwechsel Strom Stadtwerke -> EnBW',
+            quantity: 1,
+            unitPrice: 65.0,
+            total: 65.0
+          }
+        ],
+        subtotal: 65.0,
+        taxAmount: 12.35,
+        total: 77.35,
+        status: 'bezahlt',
+        notes: 'Vielen Dank für Ihren Auftrag!',
+        iban: 'DE89 8605 5592 1102 3344 55',
+        bic: 'LEIPDEDDXXX',
+        bankName: 'Sparkasse Leipzig'
+      },
+      {
+        id: 'inv-3',
+        invoiceNumber: 'RE-2026-0040',
+        customerName: 'Autohaus & Logistik Krause',
+        customerAddress: 'Riesaer Str. 80',
+        customerCity: 'Leipzig',
+        customerPostalCode: '04328',
+        customerEmail: 'krause.logistik@web.de',
+        customerPhone: '+49 171 7766554',
+        invoiceDate: '07.10.2026',
+        dueDate: '21.10.2026',
+        servicePeriod: 'Oktober 2026',
+        taxRate: 19,
+        taxType: 'standard_19',
+        items: [
+          {
+            id: 'it-3',
+            description: 'Gewerbliche Fuhrpark- und Flottenversicherungsanalyse (6 Transporter)',
+            quantity: 1,
+            unitPrice: 140.0,
+            total: 140.0
+          }
+        ],
+        subtotal: 140.0,
+        taxAmount: 26.60,
+        total: 166.60,
+        status: 'offen',
+        notes: 'Zahlbar rein netto bis 21.10.2026.',
+        iban: 'DE89 8605 5592 1102 3344 55',
+        bic: 'LEIPDEDDXXX',
+        bankName: 'Sparkasse Leipzig'
+      },
+      {
+        id: 'inv-4',
+        invoiceNumber: 'RE-2026-0041',
+        customerName: 'Klaus Ebersbach',
+        customerAddress: 'Wurzner Str. 42',
+        customerCity: 'Leipzig',
+        customerPostalCode: '04315',
+        customerEmail: 'klaus.ebersbach@web.de',
+        customerPhone: '+49 174 5544332',
+        invoiceDate: '08.10.2026',
+        dueDate: '22.10.2026',
+        servicePeriod: 'Oktober 2026',
+        taxRate: 19,
+        taxType: 'standard_19',
+        items: [
+          {
+            id: 'it-4',
+            description: 'Vermittlungsprovision Wechselservice Strom Stadtwerke -> Yello',
+            quantity: 1,
+            unitPrice: 65.0,
+            total: 65.0
+          }
+        ],
+        subtotal: 65.0,
+        taxAmount: 12.35,
+        total: 77.35,
+        status: 'offen',
+        notes: 'Zahlbar innerhalb von 14 Tagen ohne Abzug.',
+        iban: 'DE89 8605 5592 1102 3344 55',
+        bic: 'LEIPDEDDXXX',
+        bankName: 'Sparkasse Leipzig'
+      }
+    ];
+  });
+
   // 3. Nachzahlungs-Schutz State & Simulator
   const [nzService, setNzService] = useState<ServiceType>('gas');
   const [nzKwh, setNzKwh] = useState<number>(20000);
@@ -972,6 +1420,283 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
       localStorage.setItem('daryos_crm_contacts', JSON.stringify(crmContacts));
     } catch (e) {}
   }, [crmContacts]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('daryos_customer_messages', JSON.stringify(customerMessages));
+      localStorage.setItem('daryos_projects', JSON.stringify(optimizationProjects));
+      localStorage.setItem('daryos_offers', JSON.stringify(customerOffers));
+      localStorage.setItem('daryos_invoices', JSON.stringify(invoices));
+    } catch (e) {}
+  }, [customerMessages, optimizationProjects, customerOffers, invoices]);
+
+  // Messages handlers
+  const handleUpdateMessageStatus = (id: string, status: 'neu' | 'in_bearbeitung' | 'erledigt') => {
+    setCustomerMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, status } : m))
+    );
+    showNotification(`Meldungs-Status auf "${status}" aktualisiert.`);
+  };
+
+  const handleDeleteMessage = (id: string) => {
+    setCustomerMessages((prev) => prev.filter((m) => m.id !== id));
+    showNotification('Kunden-Meldung gelöscht.');
+  };
+
+  // Projects handlers
+  const handleUpdateProjectStage = (id: string, stage: OptimizationProject['stage']) => {
+    const stageLabels: Record<OptimizationProject['stage'], string> = {
+      '1_check': '1. Unterlagen-Check',
+      '2_vergleich': '2. Tarifvergleich läuft',
+      '3_angebot': '3. Angebot versendet',
+      '4_auftrag': '4. Wechselauftrag erteilt',
+      '5_aktiv': '5. Zähler aktiv & Ersparnis realisiert'
+    };
+    const progressMap: Record<OptimizationProject['stage'], number> = {
+      '1_check': 20,
+      '2_vergleich': 40,
+      '3_angebot': 60,
+      '4_auftrag': 80,
+      '5_aktiv': 100
+    };
+    setOptimizationProjects((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              stage,
+              stageLabel: stageLabels[stage],
+              progressPercent: progressMap[stage],
+              status: stage === '5_aktiv' ? 'erfolgreich' : 'in_bearbeitung',
+              lastAction: `Phase manuell auf ${stageLabels[stage]} gesetzt`
+            }
+          : p
+      )
+    );
+    showNotification(`Projektphase auf ${stageLabels[stage]} aktualisiert.`);
+  };
+
+  // Offers handlers
+  const handleUpdateOfferStatus = (id: string, status: CustomerOffer['status']) => {
+    setCustomerOffers((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, status } : o))
+    );
+    showNotification(`Angebot-Status auf "${status}" aktualisiert.`);
+  };
+
+  const handleSendOfferWhatsApp = (offer: CustomerOffer) => {
+    const text = `Hallo ${offer.customerName}, hier ist Ihr persönliches Tarifangebot von Daryos®: Wechsel von ${offer.currentProvider} zu ${offer.recommendedProvider} spart Ihnen ${offer.annualSavings.toFixed(0)} € pro Jahr! Neuer monatlicher Abschlag: ${offer.recommendedMonthly.toFixed(2)} €/Monat. Rückfragen gerne hier per WhatsApp!`;
+    const cleanPhone = offer.customerPhone.replace(/[^0-9]/g, '');
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+    showNotification(`Angebot für ${offer.customerName} via WhatsApp geöffnet!`);
+  };
+
+  const handleSendOfferEmail = (offer: CustomerOffer) => {
+    const subject = `Ihr Daryos® Tarifvergleich (${offer.offerNumber}): ${offer.annualSavings.toFixed(0)} € Ersparnis`;
+    const body = `Sehr geehrte(r) ${offer.customerName},\n\nvielen Dank für Ihre Anfrage. Wir haben Ihren Tarif geprüft:\n\nBisheriger Anbieter: ${offer.currentProvider} (${offer.currentMonthly.toFixed(2)} €/Monat)\nEmpfohlener Tarif: ${offer.recommendedProvider} - ${offer.recommendedTariff} (${offer.recommendedMonthly.toFixed(2)} €/Monat)\n\nIhre garantierte jährliche Ersparnis: ${offer.annualSavings.toFixed(0)} EUR / Jahr!\n\nMit freundlichen Grüßen,\nDaryos Kreis\nTarifoptimierung Leipzig`;
+    window.location.href = `mailto:${offer.customerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    showNotification(`E-Mail-Entwurf für ${offer.customerName} erstellt.`);
+  };
+
+  // Invoices handlers
+  const handleSaveInvoice = (newInv: Invoice) => {
+    setInvoices((prev) => {
+      const exists = prev.some((i) => i.id === newInv.id);
+      if (exists) {
+        return prev.map((i) => (i.id === newInv.id ? newInv : i));
+      }
+      return [newInv, ...prev];
+    });
+    setEditingInvoice(null);
+    setActiveTab('rechnungen');
+    showNotification(`Rechnung ${newInv.invoiceNumber} erfolgreich verbucht!`);
+  };
+
+  const handleDeleteInvoice = (id: string) => {
+    setInvoices((prev) => prev.filter((i) => i.id !== id));
+    showNotification('Rechnung gelöscht.');
+  };
+
+  const handleUpdateInvoiceStatus = (id: string, status: Invoice['status']) => {
+    setInvoices((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, status } : i))
+    );
+    showNotification(`Rechnungsstatus auf "${status}" geändert.`);
+  };
+
+  const handleOpenInvoiceCreator = (customerName?: string, service?: ServiceType) => {
+    if (customerName) {
+      const match = crmContacts.find((c) => c.fullName.toLowerCase().includes(customerName.toLowerCase()));
+      setEditingInvoice({
+        id: `inv-${Date.now()}`,
+        invoiceNumber: `RE-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        customerName: customerName,
+        customerAddress: match?.address || 'Wurzner Str.',
+        customerCity: match?.city || 'Leipzig',
+        customerPostalCode: match?.postalCode || '04329',
+        customerEmail: match?.email || '',
+        customerPhone: match?.phone || '',
+        invoiceDate: new Date().toISOString().split('T')[0],
+        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        servicePeriod: 'Oktober 2026',
+        taxRate: 19,
+        taxType: 'standard_19',
+        items: [
+          {
+            id: '1',
+            description: `Vermittlungsprovision & Wechselmanagement ${service ? service.toUpperCase() : 'Tarifwechsel'}`,
+            quantity: 1,
+            unitPrice: service === 'gas' ? 80.0 : service === 'kfz' ? 90.0 : 65.0,
+            total: service === 'gas' ? 80.0 : service === 'kfz' ? 90.0 : 65.0,
+          }
+        ],
+        subtotal: service === 'gas' ? 80.0 : service === 'kfz' ? 90.0 : 65.0,
+        taxAmount: service === 'gas' ? 15.20 : service === 'kfz' ? 17.10 : 12.35,
+        total: service === 'gas' ? 95.20 : service === 'kfz' ? 107.10 : 77.35,
+        status: 'offen',
+        notes: 'Zahlbar innerhalb von 14 Tagen ohne Abzug. Vielen Dank für Ihren Auftrag!',
+        iban: 'DE89 8605 5592 1102 3344 55',
+        bic: 'LEIPDEDDXXX',
+        bankName: 'Sparkasse Leipzig'
+      });
+    } else {
+      setEditingInvoice(null);
+    }
+    setActiveTab('rechnung_erstellen');
+  };
+
+  const handleDownloadInvoicePDF = (inv: Invoice) => {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+
+    // Header
+    doc.setFillColor(37, 99, 235);
+    doc.rect(margin, 16, 8, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text('D', margin + 2.7, 21.5);
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(16);
+    doc.text('Daryos', margin + 12, 22.5);
+    doc.setFontSize(8);
+    doc.setTextColor(37, 99, 235);
+    doc.text('(R)', margin + 30, 19);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Tarifoptimierung & Wechselservice Leipzig', margin + 12, 27);
+
+    doc.text('Daryos Kreis', pageWidth - margin, 18, { align: 'right' });
+    doc.text('Rotfuchsstraße 1, 04329 Leipzig', pageWidth - margin, 22, { align: 'right' });
+    doc.text('daryos.kreis@gmail.com', pageWidth - margin, 26, { align: 'right' });
+    doc.text('USt-IdNr.: DE 345 889 102', pageWidth - margin, 30, { align: 'right' });
+
+    doc.setDrawColor(226, 232, 240);
+    doc.line(margin, 35, pageWidth - margin, 35);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(inv.customerName, margin, 48);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(inv.customerAddress, margin, 53);
+    doc.text(`${inv.customerPostalCode} ${inv.customerCity}`, margin, 58);
+
+    const metaX = pageWidth - margin - 45;
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Rechnungs-Nr.:', metaX, 48);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(inv.invoiceNumber, pageWidth - margin, 48, { align: 'right' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('Datum:', metaX, 53);
+    doc.setTextColor(15, 23, 42);
+    doc.text(inv.invoiceDate, pageWidth - margin, 53, { align: 'right' });
+
+    doc.setTextColor(100, 116, 139);
+    doc.text('Fällig am:', metaX, 58);
+    doc.setTextColor(15, 23, 42);
+    doc.text(inv.dueDate, pageWidth - margin, 58, { align: 'right' });
+
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RECHNUNG', margin, 74);
+
+    let y = 82;
+    doc.setFillColor(241, 245, 249);
+    doc.rect(margin, y, pageWidth - margin * 2, 7, 'F');
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Pos.', margin + 2, y + 4.8);
+    doc.text('Leistungsbeschreibung', margin + 14, y + 4.8);
+    doc.text('Menge', margin + 105, y + 4.8);
+    doc.text('Einzelpreis', margin + 125, y + 4.8);
+    doc.text('Gesamtbetrag', pageWidth - margin - 2, y + 4.8, { align: 'right' });
+
+    y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(15, 23, 42);
+    inv.items.forEach((it, idx) => {
+      if (idx % 2 === 1) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(margin, y, pageWidth - margin * 2, 8, 'F');
+      }
+      doc.text(`${idx + 1}`, margin + 2, y + 5.2);
+      doc.text(it.description, margin + 14, y + 5.2, { maxWidth: 88 });
+      doc.text(`${it.quantity}`, margin + 107, y + 5.2);
+      doc.text(`${it.unitPrice.toFixed(2)} EUR`, margin + 125, y + 5.2);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${it.total.toFixed(2)} EUR`, pageWidth - margin - 2, y + 5.2, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      y += 8;
+    });
+
+    y += 6;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(margin + 90, y, pageWidth - margin, y);
+    y += 5;
+    doc.text('Nettobetrag:', margin + 95, y);
+    doc.text(`${inv.subtotal.toFixed(2)} EUR`, pageWidth - margin - 2, y, { align: 'right' });
+
+    y += 5;
+    doc.text(`USt. (${inv.taxRate}%):`, margin + 95, y);
+    doc.text(`${inv.taxAmount.toFixed(2)} EUR`, pageWidth - margin - 2, y, { align: 'right' });
+
+    y += 6;
+    doc.setFillColor(241, 245, 249);
+    doc.rect(margin + 90, y - 4, pageWidth - margin - 90, 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(37, 99, 235);
+    doc.text('Gesamtbetrag:', margin + 95, y + 1.5);
+    doc.text(`${inv.total.toFixed(2)} EUR`, pageWidth - margin - 2, y + 1.5, { align: 'right' });
+
+    y += 20;
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(margin, y, pageWidth - margin * 2, 22, 2, 2, 'FD');
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Zahlungsinformationen & Bankverbindung:', margin + 4, y + 5.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.text(`Bank: ${inv.bankName} · IBAN: ${inv.iban} · BIC: ${inv.bic}`, margin + 4, y + 10.5);
+    doc.text(`Verwendungszweck: ${inv.invoiceNumber} - ${inv.customerName}`, margin + 4, y + 15);
+
+    doc.save(`${inv.invoiceNumber}_${inv.customerName.replace(/\s+/g, '_')}.pdf`);
+    showNotification(`PDF für Rechnung ${inv.invoiceNumber} heruntergeladen!`);
+  };
 
   const handleUpdateCrmContact = (updated: CustomerContact) => {
     setCrmContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
@@ -1064,8 +1789,8 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
     setTimeout(() => setSavedSuccess(false), 2000);
   };
 
-  // 1-Klick: Angebot per E-Mail generieren und versenden
-  const handleSendOfferEmail = (lead: KiAuditLead) => {
+  // 1-Klick: Lead-Angebot per E-Mail generieren und versenden
+  const handleSendLeadEmail = (lead: KiAuditLead) => {
     const subject = encodeURIComponent(`Ihr optimierter Daryos® Tarifvergleich für ${lead.clientName}`);
     const body = encodeURIComponent(
       `Sehr geehrte(r) Frau/Herr ${lead.clientName},\n\n` +
@@ -1098,8 +1823,8 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
     showNotification(`E-Mail-Angebot für ${lead.clientName} erfolgreich generiert!`);
   };
 
-  // 1-Klick: Angebot per WhatsApp senden
-  const handleSendOfferWhatsApp = (lead: KiAuditLead) => {
+  // 1-Klick: Lead-Angebot per WhatsApp senden
+  const handleSendLeadWhatsApp = (lead: KiAuditLead) => {
     const text = encodeURIComponent(
       `Hallo Frau/Herr ${lead.clientName}, hier ist Daryos aus Leipzig! ⚡\n\n` +
       `Wir haben Ihre ${lead.service.toUpperCase()}-Daten geprüft:\n` +
@@ -1526,34 +2251,34 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
   ).length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-[#0b0c10] border border-white/[0.1] rounded-2xl w-full max-w-6xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden text-slate-200">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl w-full max-w-7xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden text-slate-800">
         
         {/* Toast Action Notice */}
         {actionNotice && (
-          <div className="bg-emerald-600 text-white text-xs px-4 py-2.5 font-semibold text-center flex items-center justify-center gap-2 animate-fadeIn">
+          <div className="bg-emerald-600 text-white text-xs px-4 py-2.5 font-semibold text-center flex items-center justify-center gap-2 animate-fadeIn shadow-sm">
             <CheckCircle2 className="w-4 h-4" />
             <span>{actionNotice}</span>
           </div>
         )}
 
         {/* Top Header Bar */}
-        <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#121319]">
+        <div className="px-5 sm:px-6 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600/20 text-blue-400 rounded-xl border border-blue-500/30">
+            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-200 shadow-2xs">
               <Tablet className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-logo italic text-lg font-bold text-blue-400 tracking-wide">
+                <span className="font-logo italic text-lg font-bold text-blue-600 tracking-wide">
                   Daryos<sup className="text-[10px] ml-0.5 font-sans font-bold">®</sup>
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-600/20 text-blue-300 font-medium border border-blue-500/30">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-200">
                   KI-Cockpit & Automatisierung
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
-                Tablet-Zentrale: KI-Rechnungsanalyse, Vertragsverlauf, Fristen-Wächter & Nachzahlungs-Schutz
+              <p className="text-xs text-slate-500 mt-0.5">
+                Zentrale Steuerung: Kunden-Meldungen, Projekte, Angebote, Rechnungen, Verträge & Fristen
               </p>
             </div>
           </div>
@@ -1562,16 +2287,17 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
             {isAuthenticated && (
               <button
                 onClick={exportAccountingPDF}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#1e202a] hover:bg-[#252836] text-blue-300 border border-blue-500/30 rounded-lg text-xs font-semibold cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-2xs"
                 title="PDF-Bericht für Buchhaltung & Steuerberater"
               >
-                <FileDown className="w-4 h-4 text-blue-400" />
+                <FileDown className="w-4 h-4 text-blue-600" />
                 <span>PDF-Bericht</span>
               </button>
             )}
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white rounded-lg bg-[#181922] border border-white/[0.08] cursor-pointer"
+              className="p-2 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
+              title="Cockpit schließen"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1580,13 +2306,13 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
 
         {/* Lock Screen if not authenticated */}
         {!isAuthenticated ? (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <form onSubmit={handlePinSubmit} className="bg-[#121319] p-8 rounded-2xl border border-white/[0.08] max-w-sm w-full text-center space-y-4">
-              <div className="w-12 h-12 bg-blue-600/20 text-blue-400 rounded-full flex items-center justify-center mx-auto border border-blue-500/30">
+          <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
+            <form onSubmit={handlePinSubmit} className="bg-white p-8 rounded-2xl border border-slate-200 max-w-sm w-full text-center space-y-4 shadow-xl">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto border border-blue-200 shadow-2xs">
                 <KeyRound className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white">Berater-PIN eingeben</h3>
-              <p className="text-xs text-slate-400">
+              <h3 className="text-lg font-bold text-slate-900">Berater-PIN eingeben</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
                 Geben Sie Ihre Berater-PIN ein, um das Cockpit auf Ihrem Tablet freizuschalten. (Standard: 1234 oder PLZ 04329)
               </p>
 
@@ -1597,14 +2323,14 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                 placeholder="PIN eingeben"
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
-                className="w-full text-center tracking-widest text-xl font-mono py-2.5 bg-black border border-white/[0.12] rounded-xl text-white focus:outline-none focus:border-blue-500"
+                className="w-full text-center tracking-widest text-xl font-mono py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
               />
 
-              {pinError && <div className="text-xs text-rose-400">{pinError}</div>}
+              {pinError && <div className="text-xs text-rose-600 font-semibold">{pinError}</div>}
 
               <button
                 type="submit"
-                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer shadow-sm"
               >
                 Cockpit freischalten
               </button>
@@ -1612,127 +2338,267 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
           </div>
         ) : (
           /* Main Cockpit Body */
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Tablet Navigation Tabs */}
-            <div className="bg-[#0f1015] px-4 sm:px-6 py-2.5 border-b border-white/[0.08] flex items-center gap-2 overflow-x-auto scrollbar-none">
+          <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+            {/* Tablet Navigation Tabs - Klar strukturiert, hell & einheitlich */}
+            <div className="bg-white px-4 sm:px-6 py-2 border-b border-slate-200 flex items-center gap-1.5 overflow-x-auto scrollbar-none shadow-2xs">
               
-              {/* Tab 1: KI Rechnungs-Eingang */}
+              {/* Tab 1: Kunden-Meldungen */}
               <button
-                onClick={() => setActiveTab('ki_inbox')}
-                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
-                  activeTab === 'ki_inbox'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                onClick={() => setActiveTab('meldungen')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
+                  activeTab === 'meldungen'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-                <span>1. KI-Rechnungs-Eingang</span>
-                {kiLeads.filter((l) => l.status === 'neu').length > 0 && (
-                  <span className="px-1.5 py-0.2 text-[10px] bg-orange-500 text-white rounded-full font-bold">
-                    {kiLeads.filter((l) => l.status === 'neu').length}
+                <Mail className="w-3.5 h-3.5" />
+                <span>1. Kunden-Meldungen</span>
+                {customerMessages.filter((m) => m.status === 'neu').length > 0 && (
+                  <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${
+                    activeTab === 'meldungen' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700 border border-rose-200'
+                  }`}>
+                    {customerMessages.filter((m) => m.status === 'neu').length}
                   </span>
                 )}
               </button>
 
-              {/* Tab 2: Kunden-CRM & Optimierungsprozesse */}
+              {/* Tab 2: Projekte */}
               <button
-                onClick={() => setActiveTab('crm')}
-                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
-                  activeTab === 'crm'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                onClick={() => setActiveTab('projekte')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
+                  activeTab === 'projekte'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <Users className="w-3.5 h-3.5 text-blue-400" />
-                <span>2. Kunden-CRM & Prozesse</span>
-                <span className="px-1.5 py-0.2 text-[10px] bg-blue-500/20 text-blue-200 border border-blue-500/30 rounded-full font-bold">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>2. Projekte</span>
+                <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${
+                  activeTab === 'projekte' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                }`}>
+                  {optimizationProjects.length}
+                </span>
+              </button>
+
+              {/* Tab 3: Angebote */}
+              <button
+                onClick={() => setActiveTab('angebote')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
+                  activeTab === 'angebote'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>3. Angebote</span>
+                <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${
+                  activeTab === 'angebote' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                }`}>
+                  {customerOffers.length}
+                </span>
+              </button>
+
+              {/* Tab 4: Vertragsliste & Fristen */}
+              <button
+                onClick={() => setActiveTab('vertraege')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
+                  activeTab === 'vertraege'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>4. Vertragsliste</span>
+                {expiringContractsCount > 0 ? (
+                  <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold animate-pulse ${
+                    activeTab === 'vertraege' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700 border border-rose-200'
+                  }`}>
+                    {expiringContractsCount}
+                  </span>
+                ) : (
+                  <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${
+                    activeTab === 'vertraege' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                  }`}>
+                    {contracts.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Tab 5: Rechnungen */}
+              <button
+                onClick={() => setActiveTab('rechnungen')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
+                  activeTab === 'rechnungen'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <DollarSign className="w-3.5 h-3.5" />
+                <span>5. Rechnungen</span>
+                <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${
+                  activeTab === 'rechnungen' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                }`}>
+                  {invoices.length}
+                </span>
+              </button>
+
+              {/* Tab 6: Rechnung erstellen (Vollfunktion) */}
+              <button
+                onClick={() => {
+                  setEditingInvoice(null);
+                  setActiveTab('rechnung_erstellen');
+                }}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-all ${
+                  activeTab === 'rechnung_erstellen'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
+                }`}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Rechnung erstellen</span>
+              </button>
+
+              {/* Tab 7: Kunden-CRM */}
+              <button
+                onClick={() => setActiveTab('crm')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
+                  activeTab === 'crm'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>6. Kunden-CRM</span>
+                <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${
+                  activeTab === 'crm' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                }`}>
                   {crmContacts.length}
                 </span>
               </button>
 
-              {/* Tab 3: Aktive Verträge & Fristen-Wächter */}
-              <button
-                onClick={() => setActiveTab('vertraege')}
-                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
-                  activeTab === 'vertraege'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>3. Verträge & Fristen-Wächter</span>
-                {expiringContractsCount > 0 && (
-                  <span className="px-1.5 py-0.2 text-[10px] bg-rose-500 text-white rounded-full font-bold animate-pulse">
-                    {expiringContractsCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Tab 4: Nachzahlungs-Schutz */}
+              {/* Tab 8: Nachzahlungs-Schutz */}
               <button
                 onClick={() => setActiveTab('nachzahlung')}
-                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
                   activeTab === 'nachzahlung'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-                <span>4. Nachzahlungs-Schutz</span>
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>7. Nachzahlungs-Schutz</span>
               </button>
 
-              {/* Tab 5: Buchhaltung & Provisionen */}
-              <button
-                onClick={() => setActiveTab('buchhaltung')}
-                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
-                  activeTab === 'buchhaltung'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-                <span>5. Buchhaltung & Provisionen</span>
-              </button>
-
-              {/* Tab 6: Live-Tarife */}
+              {/* Tab 9: Marktpreise & Tarife */}
               <button
                 onClick={() => setActiveTab('tarife')}
-                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
                   activeTab === 'tarife'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <Settings className="w-3.5 h-3.5 text-slate-300" />
-                <span>6. Marktpreise & Tarife</span>
+                <Settings className="w-3.5 h-3.5" />
+                <span>8. Marktpreise & Margen</span>
               </button>
 
-              {/* Tab 7: Automatisierung */}
+              {/* Tab 10: KI-Rechnungs-Scan */}
               <button
-                onClick={() => setActiveTab('automatisierung')}
-                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
-                  activeTab === 'automatisierung'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                onClick={() => setActiveTab('ki_inbox')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
+                  activeTab === 'ki_inbox'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
-                <span>7. Tablet-Workflow & Blueprint</span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>9. KI-Scan & OCR</span>
               </button>
             </div>
 
-            {/* TAB 1: KI-Rechnungs-Eingang & Tarifentscheidung */}
+            {/* TAB: KUNDEN-MELDUNGEN */}
+            {activeTab === 'meldungen' && (
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+                <CustomerMessagesTab
+                  messages={customerMessages}
+                  onUpdateStatus={handleUpdateMessageStatus}
+                  onDeleteMessage={handleDeleteMessage}
+                  onCreateOfferForCustomer={(msg) => {
+                    handleOpenInvoiceCreator(msg.customerName, msg.service === 'allgemein' ? undefined : msg.service);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* TAB: PROJEKTE & WECHSELAUFTRÄGE */}
+            {activeTab === 'projekte' && (
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+                <ProjectsTab
+                  projects={optimizationProjects}
+                  onUpdateStage={handleUpdateProjectStage}
+                  onOpenInvoiceCreator={(customerName, service) => {
+                    handleOpenInvoiceCreator(customerName, service);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* TAB: ANGEBOTE & TARIFVERGLEICHE */}
+            {activeTab === 'angebote' && (
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+                <OffersTab
+                  offers={customerOffers}
+                  onUpdateStatus={handleUpdateOfferStatus}
+                  onSendOfferWhatsApp={handleSendOfferWhatsApp}
+                  onSendOfferEmail={handleSendOfferEmail}
+                  onOpenInvoiceCreator={(customerName, service) => {
+                    handleOpenInvoiceCreator(customerName, service);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* TAB: RECHNUNGEN & BUCHHALTUNG */}
+            {activeTab === 'rechnungen' && (
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+                <InvoicesTab
+                  invoices={invoices}
+                  onOpenCreateNew={() => handleOpenInvoiceCreator()}
+                  onUpdateStatus={handleUpdateInvoiceStatus}
+                  onDeleteInvoice={handleDeleteInvoice}
+                  onDownloadInvoicePDF={handleDownloadInvoicePDF}
+                />
+              </div>
+            )}
+
+            {/* TAB: RECHNUNG ERSTELLEN (VOLLFUNKTION) */}
+            {activeTab === 'rechnung_erstellen' && (
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+                <InvoiceBuilder
+                  crmContacts={crmContacts}
+                  initialInvoice={editingInvoice}
+                  onSaveInvoice={handleSaveInvoice}
+                  onCancel={() => {
+                    setEditingInvoice(null);
+                    setActiveTab('rechnungen');
+                  }}
+                />
+              </div>
+            )}
+
+            {/* TAB: KI-RECHNUNGS-SCAN & OCR */}
             {activeTab === 'ki_inbox' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
                   <div>
-                    <h4 className="text-base font-bold text-white flex items-center gap-2">
+                    <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-amber-500" />
                       <span>KI-Rechnungs-Eingang & Tarif-Entscheidung</span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded-full border border-blue-500/30">
+                      <span className="text-[10px] font-mono px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-200 font-bold">
                         KI OCR Scanner
                       </span>
                     </h4>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Eingehende Rechnungen & Verbrauchsdaten werden automatisiert analysiert, verglichen und sortiert. Sie entscheiden mit 1 Klick!
                     </p>
                   </div>
@@ -1740,9 +2606,9 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                   <button
                     onClick={handleSimulateNewKiScan}
                     disabled={isProcessingAi}
-                    className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50 transition-colors"
                   >
-                    <Sparkles className={`w-4 h-4 text-orange-300 ${isProcessingAi ? 'animate-spin' : ''}`} />
+                    <Sparkles className={`w-4 h-4 text-amber-300 ${isProcessingAi ? 'animate-spin' : ''}`} />
                     <span>{isProcessingAi ? 'KI analysiert Rechnung...' : 'Neue Rechnung per KI scannen'}</span>
                   </button>
                 </div>
@@ -1754,22 +2620,22 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                       key={lead.id}
                       className={`p-5 rounded-2xl border transition-all ${
                         lead.status === 'neu'
-                          ? 'bg-[#13151f] border-blue-500/40 shadow-lg shadow-blue-900/10'
+                          ? 'bg-white border-blue-300 shadow-sm ring-1 ring-blue-100'
                           : lead.status === 'abgeschlossen'
-                          ? 'bg-[#101318] border-emerald-500/30'
-                          : 'bg-[#121319] border-white/[0.08]'
-                      } space-y-4`}
+                          ? 'bg-white border-emerald-200 shadow-2xs'
+                          : 'bg-white border-slate-200 shadow-2xs'
+                      } space-y-4 text-slate-800`}
                     >
                       {/* Lead Header */}
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-white">{lead.clientName}</span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
+                            <span className="text-sm font-bold text-slate-900">{lead.clientName}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono font-bold">
                               {lead.date}
                             </span>
                           </div>
-                          <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+                          <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
                             <span>{lead.clientPhone}</span>
                             <span>•</span>
                             <span>{lead.clientEmail}</span>
@@ -1777,12 +2643,12 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                         </div>
 
                         <span
-                          className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide ${
+                          className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide border ${
                             lead.status === 'neu'
-                              ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30 animate-pulse'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
                               : lead.status === 'angebot_gesendet'
-                              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           }`}
                         >
                           {lead.status === 'neu'
@@ -1794,52 +2660,52 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                       </div>
 
                       {/* AI Extraction Data Box */}
-                      <div className="p-3 bg-black/60 rounded-xl border border-white/[0.06] grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
                         <div>
                           <span className="text-slate-500 text-[10px] block">Sparte & Zähler</span>
-                          <span className="font-bold text-slate-200 uppercase">{lead.service}</span>
+                          <span className="font-bold text-slate-800 uppercase">{lead.service}</span>
                           {lead.meterNumber && (
-                            <span className="block font-mono text-[9px] text-slate-400">{lead.meterNumber}</span>
+                            <span className="block font-mono text-[9px] text-slate-500">{lead.meterNumber}</span>
                           )}
                         </div>
                         <div>
                           <span className="text-slate-500 text-[10px] block">Bisheriger Versorger</span>
-                          <span className="text-slate-300 truncate block">{lead.currentProvider}</span>
+                          <span className="text-slate-700 truncate block font-medium">{lead.currentProvider}</span>
                         </div>
                         <div>
                           <span className="text-slate-500 text-[10px] block">Bisherige Kosten</span>
-                          <span className="font-mono text-slate-200">
+                          <span className="font-mono text-slate-800 font-semibold">
                             {lead.currentAnnual} €/J. ({lead.currentMonthly} €/M.)
                           </span>
                         </div>
                       </div>
 
                       {/* Best Offer Calculated by AI */}
-                      <div className="p-3.5 bg-blue-950/30 border border-blue-500/20 rounded-xl space-y-2">
+                      <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-blue-300 flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+                          <span className="text-[11px] font-bold text-blue-800 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                             <span>Beste KI-Tarif-Empfehlung:</span>
                           </span>
-                          <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                          <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded border border-emerald-300">
                             +{lead.calculatedSavings} € Ersparnis / Jahr
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-2 pt-0.5">
-                          <div className="text-xs text-white font-semibold">
-                            {lead.bestOfferName} <span className="text-slate-400 font-normal">({lead.bestOfferProvider})</span>
+                          <div className="text-xs text-slate-900 font-bold">
+                            {lead.bestOfferName} <span className="text-slate-500 font-normal">({lead.bestOfferProvider})</span>
                           </div>
                           <div className="scale-75 origin-right">
-                            <ProviderLogo id={lead.bestOfferProvider} size="sm" variant="dark" />
+                            <ProviderLogo id={lead.bestOfferProvider} size="sm" variant="light" />
                           </div>
                         </div>
-                        <div className="flex items-center justify-between text-xs text-slate-300 pt-1 border-t border-white/[0.06]">
+                        <div className="flex items-center justify-between text-xs text-slate-700 pt-1 border-t border-blue-200/60">
                           <span>Neuer monatlicher Abschlag:</span>
-                          <span className="font-mono font-bold text-blue-300">{lead.bestOfferMonthly} € / Monat</span>
+                          <span className="font-mono font-bold text-blue-700">{lead.bestOfferMonthly} € / Monat</span>
                         </div>
-                        <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                        <div className="text-[10px] text-slate-600 flex items-center justify-between">
                           <span>Daryos Vermittlungsprovision:</span>
-                          <span className="font-mono text-emerald-400 font-semibold">{lead.provisionExpected} €</span>
+                          <span className="font-mono text-emerald-700 font-bold">{lead.provisionExpected} €</span>
                         </div>
                       </div>
 
@@ -1847,8 +2713,8 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                       <div className="pt-1 flex flex-wrap gap-2 text-xs">
                         {/* Send Offer Email */}
                         <button
-                          onClick={() => handleSendOfferEmail(lead)}
-                          className="flex-1 min-w-[130px] py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                          onClick={() => handleSendLeadEmail(lead)}
+                          className="flex-1 min-w-[130px] py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <Mail className="w-3.5 h-3.5" />
                           <span>Angebot per E-Mail</span>
@@ -1856,8 +2722,8 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
 
                         {/* Send Offer WhatsApp */}
                         <button
-                          onClick={() => handleSendOfferWhatsApp(lead)}
-                          className="py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                          onClick={() => handleSendLeadWhatsApp(lead)}
+                          className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
                           <span>WhatsApp</span>
@@ -1867,7 +2733,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                         {lead.status !== 'abgeschlossen' && (
                           <button
                             onClick={() => handleConvertLeadToActiveContract(lead)}
-                            className="w-full py-2.5 px-3 bg-[#1e202a] hover:bg-emerald-700/80 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                            className="w-full py-2.5 px-3 bg-slate-900 hover:bg-emerald-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                           >
                             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                             <span>Vertrag abschließen & in Buchhaltung buchen (+{lead.provisionExpected} €)</span>
@@ -1880,7 +2746,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
               </div>
             )}
 
-            {/* TAB 2: Kunden-CRM & Optimierungsprozesse */}
+            {/* TAB: KUNDEN-CRM & OPTIMIERUNGSPROZESSE */}
             {activeTab === 'crm' && (
               <CrmModule
                 contacts={crmContacts}
@@ -1892,18 +2758,19 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
               />
             )}
 
-            {/* TAB 3: Aktiver Kundenbestand, Vertragslaufzeit & Fristen-Wächter */}
+            {/* TAB: VERTRAGSLISTE & FRISTEN-WÄCHTER */}
             {activeTab === 'vertraege' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
                   <div>
-                    <h4 className="text-base font-bold text-white flex items-center gap-2">
+                    <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <UserCheck className="w-5 h-5 text-blue-600" />
                       <span>Aktiver Kundenbestand & Fristen-Wächter</span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/30">
+                      <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 font-bold">
                         {contracts.length} Verträge betreut
                       </span>
                     </h4>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Automatische Fristen-Erinnerung vor Kündigungsstichtag mit sofortiger Suche nach neuem Folge-Tarif!
                     </p>
                   </div>
@@ -1911,7 +2778,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={exportAccountingPDF}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>Bestands-PDF</span>
@@ -1921,13 +2788,13 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
 
                 {/* Alarm Banner if contracts are expiring */}
                 {expiringContractsCount > 0 && (
-                  <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-start gap-3 text-xs">
-                    <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-xs text-rose-900 shadow-2xs">
+                    <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                      <div className="font-bold text-rose-300">
+                      <div className="font-bold text-rose-800 text-sm">
                         Achtung: {expiringContractsCount} Kundenvertrag/Verträge nähern sich der Kündigungsfrist!
                       </div>
-                      <p className="text-slate-300">
+                      <p className="text-rose-700 leading-relaxed">
                         Das System hat für jeden dieser Verträge bereits einen neuen Vergleichstarif vorbereitet. Senden Sie mit 1 Klick das Folge-Angebot, damit die Kunden nicht in teure Verlängerungen geraten.
                       </p>
                     </div>
@@ -1941,57 +2808,57 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                       key={ct.id}
                       className={`p-4 rounded-xl border transition-all ${
                         ct.status === 'critical_cancellation'
-                          ? 'bg-[#1a1114] border-rose-500/40 shadow-sm'
+                          ? 'bg-rose-50/40 border-rose-200 shadow-xs'
                           : ct.status === 'warning_renewal'
-                          ? 'bg-[#181510] border-amber-500/30'
-                          : 'bg-[#121319] border-white/[0.08]'
+                          ? 'bg-amber-50/40 border-amber-200 shadow-xs'
+                          : 'bg-white border-slate-200 shadow-xs hover:border-slate-300'
                       } space-y-3`}
                     >
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-white text-sm">{ct.clientName}</span>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 uppercase">
+                            <span className="font-bold text-slate-900 text-sm">{ct.clientName}</span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 uppercase font-bold">
                               {ct.service}
                             </span>
-                            <span className="text-[10px] font-mono text-slate-400">
+                            <span className="text-[10px] font-mono text-slate-500">
                               Beleg: {ct.accountingInvoiceId}
                             </span>
                           </div>
-                          <div className="text-xs text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <div className="text-xs text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-1">
                             <div className="inline-flex items-center gap-1.5">
                               <span>Versorger:</span>
                               <div className="scale-75 origin-left inline-block">
-                                <ProviderLogo id={ct.provider} size="sm" variant="dark" />
+                                <ProviderLogo id={ct.provider} size="sm" variant="light" />
                               </div>
-                              <span className="text-slate-300 font-medium">({ct.tariffName})</span>
+                              <span className="text-slate-800 font-medium">({ct.tariffName})</span>
                             </div>
                             <span>•</span>
-                            <span>Zähler: <strong className="text-slate-300 font-mono">{ct.meterNumber}</strong></span>
+                            <span>Zähler: <strong className="text-slate-800 font-mono">{ct.meterNumber}</strong></span>
                             <span>•</span>
-                            <span>Abschlag: <strong className="text-blue-300 font-mono">{ct.currentMonthlyInstallment} € / Monat</strong></span>
+                            <span>Abschlag: <strong className="text-blue-700 font-mono">{ct.currentMonthlyInstallment} € / Monat</strong></span>
                           </div>
                         </div>
 
                         {/* Status Badge */}
                         <div className="flex items-center gap-2">
                           <div className="text-right">
-                            <span className="text-[10px] text-slate-400 block">Laufzeit-Ende:</span>
-                            <span className="font-mono text-xs font-bold text-white">{ct.endDate}</span>
+                            <span className="text-[10px] text-slate-500 block">Laufzeit-Ende:</span>
+                            <span className="font-mono text-xs font-bold text-slate-900">{ct.endDate}</span>
                           </div>
 
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
+                            className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${
                               ct.status === 'critical_cancellation'
-                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse'
                                 : ct.status === 'warning_renewal'
-                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             }`}
                           >
-                            {ct.status === 'critical_cancellation' && <AlertOctagon className="w-3.5 h-3.5 text-rose-400" />}
-                            {ct.status === 'warning_renewal' && <BellRing className="w-3.5 h-3.5 text-amber-400" />}
-                            {ct.status === 'active' && <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />}
+                            {ct.status === 'critical_cancellation' && <AlertOctagon className="w-3.5 h-3.5 text-rose-600" />}
+                            {ct.status === 'warning_renewal' && <BellRing className="w-3.5 h-3.5 text-amber-600" />}
+                            {ct.status === 'active' && <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />}
                             <span>
                               {ct.status === 'critical_cancellation'
                                 ? 'Kündigungsfrist beachten!'
@@ -2005,22 +2872,22 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
 
                       {/* Auto-Next Best Offer Box */}
                       {ct.nextBestOffer && (
-                        <div className="p-3 bg-black/50 rounded-xl border border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                           <div className="space-y-0.5">
-                            <div className="flex items-center gap-1.5 text-blue-400 font-bold">
-                              <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+                            <div className="flex items-center gap-1.5 text-blue-800 font-bold">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                               <span>Automatischer Folge-Vergleich für Verlängerung:</span>
                             </div>
-                            <div className="text-slate-300">
+                            <div className="text-slate-700">
                               Empfehlung: <strong>{ct.nextBestOffer.tariff}</strong> ({ct.nextBestOffer.provider}) · Spart weitere{' '}
-                              <strong className="text-emerald-400">+{ct.nextBestOffer.savingsPerYear} € / Jahr</strong> (nur {ct.nextBestOffer.newMonthly} € / Monat)
+                              <strong className="text-emerald-700">+{ct.nextBestOffer.savingsPerYear} € / Jahr</strong> (nur {ct.nextBestOffer.newMonthly} € / Monat)
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleSendRenewalReminder(ct)}
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs"
                             >
                               <Mail className="w-3.5 h-3.5" />
                               <span>Folge-Angebot senden</span>
@@ -2034,54 +2901,54 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
               </div>
             )}
 
-            {/* TAB 3: Nachzahlungs-Schutz & Abschlags-Optimierer */}
+            {/* TAB: NACHZAHLUNGS-SCHUTZ & ABSCHLAGS-OPTIMIERER */}
             {activeTab === 'nachzahlung' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
                 <div>
-                  <h4 className="text-base font-bold text-white flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-blue-400" />
+                  <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-blue-600" />
                     <span>Daryos® Nachzahlungs-Schutz & Abschlags-Optimierer</span>
                   </h4>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Schützt Ihre Kunden vor bösen Überraschungen bei der Jahresabrechnung. Automatische Analyse von Abschlag vs. Verbrauch.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Inputs */}
-                  <div className="bg-[#121319] p-5 rounded-2xl border border-white/[0.08] space-y-4 text-xs">
-                    <div className="font-bold text-slate-200 text-sm border-b border-white/[0.08] pb-2">
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 text-xs">
+                    <div className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">
                       Kundendaten & Verbrauchs-Parameter
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-slate-400 mb-1">Name des Kunden</label>
+                        <label className="block text-slate-600 mb-1 font-medium">Name des Kunden</label>
                         <input
                           type="text"
                           value={nzClientName}
                           onChange={(e) => setNzClientName(e.target.value)}
-                          className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-blue-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-slate-400 mb-1">E-Mail für Bescheid</label>
+                        <label className="block text-slate-600 mb-1 font-medium">E-Mail für Bescheid</label>
                         <input
                           type="email"
                           value={nzClientEmail}
                           onChange={(e) => setNzClientEmail(e.target.value)}
-                          className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 focus:outline-none focus:border-blue-500"
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-slate-400 mb-1">Sparte</label>
+                        <label className="block text-slate-600 mb-1 font-medium">Sparte</label>
                         <select
                           value={nzService}
                           onChange={(e) => setNzService(e.target.value as ServiceType)}
-                          className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white cursor-pointer"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 cursor-pointer focus:outline-none focus:border-blue-500"
                         >
                           <option value="gas">🔥 Erdgas</option>
                           <option value="strom">⚡ Strom</option>
@@ -2089,19 +2956,19 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                       </div>
 
                       <div>
-                        <label className="block text-slate-400 mb-1">Jahresverbrauch (kWh)</label>
+                        <label className="block text-slate-600 mb-1 font-medium">Jahresverbrauch (kWh)</label>
                         <input
                           type="number"
                           step="500"
                           value={nzKwh}
                           onChange={(e) => setNzKwh(parseInt(e.target.value) || 0)}
-                          className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-slate-400 mb-1">
+                      <label className="block text-slate-600 mb-1 font-medium">
                         Aktueller monatlicher Abschlag des Kunden (€/Monat)
                       </label>
                       <input
@@ -2109,23 +2976,23 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                         step="5"
                         value={nzCurrentInstallment}
                         onChange={(e) => setNzCurrentInstallment(parseInt(e.target.value) || 0)}
-                        className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono text-base font-bold text-blue-400"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono text-base font-bold text-blue-700 focus:outline-none focus:border-blue-500"
                       />
                       <span className="text-[10px] text-slate-500 mt-1 block">
                         Entspricht {nzCurrentInstallment * 12} € geleisteten Vorauszahlungen pro Jahr.
                       </span>
                     </div>
 
-                    <div className="p-3 bg-black/60 rounded-xl border border-white/[0.06] text-slate-400 space-y-1">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-600 space-y-1">
                       <div className="flex justify-between">
                         <span>Hinterlegter Arbeitspreis:</span>
-                        <span className="font-mono text-white">
+                        <span className="font-mono text-slate-900 font-semibold">
                           {nzService === 'gas' ? config.gasArbeitspreis : config.stromArbeitspreis} ct/kWh
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Hinterlegter Grundpreis:</span>
-                        <span className="font-mono text-white">
+                        <span className="font-mono text-slate-900 font-semibold">
                           {nzService === 'gas' ? config.gasGrundpreis : config.stromGrundpreis} €/Monat
                         </span>
                       </div>
@@ -2133,9 +3000,9 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                   </div>
 
                   {/* Diagnosis & Recommendations */}
-                  <div className="bg-[#121319] p-5 rounded-2xl border border-white/[0.08] flex flex-col justify-between space-y-4">
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
                     <div>
-                      <div className="font-bold text-slate-200 text-sm border-b border-white/[0.08] pb-2 mb-3">
+                      <div className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2 mb-3">
                         Diagnose & Nachzahlungs-Prüfung
                       </div>
 
@@ -2143,23 +3010,23 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                         <div className="space-y-4 text-xs">
                           {/* Alert Banner */}
                           {nzResult.riskStatus === 'danger' ? (
-                            <div className="p-4 bg-rose-500/15 border border-rose-500/40 rounded-xl space-y-2 text-rose-200">
-                              <div className="flex items-center gap-2 font-bold text-sm text-rose-300">
-                                <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+                            <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-2 text-rose-800">
+                              <div className="flex items-center gap-2 font-bold text-sm text-rose-700">
+                                <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
                                 <span>Achtung: Hohe Nachzahlungsgefahr!</span>
                               </div>
                               <p className="leading-relaxed">
                                 Der Kunde zahlt monatlich <strong>{nzResult.currentMonthlyPaid} €</strong>, verbraucht aber rechnerisch{' '}
                                 <strong>{nzResult.expectedAnnualCost} €</strong> im Jahr. Bei der nächsten Jahresabrechnung droht eine Nachzahlung von ca.{' '}
-                                <strong className="text-white text-sm font-mono underline decoration-rose-500">
+                                <strong className="text-rose-900 text-sm font-mono underline decoration-rose-500">
                                   +{nzResult.difference} €
                                 </strong>!
                               </p>
                             </div>
                           ) : nzResult.riskStatus === 'overpay' ? (
-                            <div className="p-4 bg-blue-500/15 border border-blue-500/30 rounded-xl space-y-2 text-blue-200">
-                              <div className="flex items-center gap-2 font-bold text-sm text-blue-300">
-                                <DollarSign className="w-5 h-5 text-blue-400 shrink-0" />
+                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-2 text-blue-800">
+                              <div className="flex items-center gap-2 font-bold text-sm text-blue-700">
+                                <DollarSign className="w-5 h-5 text-blue-600 shrink-0" />
                                 <span>Guthaben erwartet (Abschlag zu hoch)</span>
                               </div>
                               <p className="leading-relaxed">
@@ -2168,9 +3035,9 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                               </p>
                             </div>
                           ) : (
-                            <div className="p-4 bg-emerald-500/15 border border-emerald-500/30 rounded-xl space-y-2 text-emerald-200">
-                              <div className="flex items-center gap-2 font-bold text-sm text-emerald-300">
-                                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2 text-emerald-800">
+                              <div className="flex items-center gap-2 font-bold text-sm text-emerald-700">
+                                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                                 <span>Optimaler Bereich: 0 € Nachzahlung</span>
                               </div>
                               <p className="leading-relaxed">
@@ -2180,17 +3047,17 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                           )}
 
                           {/* Safe Installment Recommendation Box */}
-                          <div className="p-4 bg-black rounded-xl border border-white/[0.08] space-y-2">
-                            <div className="text-slate-400 text-[11px] font-semibold uppercase tracking-wider">
+                          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                            <div className="text-slate-600 text-[11px] font-semibold uppercase tracking-wider">
                               Empfohlener Daryos-Sicherheitsabschlag:
                             </div>
                             <div className="flex items-baseline justify-between">
-                              <span className="text-2xl font-black font-mono text-emerald-400">
+                              <span className="text-2xl font-black font-mono text-emerald-700">
                                 {nzResult.recommendedSafeMonthly} €
                               </span>
-                              <span className="text-xs text-slate-400">pro Monat (inkl. Puffer)</span>
+                              <span className="text-xs text-slate-500">pro Monat (inkl. Puffer)</span>
                             </div>
-                            <div className="text-[10px] text-slate-400">
+                            <div className="text-[10px] text-slate-500">
                               Damit ist der Kunde vor Energiepreisschwankungen und unberechtigten Nachzahlungsforderungen abgesichert.
                             </div>
                           </div>
@@ -2201,7 +3068,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                     <button
                       type="button"
                       onClick={handleSendNachzahlungWarning}
-                      className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors"
                     >
                       <Send className="w-4 h-4" />
                       <span>Nachzahlungs-Schutz-Bescheid an {nzClientName} senden</span>
@@ -2211,125 +3078,20 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
               </div>
             )}
 
-            {/* TAB 4: Buchhaltung & Provisionen (CSV + PDF) */}
-            {activeTab === 'buchhaltung' && (
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
-                  <div>
-                    <h4 className="text-base font-bold text-white">
-                      Buchhaltung, Provisionen & Export (DATEV / Lexoffice)
-                    </h4>
-                    <p className="text-xs text-slate-400">
-                      Automatische Erfassung aller Vermittlungs-Provisionen für Steuerberater und Buchhaltung.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={exportAccountingCSV}
-                      className="px-3.5 py-2 bg-[#1e202a] hover:bg-[#252836] text-white border border-white/[0.1] rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>CSV (Lexoffice/DATEV)</span>
-                    </button>
-
-                    <button
-                      onClick={exportAccountingPDF}
-                      className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                      <span>PDF-Bericht drucken</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* KPI Metrics */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                  <div className="bg-[#121319] p-4 rounded-xl border border-white/[0.08]">
-                    <span className="text-slate-400 block mb-1">Gesamt-Provisionen</span>
-                    <span className="text-xl font-bold font-mono text-white">
-                      {contracts.reduce((sum, c) => sum + c.provision, 0)} €
-                    </span>
-                  </div>
-                  <div className="bg-[#121319] p-4 rounded-xl border border-white/[0.08]">
-                    <span className="text-slate-400 block mb-1">Bereits ausgezahlt</span>
-                    <span className="text-xl font-bold font-mono text-emerald-400">
-                      {contracts.filter((c) => c.accountingStatus === 'ausgezahlt').reduce((sum, c) => sum + c.provision, 0)} €
-                    </span>
-                  </div>
-                  <div className="bg-[#121319] p-4 rounded-xl border border-white/[0.08]">
-                    <span className="text-slate-400 block mb-1">Forderung gebucht</span>
-                    <span className="text-xl font-bold font-mono text-amber-400">
-                      {contracts.filter((c) => c.accountingStatus === 'gebucht').reduce((sum, c) => sum + c.provision, 0)} €
-                    </span>
-                  </div>
-                  <div className="bg-[#121319] p-4 rounded-xl border border-white/[0.08]">
-                    <span className="text-slate-400 block mb-1">Betreute Verträge</span>
-                    <span className="text-xl font-bold font-mono text-blue-400">
-                      {contracts.length} Kunden
-                    </span>
-                  </div>
-                </div>
-
-                {/* Accounting Table */}
-                <div className="bg-[#121319] rounded-xl border border-white/[0.08] overflow-hidden">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#161822] text-slate-400 text-[11px] uppercase border-b border-white/[0.08]">
-                      <tr>
-                        <th className="p-3">Beleg-Nr.</th>
-                        <th className="p-3">Kunde / Telefon</th>
-                        <th className="p-3">Sparte</th>
-                        <th className="p-3">Versorger</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3 text-right">Provision (€)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.04]">
-                      {contracts.map((ct) => (
-                        <tr key={ct.id} className="hover:bg-white/[0.02]">
-                          <td className="p-3 font-mono text-slate-400">{ct.accountingInvoiceId}</td>
-                          <td className="p-3">
-                            <span className="font-bold text-white block">{ct.clientName}</span>
-                            <span className="text-[11px] text-slate-500 font-mono">{ct.clientPhone}</span>
-                          </td>
-                          <td className="p-3 uppercase font-mono text-slate-300">{ct.service}</td>
-                          <td className="p-3 text-slate-300">{ct.provider}</td>
-                          <td className="p-3">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
-                                ct.accountingStatus === 'ausgezahlt'
-                                  ? 'bg-emerald-500/20 text-emerald-300'
-                                  : 'bg-amber-500/20 text-amber-300'
-                              }`}
-                            >
-                              {ct.accountingStatus}
-                            </span>
-                          </td>
-                          <td className="p-3 text-right font-mono font-bold text-emerald-400">
-                            {ct.provision} €
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 5: Live-Tarife & Marktpreise steuern */}
+            {/* TAB: LIVE-TARIFE & MARKTPREISE STEUERN */}
             {activeTab === 'tarife' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-4">
                   <div>
-                    <h4 className="text-base font-bold text-white">
+                    <h4 className="text-base font-bold text-slate-900">
                       Aktuelle Marktpreise & Provisionen steuern
                     </h4>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Änderungen wirken sich direkt live auf den Spar-Rechner der Website und den KI-Vergleicher aus.
                     </p>
                   </div>
                   {savedSuccess && (
-                    <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/30">
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 font-bold">
                       <CheckCircle className="w-4 h-4" />
                       <span>Preise erfolgreich gespeichert & live aktiv!</span>
                     </div>
@@ -2339,134 +3101,134 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                 <form onSubmit={handleSaveConfig} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Strom */}
-                    <div className="bg-[#121319] p-5 rounded-xl border border-white/[0.08] space-y-3">
-                      <div className="flex items-center gap-2 text-xs font-bold text-blue-400 uppercase tracking-wider">
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-blue-700 uppercase tracking-wider">
                         <Zap className="w-4 h-4" />
                         <span>Strom Besttarif-Parameter</span>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div>
-                          <label className="block text-slate-400 mb-1">Arbeitspreis (ct/kWh)</label>
+                          <label className="block text-slate-600 mb-1 font-medium">Arbeitspreis (ct/kWh)</label>
                           <input
                             type="number"
                             step="0.1"
                             value={config.stromArbeitspreis}
                             onChange={(e) => setConfig({ ...config, stromArbeitspreis: parseFloat(e.target.value) || 0 })}
-                            className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-slate-400 mb-1">Grundpreis (€/Monat)</label>
+                          <label className="block text-slate-600 mb-1 font-medium">Grundpreis (€/Monat)</label>
                           <input
                             type="number"
                             step="0.1"
                             value={config.stromGrundpreis}
                             onChange={(e) => setConfig({ ...config, stromGrundpreis: parseFloat(e.target.value) || 0 })}
-                            className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                           />
                         </div>
                       </div>
                       <div className="text-xs">
-                        <label className="block text-slate-400 mb-1">Provision Strom (€/Wechsel)</label>
+                        <label className="block text-slate-600 mb-1 font-medium">Provision Strom (€/Wechsel)</label>
                         <input
                           type="number"
                           value={config.provisionStrom}
                           onChange={(e) => setConfig({ ...config, provisionStrom: parseInt(e.target.value) || 0 })}
-                          className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                         />
                       </div>
                     </div>
 
                     {/* Gas */}
-                    <div className="bg-[#121319] p-5 rounded-xl border border-white/[0.08] space-y-3">
-                      <div className="flex items-center gap-2 text-xs font-bold text-orange-400 uppercase tracking-wider">
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-orange-600 uppercase tracking-wider">
                         <Flame className="w-4 h-4" />
                         <span>Gas Besttarif-Parameter</span>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div>
-                          <label className="block text-slate-400 mb-1">Arbeitspreis (ct/kWh)</label>
+                          <label className="block text-slate-600 mb-1 font-medium">Arbeitspreis (ct/kWh)</label>
                           <input
                             type="number"
                             step="0.1"
                             value={config.gasArbeitspreis}
                             onChange={(e) => setConfig({ ...config, gasArbeitspreis: parseFloat(e.target.value) || 0 })}
-                            className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-slate-400 mb-1">Grundpreis (€/Monat)</label>
+                          <label className="block text-slate-600 mb-1 font-medium">Grundpreis (€/Monat)</label>
                           <input
                             type="number"
                             step="0.1"
                             value={config.gasGrundpreis}
                             onChange={(e) => setConfig({ ...config, gasGrundpreis: parseFloat(e.target.value) || 0 })}
-                            className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                           />
                         </div>
                       </div>
                       <div className="text-xs">
-                        <label className="block text-slate-400 mb-1">Provision Gas (€/Wechsel)</label>
+                        <label className="block text-slate-600 mb-1 font-medium">Provision Gas (€/Wechsel)</label>
                         <input
                           type="number"
                           value={config.provisionGas}
                           onChange={(e) => setConfig({ ...config, provisionGas: parseInt(e.target.value) || 0 })}
-                          className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                         />
                       </div>
                     </div>
 
                     {/* Internet & KFZ */}
-                    <div className="bg-[#121319] p-5 rounded-xl border border-white/[0.08] space-y-3">
-                      <div className="flex items-center gap-2 text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-indigo-700 uppercase tracking-wider">
                         <Wifi className="w-4 h-4" />
                         <span>Internet / Glasfaser</span>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div>
-                          <label className="block text-slate-400 mb-1">Monatspreis Promo (€)</label>
+                          <label className="block text-slate-600 mb-1 font-medium">Monatspreis Promo (€)</label>
                           <input
                             type="number"
                             step="0.1"
                             value={config.internetPromoPrice}
                             onChange={(e) => setConfig({ ...config, internetPromoPrice: parseFloat(e.target.value) || 0 })}
-                            className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-slate-400 mb-1">Provision Internet (€)</label>
+                          <label className="block text-slate-600 mb-1 font-medium">Provision Internet (€)</label>
                           <input
                             type="number"
                             value={config.provisionInternet}
                             onChange={(e) => setConfig({ ...config, provisionInternet: parseInt(e.target.value) || 0 })}
-                            className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-[#121319] p-5 rounded-xl border border-white/[0.08] space-y-3">
-                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider">
                         <Car className="w-4 h-4" />
                         <span>KFZ-Ersparnis-Quote & Provision</span>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div>
-                          <label className="block text-slate-400 mb-1">Durchschnitts-Ersparnis (%)</label>
+                          <label className="block text-slate-600 mb-1 font-medium">Durchschnitts-Ersparnis (%)</label>
                           <input
                             type="number"
                             value={config.kfzAvgSavingsPercent}
                             onChange={(e) => setConfig({ ...config, kfzAvgSavingsPercent: parseInt(e.target.value) || 0 })}
-                            className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-slate-400 mb-1">Provision KFZ (€)</label>
+                          <label className="block text-slate-600 mb-1 font-medium">Provision KFZ (€)</label>
                           <input
                             type="number"
                             value={config.provisionKfz}
                             onChange={(e) => setConfig({ ...config, provisionKfz: parseInt(e.target.value) || 0 })}
-                            className="w-full bg-black border border-white/[0.1] rounded-lg p-2 text-white font-mono"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                           />
                         </div>
                       </div>
@@ -2476,7 +3238,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                   <div className="flex justify-end pt-2">
                     <button
                       type="submit"
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors flex items-center gap-2 cursor-pointer shadow-md"
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
                     >
                       <Save className="w-4 h-4" />
                       <span>Preise speichern & live anwenden</span>
