@@ -4,6 +4,7 @@ import { Hero } from './components/Hero';
 import { CalculatorComponent } from './components/Calculator';
 import { ServicesSection } from './components/ServicesSection';
 import { ProcessSection } from './components/ProcessSection';
+import { TransparencySection } from './components/TransparencySection';
 import { ContractUploadSection } from './components/ContractUploadSection';
 import { BookingSection } from './components/BookingSection';
 import { ReviewsSection } from './components/ReviewsSection';
@@ -167,6 +168,9 @@ export default function App() {
 
         {/* 4. Switching Journey Process */}
         <ProcessSection currentLang={currentLang} />
+
+        {/* Transparent advice and commission disclosure */}
+        <TransparencySection currentLang={currentLang} onOpenBooking={scrollToBooking} />
 
         {/* 5. Bill & Contract Audit Simulation */}
         <ContractUploadSection

@@ -97,26 +97,22 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ currentLang, onO
             {t.reviews.sectionTitle}
           </h2>
 
-          {/* Rating Summary & Action */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
-            <div className="flex text-amber-400">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-amber-400" />
-              ))}
+          {/* Show only reviews that have actually been provided and verified */}
+          {reviews.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+              <div className="flex text-amber-400">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-amber-400" />
+                ))}
+              </div>
+              <span className="text-sm font-bold text-white font-mono">{averageRating} / 5.0</span>
+              <span className="text-xs text-slate-400">· {reviews.length} Kundenbewertungen</span>
             </div>
-            <span className="text-sm font-bold text-white font-mono">{averageRating} / 5.0</span>
-            <span className="text-xs text-slate-400">
-              · {reviews.length} Kundenbewertungen (Leipzig & bundesweit)
-            </span>
-
-            <button
-              onClick={() => setShowReviewForm(true)}
-              className="ml-2 px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <MessageSquarePlus className="w-3.5 h-3.5" />
-              <span>Eigene Bewertung verfassen</span>
-            </button>
-          </div>
+          ) : (
+            <p className="text-sm text-slate-400 pt-2">
+              Bewertungen werden hier erst angezeigt, wenn echte Erfahrungsberichte vorliegen und geprüft wurden.
+            </p>
+          )}
         </div>
 
         {/* Filter Bar (Segmented Controls) */}
@@ -176,6 +172,11 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ currentLang, onO
         </div>
 
         {/* Reviews Grid */}
+        {filteredReviews.length === 0 && (
+          <div className="max-w-2xl mx-auto mb-8 rounded-2xl border border-white/[0.08] bg-[#0b0c10] p-6 text-center">
+            <p className="text-sm text-slate-300">Wir veröffentlichen keine erfundenen Kundenstimmen. Wenn echte, freigegebene Bewertungen vorliegen, erscheinen sie hier.</p>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredReviews.map((rev) => (
             <div
