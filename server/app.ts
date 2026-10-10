@@ -687,6 +687,12 @@ export function createApp(deps: AppDeps) {
       whatsapp: { configured: !!wa, conversations: conversations.length, needsHuman: conversations.filter((c) => c.needsHuman && !c.optedOut).length },
       connections: { gemini: deps.assistant.configured, email: deps.notifier.configured },
       chat: deps.assistantConfig?.stats(),
+      chatConfig: deps.assistantConfig?.getSettings(),
+      chatProblems: (deps.assistantConfig?.listSessions() ?? [])
+        .filter((x) => x.handover || x.failed)
+        .slice(0, 10)
+        .map((x) => x.messages.find((m) => m.role === 'user')?.text.slice(0, 160) ?? '')
+        .filter(Boolean),
     };
   };
   app.get(

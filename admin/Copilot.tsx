@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Info, Loader2, Send, Sparkles, X, CheckCircle2, Bell } from 'lucide-react';
+import { AlertTriangle, Info, Loader2, Send, X, CheckCircle2, Bell } from 'lucide-react';
 import { api, type BriefingItem } from './api';
+import chatSymbol from '../src/assets/brand/daryos-chat-symbol-hell.webp';
 
 type Msg = { role: 'user' | 'assistant'; text: string };
 const STORE_KEY = 'daryos-copilot-chat';
@@ -10,6 +11,7 @@ const SUGGESTIONS = [
   'Schreibe eine freundliche Nachfass-E-Mail an einen Kunden, der auf unser Angebot noch nicht geantwortet hat.',
   'Welche Tarife sollte ich aktualisieren?',
   'Welche Abläufe kann ich noch automatisieren?',
+  'Analysiere den Kunden-Chat auf der Webseite und schlage Verbesserungen vor.',
   'Welche Fragen stellen Kunden im Chat am häufigsten – was sollte ich ins Wissen aufnehmen?',
 ];
 
@@ -34,6 +36,56 @@ function RichText({ text, onNavigate }: { text: string; onNavigate: () => void }
         return bullet ? <div key={i} className="flex gap-2"><span aria-hidden>•</span><span>{body}</span></div> : <p key={i}>{body}</p>;
       })}
     </>
+  );
+}
+
+type Proposal = { typ: 'wissen'; frage: string; antwort: string } | { typ: 'anweisung'; text: string };
+
+// Antwort in Text und Vorschlags-Blöcke (```vorschlag {...}```) zerlegen
+function splitProposals(text: string): (string | Proposal)[] {
+  const out: (string | Proposal)[] = [];
+  let last = 0;
+  for (const m of text.matchAll(/```vorschlag\s*([\s\S]*?)```/g)) {
+    out.push(text.slice(last, m.index));
+    try {
+      const p = JSON.parse(m[1]);
+      if (p?.typ === 'wissen' && typeof p.frage === 'string' && typeof p.antwort === 'string') out.push({ typ: 'wissen', frage: p.frage.slice(0, 300), antwort: p.antwort.slice(0, 2000) });
+      else if (p?.typ === 'anweisung' && typeof p.text === 'string') out.push({ typ: 'anweisung', text: p.text.slice(0, 1000) });
+    } catch { /* ungültiger Block wird ausgelassen */ }
+    last = (m.index ?? 0) + m[0].length;
+  }
+  out.push(text.slice(last));
+  return out.filter((x) => typeof x !== 'string' || x.trim());
+}
+
+// Übernahme in den Webseiten-Chat erst nach Ihrem Klick
+function ProposalCard({ p }: { p: Proposal }) {
+  const [state, setState] = useState<'' | 'busy' | 'done' | string>('');
+  const apply = async () => {
+    setState('busy');
+    try {
+      const { settings } = await api.assistant();
+      if (p.typ === 'wissen') await api.saveAssistant({ knowledge: [...settings.knowledge, { question: p.frage, answer: p.antwort }] });
+      else await api.saveAssistant({ extraInstructions: [settings.extraInstructions, p.text].filter(Boolean).join('\n') });
+      setState('done');
+    } catch (e) {
+      setState((e as Error).message);
+    }
+  };
+  return (
+    <div className="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3 text-slate-800">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-700">{p.typ === 'wissen' ? 'Vorschlag: Wissen für den Kunden-Chat' : 'Vorschlag: Anweisung für den Kunden-Chat'}</p>
+      {p.typ === 'wissen' ? (
+        <div className="mt-1 space-y-1"><p><strong>F:</strong> {p.frage}</p><p><strong>A:</strong> {p.antwort}</p></div>
+      ) : <p className="mt-1">{p.text}</p>}
+      <div className="mt-2 flex items-center gap-3">
+        {state === 'done' ? <span className="text-emerald-700 text-xs font-medium">Übernommen – der Kunden-Chat nutzt es ab sofort.</span> : (
+          <button onClick={apply} disabled={state === 'busy'} className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50">{state === 'busy' ? 'Speichert …' : 'Übernehmen'}</button>
+        )}
+        {state && state !== 'busy' && state !== 'done' && <span className="text-rose-600 text-xs">{state}</span>}
+        {/\[bitte ergänzen\]/i.test(JSON.stringify(p)) && state !== 'done' && <span className="text-amber-700 text-xs">Enthält Platzhalter – danach unter KI-Assistent → Wissen ergänzen.</span>}
+      </div>
+    </div>
   );
 }
 
@@ -90,17 +142,17 @@ export function Copilot() {
     <>
       {!open && (
         <button onClick={() => setOpen(true)} className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-lg hover:bg-slate-800" aria-label="Assistent öffnen">
-          <Sparkles className="w-4 h-4" aria-hidden /> Assistent
+          <img src={chatSymbol} alt="" className="w-6 h-6 rounded-md bg-white" aria-hidden /> Assistent
           {urgentCount > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[11px] font-semibold">{urgentCount}</span>}
         </button>
       )}
       {open && (
         <aside className="fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl" aria-label="Verwaltungs-Assistent">
           <header className="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
-            <Sparkles className="w-4 h-4 text-indigo-600" aria-hidden />
+            <img src={chatSymbol} alt="" className="w-7 h-7 rounded-md" aria-hidden />
             <div className="flex-1">
               <p className="text-sm font-semibold">Ihr Assistent</p>
-              <p className="text-[11px] text-slate-500">Berät und bereitet vor – ausführen tun Sie.</p>
+              <p className="text-[11px] text-slate-500">Organisiert, berät, steuert den Kunden-Chat – Sie entscheiden.</p>
             </div>
             {messages.length > 0 && <button onClick={() => setMessages([])} className="text-xs text-slate-500 hover:text-slate-800">Neues Gespräch</button>}
             <button onClick={() => setOpen(false)} className="p-1 text-slate-500 hover:text-slate-900" aria-label="Schließen"><X className="w-4 h-4" /></button>
@@ -126,7 +178,7 @@ export function Copilot() {
 
             {messages.map((m, i) => (
               <div key={i} className={m.role === 'user' ? 'ml-8 rounded-xl bg-slate-900 px-3 py-2 text-white' : 'mr-4 space-y-1 rounded-xl border border-slate-200 px-3 py-2 text-slate-800'}>
-                {m.role === 'user' ? m.text : <RichText text={m.text} onNavigate={() => window.innerWidth < 1024 && setOpen(false)} />}
+                {m.role === 'user' ? m.text : splitProposals(m.text).map((part, k) => (typeof part === 'string' ? <RichText key={k} text={part} onNavigate={() => window.innerWidth < 1024 && setOpen(false)} /> : <ProposalCard key={k} p={part} />))}
               </div>
             ))}
             {busy && <p className="flex items-center gap-2 text-slate-500"><Loader2 className="w-4 h-4 animate-spin" /> Denkt nach …</p>}

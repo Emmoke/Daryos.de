@@ -98,3 +98,11 @@ test('Verwaltungs-Assistent: nur angemeldet, letzter Besuch wird gemerkt, Chat m
     server.close();
   }
 });
+
+test('Assistent kennt die Einstellungen des Kunden-Chats und Problemfragen', () => {
+  const i = input({ chatConfig: { extraInstructions: 'Kurz antworten.', knowledge: [{ question: 'Samstag geöffnet?', answer: 'Nach Vereinbarung.' }], tools: { booking: true }, storeTranscripts: true }, chatProblems: ['Kann ich auch Internet wechseln?'] });
+  const ctx = buildCopilotContext(i, buildBriefing(i));
+  assert.match(ctx, /Kurz antworten/);
+  assert.match(ctx, /Samstag geöffnet/);
+  assert.match(ctx, /Internet wechseln/);
+});
