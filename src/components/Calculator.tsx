@@ -19,7 +19,15 @@ import {
 } from 'lucide-react';
 import { Language, ServiceType } from '../types';
 import { translations } from '../data/translations';
-import { TariffPricingConfig } from './AdminCockpit';
+/** Richtwerte für den Schnell-Rechner (keine Anbieterangebote). */
+export interface TariffPricingConfig {
+  stromArbeitspreis: number;
+  stromGrundpreis: number;
+  gasArbeitspreis: number;
+  gasGrundpreis: number;
+  internetPromoPrice: number;
+  kfzAvgSavingsPercent: number;
+}
 import { ProviderLogo } from './ProviderLogos';
 import {
   getRegionInfoForPlz,
@@ -87,7 +95,7 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
     return 1.0; // 12 Monate Standard
   }, [laufzeitOption]);
 
-  // Active pricing config fallback (from admin settings if adjusted)
+  // Richtwerte für die Beispielrechnung
   const currentPricing = pricingConfig || {
     stromArbeitspreis: 26.8,
     stromGrundpreis: 10.5,
@@ -95,10 +103,6 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
     gasGrundpreis: 11.2,
     internetPromoPrice: 29.9,
     kfzAvgSavingsPercent: 26,
-    provisionStrom: 65,
-    provisionGas: 80,
-    provisionInternet: 50,
-    provisionKfz: 90,
   };
 
   // Aktuell ausgewählter Anbieter-Tarif je Sparte

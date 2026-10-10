@@ -1,5 +1,4 @@
 import React from 'react';
-import { Lock, Crown } from 'lucide-react';
 import { Language, AuthUser } from '../types';
 import { translations } from '../data/translations';
 import { Logo } from './Logo';
@@ -7,11 +6,9 @@ import { Logo } from './Logo';
 interface FooterProps {
   currentLang: Language;
   onOpenLegal: (type: 'impressum' | 'datenschutz') => void;
-  onOpenAdmin: () => void;
-  authUser: AuthUser | null;
 }
 
-export const Footer: React.FC<FooterProps> = ({ currentLang, onOpenLegal, onOpenAdmin, authUser }) => {
+export const Footer: React.FC<FooterProps> = ({ currentLang, onOpenLegal }) => {
   const t = translations[currentLang];
   const year = new Date().getFullYear();
 
@@ -58,25 +55,6 @@ export const Footer: React.FC<FooterProps> = ({ currentLang, onOpenLegal, onOpen
               className="hover:text-slate-300 transition-colors cursor-pointer underline-offset-4 hover:underline"
             >
               {t.footer.privacy}
-            </button>
-            <span>·</span>
-            <button
-              onClick={onOpenAdmin}
-              className="hover:text-slate-300 transition-colors cursor-pointer flex items-center gap-1.5 text-slate-500 hover:text-slate-300"
-              title="Geschützter Zugang ausschließlich für Eigentümer und autorisierte Administratoren"
-            >
-              {authUser?.role === 'eigentuemer' ? (
-                <Crown className="w-3 h-3 text-amber-400" />
-              ) : (
-                <Lock className="w-3 h-3" />
-              )}
-              <span>
-                {authUser
-                  ? authUser.role === 'eigentuemer'
-                    ? 'Eigentümer: Emmoke'
-                    : 'Admin-Portal'
-                  : 'Eigentümer- & Admin-Zugang'}
-              </span>
             </button>
           </div>
         </div>
