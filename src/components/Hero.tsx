@@ -8,7 +8,8 @@ import heroImage from '../assets/images/hero_advisor_office.webp';
 interface HeroProps {
   currentLang: Language;
   onOpenBooking: () => void;
-  onScrollToCalc: () => void;
+  /** Nur gesetzt, wenn der Spar-Rechner eingeblendet ist */
+  onScrollToCalc?: () => void;
 }
 
 const fadeUp = (delay: number) => ({
@@ -54,8 +55,7 @@ export const Hero: React.FC<HeroProps> = ({ currentLang, onOpenBooking, onScroll
             </motion.a>
 
             <motion.h1 {...fadeUp(0.08)} className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.08] text-balance">
-              {t.hero.titleStart} <span className="text-gradient">{t.hero.titleStrom}, {t.hero.titleGas}</span>, {t.hero.titleInternet} &{' '}
-              {t.hero.titleKfz} {t.hero.titleEnd}
+              {t.hero.headlineBefore}<span className="text-gradient sm:whitespace-nowrap">{t.hero.headlineAccent}</span>{t.hero.headlineAfter}
             </motion.h1>
 
             <motion.p {...fadeUp(0.16)} className="text-base sm:text-lg text-slate-300/90 leading-relaxed max-w-2xl">
@@ -91,7 +91,7 @@ export const Hero: React.FC<HeroProps> = ({ currentLang, onOpenBooking, onScroll
             <motion.ul {...fadeUp(0.32)} className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-xs text-slate-400">
               <li className="flex items-center gap-1.5"><BadgeCheck className="w-4 h-4 text-emerald-400" aria-hidden /> {t.hero.stat2Label}</li>
               <li className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-blue-400" aria-hidden /> Keine Vertragszusage ohne Ihre Zustimmung</li>
-              <li className="flex items-center gap-1.5"><button onClick={onScrollToCalc} className="underline-offset-4 hover:underline hover:text-slate-200">{t.hero.btnCalc}</button></li>
+              {onScrollToCalc && <li className="flex items-center gap-1.5"><button onClick={onScrollToCalc} className="underline-offset-4 hover:underline hover:text-slate-200">{t.hero.btnCalc}</button></li>}
             </motion.ul>
           </div>
 

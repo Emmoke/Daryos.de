@@ -182,7 +182,6 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                     { id: 'strom', label: '⚡ Strom' },
                     { id: 'gas', label: '🔥 Gas' },
                     { id: 'internet', label: '🌐 Internet' },
-                    { id: 'kfz', label: '🚗 Autoversicherung' },
                   ].map((item) => (
                     <button
                       key={item.id}

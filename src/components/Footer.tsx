@@ -30,11 +30,8 @@ export const Footer: React.FC<FooterProps> = ({ currentLang, onOpenLegal, onOpen
           {/* Nav links mirror */}
           <div className="flex flex-wrap gap-5 text-slate-400 text-xs font-medium">
             <a href="#services" className="hover:text-white transition-colors">{t.nav.services}</a>
-            <a href="#calculator" className="hover:text-white transition-colors">{t.nav.calculator}</a>
             <a href="#process" className="hover:text-white transition-colors">{t.nav.process}</a>
             <a href="#transparency" className="hover:text-white transition-colors">Transparenz</a>
-            <a href="#audit" className="hover:text-white transition-colors">{t.nav.audit}</a>
-            <a href="#reviews" className="hover:text-white transition-colors">{t.nav.reviews}</a>
             <a href="#contact" className="hover:text-white transition-colors">{t.nav.contact}</a>
           </div>
         </div>

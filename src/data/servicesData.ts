@@ -124,7 +124,7 @@ export const faqData: FaqItem[] = [
     id: 'f4',
     question: 'Welche Unterlagen muss ich zur Beratung mitbringen?',
     answer:
-      'Für Strom und Gas: Die letzte Jahresabrechnung (darauf stehen Zählernummer und Jahresverbrauch). Für Internet: Die aktuelle Vertragsbezeichnung und Festnetznummer. Für KFZ: Den Fahrzeugschein und die letzte Beitragsrechnung mit Ihrer SF-Klasse.',
+      'Für Strom und Gas: Die letzte Jahresabrechnung (darauf stehen Zählernummer und Jahresverbrauch). Für Internet: Die aktuelle Vertragsbezeichnung und Festnetznummer.',
     category: 'allgemein',
   },
   {
@@ -138,7 +138,7 @@ export const faqData: FaqItem[] = [
     id: 'f6',
     question: 'Beraten Sie auch Gewerbekunden und Unternehmen?',
     answer:
-      'Ja. Für Gewerbebetriebe, Praxen, Büros und Gastronomie in Leipzig bieten wir spezialisierte Gewerbestrom-, Gewerbegas- und Flottentarife mit maßgeschneiderten Großkundenkonditionen an.',
+      'Ja. Für Gewerbebetriebe, Praxen, Büros und Gastronomie in Leipzig bieten wir Beratung zu Gewerbestrom- und Gewerbegastarifen an.',
     category: 'allgemein',
   },
 ];
