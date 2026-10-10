@@ -5,7 +5,8 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './server/app';
-import { FileRequestStore } from './server/store';
+import { MemoryRequestStore } from './server/store';
+import { backendFromEnv } from './server/persistence';
 import { offerProviderFromEnv } from './server/offers';
 import { notifierFromEnv } from './server/notifier';
 import { assistantFromEnv } from './server/assistant';
@@ -27,10 +28,12 @@ if (!passwordHash && env.ADMIN_PASSWORD) {
   }
 }
 
-const store = await FileRequestStore.open(env.DATA_FILE || path.join(root, 'data', 'requests.json'));
-const accounting = await AccountingStore.open(env.ACCOUNTING_DATA_FILE || path.join(root, 'data', 'buchhaltung.json'));
+const backend = await backendFromEnv(env, root);
+console.log(`[daryos] Datenspeicher: ${backend.name}`);
+const store = await MemoryRequestStore.open(backend);
+const accounting = await AccountingStore.open(backend);
 const waConfig = whatsappConfigFromEnv(env);
-const waStore = waConfig ? await ConversationStore.open(env.WHATSAPP_DATA_FILE || path.join(root, 'data', 'whatsapp.json')) : undefined;
+const waStore = waConfig ? await ConversationStore.open(backend) : undefined;
 const api = createApp({
   store,
   offerProvider: offerProviderFromEnv(env),
@@ -39,6 +42,7 @@ const api = createApp({
   sessions: new SessionManager(),
   admin: { email: env.ADMIN_EMAIL || 'admin@daryos.de', name: env.ADMIN_NAME || 'Daryos Inhaber', passwordHash, totpSecret: env.ADMIN_TOTP_SECRET || undefined },
   accounting,
+  storageName: backend.name,
   whatsappNumber: env.WHATSAPP_NUMBER?.replace(/\D/g, '') || undefined,
   whatsapp: waConfig && waStore ? { config: waConfig, store: waStore, sender: new CloudApiSender(waConfig) } : undefined,
   appUrl: env.APP_URL && env.APP_URL !== 'MY_APP_URL' ? env.APP_URL.replace(/\/$/, '') : `http://localhost:${port}`,

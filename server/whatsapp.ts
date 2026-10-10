@@ -6,8 +6,7 @@
 // - Zugangstoken nur serverseitig; Versand nur innerhalb des 24-Stunden-Kundenservice-Fensters (sonst Vorlage nötig)
 // - Opt-out per "STOP", Übergabe an einen Menschen, Duplikaterkennung über Nachrichten-IDs
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
+import type { Backend } from './persistence';
 import type { Assistant, ChatTurn } from './assistant';
 import { HANDOVER_PATTERN, OPT_OUT_PATTERN } from './knowledge';
 import { REQUEST_ID_PATTERN, type RequestStore } from './store';
@@ -105,25 +104,19 @@ export interface WaConversation {
   deleteAfter: string;
 }
 
+const COLLECTION = 'whatsapp_conversations';
+
 export class ConversationStore {
   private conversations = new Map<string, WaConversation>();
   private seenIds = new Set<string>();
-  private writing: Promise<void> = Promise.resolve();
 
-  constructor(private readonly file?: string) {}
+  constructor(private readonly backend?: Backend) {}
 
-  static async open(file?: string) {
-    const store = new ConversationStore(file);
-    if (file) {
-      try {
-        const data = JSON.parse(await fs.readFile(file, 'utf8')) as WaConversation[];
-        for (const c of data) {
-          store.conversations.set(c.waId, c);
-          c.messages.forEach((m) => store.seenIds.add(m.id));
-        }
-      } catch (err) {
-        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-      }
+  static async open(backend?: Backend) {
+    const store = new ConversationStore(backend);
+    for (const c of backend ? await backend.loadAll<WaConversation>(COLLECTION) : []) {
+      store.conversations.set(c.waId, c);
+      c.messages.forEach((m) => store.seenIds.add(m.id));
     }
     return store;
   }
@@ -146,34 +139,27 @@ export class ConversationStore {
 
   async upsert(waId: string, mutate: (c: WaConversation) => void, now: Date, retentionDays: number) {
     const iso = now.toISOString();
-    const c = this.conversations.get(waId) ?? { waId, createdAt: iso, updatedAt: iso, optedOut: false, needsHuman: false, messages: [], deleteAfter: iso };
+    const existing = this.conversations.get(waId);
+    const c: WaConversation = existing ? structuredClone(existing) : { waId, createdAt: iso, updatedAt: iso, optedOut: false, needsHuman: false, messages: [], deleteAfter: iso };
     mutate(c);
     c.updatedAt = iso;
     c.deleteAfter = new Date(now.getTime() + retentionDays * 86_400_000).toISOString();
+    await this.backend?.put(COLLECTION, waId, c);
     this.conversations.set(waId, c);
-    await this.persist();
     return structuredClone(c);
   }
 
   async purgeExpired(now: Date) {
     const iso = now.toISOString();
     let n = 0;
-    for (const [k, c] of this.conversations) if (c.deleteAfter < iso) (this.conversations.delete(k), n++);
-    if (n) await this.persist();
+    for (const [k, c] of [...this.conversations]) {
+      if (c.deleteAfter < iso) {
+        await this.backend?.remove(COLLECTION, k);
+        this.conversations.delete(k);
+        n++;
+      }
+    }
     return n;
-  }
-
-  private persist() {
-    if (!this.file) return Promise.resolve();
-    const file = this.file;
-    const snapshot = JSON.stringify([...this.conversations.values()], null, 2);
-    this.writing = this.writing.catch(() => {}).then(async () => {
-      await fs.mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
-      const tmp = `${file}.${process.pid}.tmp`;
-      await fs.writeFile(tmp, snapshot, { mode: 0o600 });
-      await fs.rename(tmp, file);
-    });
-    return this.writing;
   }
 }
 
