@@ -128,17 +128,8 @@ export const Header: React.FC<HeaderProps> = ({
           <a href="#services" className="hover:text-blue-400 transition-colors py-1">
             {t.nav.services}
           </a>
-          <a href="#calculator" className="hover:text-blue-400 transition-colors py-1">
-            {t.nav.calculator}
-          </a>
           <a href="#process" className="hover:text-blue-400 transition-colors py-1">
             {t.nav.process}
-          </a>
-          <a href="#audit" className="hover:text-blue-400 transition-colors py-1">
-            {t.nav.audit}
-          </a>
-          <a href="#reviews" className="hover:text-blue-400 transition-colors py-1">
-            {t.nav.reviews}
           </a>
           <a href="#faq" className="hover:text-blue-400 transition-colors py-1">
             {t.nav.faq}
@@ -233,13 +224,6 @@ export const Header: React.FC<HeaderProps> = ({
               {t.nav.services}
             </a>
             <a
-              href="#calculator"
-              onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-blue-400 py-1"
-            >
-              {t.nav.calculator}
-            </a>
-            <a
               href="#transparency"
               onClick={() => setMobileMenuOpen(false)}
               className="hover:text-blue-400 py-1"
@@ -252,20 +236,6 @@ export const Header: React.FC<HeaderProps> = ({
               className="hover:text-blue-400 py-1"
             >
               {t.nav.process}
-            </a>
-            <a
-              href="#audit"
-              onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-blue-400 py-1"
-            >
-              {t.nav.audit}
-            </a>
-            <a
-              href="#reviews"
-              onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-blue-400 py-1"
-            >
-              {t.nav.reviews}
             </a>
             <a
               href="#faq"

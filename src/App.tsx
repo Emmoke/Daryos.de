@@ -34,6 +34,14 @@ const defaultPricing: TariffPricingConfig = {
   provisionKfz: 90,
 };
 
+// Abschnitte der Startseite. Ausgeblendete Bereiche bleiben im Code erhalten und lassen sich hier wieder einschalten.
+export const SECTIONS = {
+  providers: true,
+  calculator: false, // Spar-Rechner: arbeitet mit Richtwerten, doppelt sich mit dem Tarifvergleich
+  contractUpload: false, // Rechnungs-Check: öffnet nur WhatsApp/E-Mail
+  reviews: false, // Kundenstimmen: noch keine echten Bewertungen vorhanden
+};
+
 export default function App() {
   const [currentLang, setCurrentLang] = useState<Language>('de');
   const [bookingService, setBookingService] = useState<ServiceType | 'all'>('all');
@@ -161,58 +169,57 @@ export default function App() {
           )
         ) : (
           <>
-        {/* 1. Hero */}
+        {/* 1. Hero mit einem klaren Hauptweg: Tarif vergleichen */}
         <Hero
           currentLang={currentLang}
           onOpenBooking={scrollToBooking}
-          onScrollToCalc={scrollToCalc}
+          onScrollToCalc={SECTIONS.calculator ? scrollToCalc : undefined}
         />
 
-        {/* 1.5 Partner & Versorger Logos Wall */}
-        <PartnerLogosBanner />
+        {/* 2. So funktioniert's */}
+        <ProcessSection currentLang={currentLang} />
 
-        {/* 2. Services Grid */}
+        {/* 3. Leistungen: Strom & Gas im Mittelpunkt, Internet kompakt */}
         <ServicesSection
           currentLang={currentLang}
           onSelectServiceBooking={handleSelectServiceBooking}
         />
 
-        {/* 3. Interactive Instant Calculator */}
-        <CalculatorComponent
-          currentLang={currentLang}
-          onApplySavingsToBooking={handleApplySavingsToBooking}
-          pricingConfig={pricingConfig}
-        />
+        {SECTIONS.providers && <PartnerLogosBanner />}
 
-        {/* 4. Switching Journey Process */}
-        <ProcessSection currentLang={currentLang} />
+        {SECTIONS.calculator && (
+          <CalculatorComponent
+            currentLang={currentLang}
+            onApplySavingsToBooking={handleApplySavingsToBooking}
+            pricingConfig={pricingConfig}
+          />
+        )}
 
-        {/* Transparent advice and commission disclosure */}
+        {/* 4. Vertrauen: Transparenz & FAQ */}
         <TransparencySection currentLang={currentLang} onOpenBooking={scrollToBooking} />
+        <FaqSection currentLang={currentLang} />
 
-        {/* 5. Bill & Contract Audit Simulation */}
-        <ContractUploadSection
-          currentLang={currentLang}
-          onOpenBooking={scrollToBooking}
-        />
+        {SECTIONS.contractUpload && (
+          <ContractUploadSection
+            currentLang={currentLang}
+            onOpenBooking={scrollToBooking}
+          />
+        )}
 
-        {/* 6. Online Booking Assistant */}
+        {/* 5. Termin & Kontakt */}
         <BookingSection
           currentLang={currentLang}
           preselectedService={bookingService}
           initialNotes={bookingNotes}
         />
 
-        {/* 7. Reviews & Social Proof */}
-        <ReviewsSection
-          currentLang={currentLang}
-          onOpenPrivacy={() => setLegalModal('datenschutz')}
-        />
+        {SECTIONS.reviews && (
+          <ReviewsSection
+            currentLang={currentLang}
+            onOpenPrivacy={() => setLegalModal('datenschutz')}
+          />
+        )}
 
-        {/* 8. FAQ */}
-        <FaqSection currentLang={currentLang} />
-
-        {/* 9. Contact, Hours & Map */}
         <ContactSection currentLang={currentLang} />
           </>
         )}

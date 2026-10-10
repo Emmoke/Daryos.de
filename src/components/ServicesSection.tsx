@@ -10,6 +10,9 @@ interface ServicesSectionProps {
   onSelectServiceBooking: (service: ServiceType) => void;
 }
 
+const MAIN_SERVICES: ServiceType[] = ['strom', 'gas'];
+const COMPACT_SERVICES: ServiceType[] = ['internet'];
+
 export const ServicesSection: React.FC<ServicesSectionProps> = ({ currentLang, onSelectServiceBooking }) => {
   const t = translations[currentLang];
   const [activeModalService, setActiveModalService] = useState<ServiceDetail | null>(null);
@@ -31,9 +34,9 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ currentLang, o
           </p>
         </div>
 
-        {/* 4 Bento Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-7">
-          {servicesData.map((service) => (
+        {/* Strom & Gas im Mittelpunkt (Kfz bis zur Klärung der Erlaubnis nach § 34d GewO ausgeblendet) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-7 max-w-5xl mx-auto">
+          {servicesData.filter((s) => MAIN_SERVICES.includes(s.id)).map((service) => (
             <div
               key={service.id}
               onMouseMove={(e) => {
@@ -122,6 +125,24 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ currentLang, o
             </div>
           ))}
         </div>
+
+        {/* Internet kompakt */}
+        {servicesData.filter((s) => COMPACT_SERVICES.includes(s.id)).map((service) => (
+          <div key={service.id} className="mt-7 max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center gap-4 justify-between rounded-2xl border border-white/[0.08] bg-[#0b0c10]/80 px-6 py-5">
+            <div>
+              <p className="text-sm font-bold text-white">{service.badge} {service.title}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{service.tagline}</p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <button onClick={() => setActiveModalService(service)} className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white rounded-lg border border-white/[0.1] hover:bg-white/[0.04]">
+                {t.services.detailsBtn}
+              </button>
+              <button onClick={() => onSelectServiceBooking(service.id)} className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg">
+                {t.services.bookBtn}
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Service Detail Modal */}

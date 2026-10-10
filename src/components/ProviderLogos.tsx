@@ -86,8 +86,9 @@ interface PartnerLogosBannerProps {
 
 export const PartnerLogosBanner: React.FC<PartnerLogosBannerProps> = ({ onSelectCategory }) => {
   const [filter, setFilter] = React.useState<'alle' | ProviderBrand['category']>('alle');
-  const filtered = filter === 'alle' ? providerBrands : providerBrands.filter((b) => b.category === filter);
-  const marquee = [...providerBrands, ...providerBrands];
+  const visible = providerBrands.filter((b) => b.category !== 'kfz');
+  const filtered = filter === 'alle' ? visible : visible.filter((b) => b.category === filter);
+  const marquee = [...visible, ...visible];
 
   return (
     <section className="relative py-16 bg-[#05060a] overflow-hidden" aria-labelledby="anbieter-titel">
@@ -117,7 +118,7 @@ export const PartnerLogosBanner: React.FC<PartnerLogosBannerProps> = ({ onSelect
           </div>
 
           <div role="tablist" aria-label="Nach Bereich filtern" className="flex flex-wrap items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1 text-xs backdrop-blur">
-            {(['alle', 'strom', 'gas', 'internet', 'kfz'] as const).map((cat) => (
+            {(['alle', 'strom', 'gas', 'internet'] as const).map((cat) => (
               <button
                 key={cat}
                 role="tab"

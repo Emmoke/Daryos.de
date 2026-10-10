@@ -6,6 +6,22 @@ interface LogoProps {
   showSubtitle?: boolean;
 }
 
+/** Das Daryos-Pfeilzeichen allein, z. B. für Chat-Symbol oder App-Icon. */
+export function DaryosMark({ size = 24, color = '#f97316', strokeWidth = 7, className = '' }: { size?: number; color?: string; strokeWidth?: number; className?: string }) {
+  return (
+    <svg width={size} height={(size * 80) / 96} viewBox="0 0 96 80" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden>
+      <path
+        d="M 12 20 C 22 46 38 52 56 48 L 52 26 L 88 49 L 53 72 L 56 56 C 36 58 22 48 12 20 Z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
 export const Logo: React.FC<LogoProps> = ({
   className = '',
   size = 'md',
@@ -78,7 +94,7 @@ export const Logo: React.FC<LogoProps> = ({
           <span
             className={`${sizeConfig.subSize} text-[#a5b4fc]/90 font-medium tracking-tight mt-1 whitespace-nowrap`}
           >
-            Strom, Gas, Internet und Autoversicherung
+            Strom · Gas · Internet
           </span>
         )}
       </div>
