@@ -52,6 +52,8 @@ export const api = {
   compare: (input: unknown) => request<CompareResponse>('POST', '/compare', input),
   status: (id: string) => request<PublicRequestStatus>('GET', `/requests/${encodeURIComponent(id)}`),
   contact: (id: string, body: unknown) => request<ContactResponse>('POST', `/requests/${encodeURIComponent(id)}/contact`, body),
+  chat: (messages: { role: 'user' | 'assistant'; text: string }[]) =>
+    request<{ reply: string; disclaimer: string }>('POST', '/chat', { messages }),
   ask: (id: string, question: string) =>
     request<{ answer: string; disclaimer: string }>('POST', `/requests/${encodeURIComponent(id)}/assistant`, { question }),
   admin: {
@@ -64,8 +66,23 @@ export const api = {
     action: (id: string, body: { action: string; note?: string; providerConfirmationRef?: string }) =>
       request<{ request: any }>('POST', `/admin/requests/${encodeURIComponent(id)}/action`, body),
     draft: (id: string) => request<{ request: any }>('POST', `/admin/requests/${encodeURIComponent(id)}/draft`, {}),
+    waList: () => request<{ configured: boolean; conversations: WaListItem[] }>('GET', '/admin/whatsapp/conversations'),
+    waGet: (waId: string) => request<{ conversation: any; canReply: boolean }>('GET', `/admin/whatsapp/conversations/${encodeURIComponent(waId)}`),
+    waReply: (waId: string, text: string) => request<{ conversation: any }>('POST', `/admin/whatsapp/conversations/${encodeURIComponent(waId)}/reply`, { text }),
+    waBot: (waId: string, needsHuman: boolean) => request<{ conversation: any }>('POST', `/admin/whatsapp/conversations/${encodeURIComponent(waId)}/bot`, { needsHuman }),
   },
 };
+
+export interface WaListItem {
+  waId: string;
+  name: string | null;
+  updatedAt: string;
+  needsHuman: boolean;
+  optedOut: boolean;
+  linkedRequestId: string | null;
+  lastMessage: string;
+  canReply: boolean;
+}
 
 export interface AdminListItem {
   id: string;

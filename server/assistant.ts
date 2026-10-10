@@ -5,6 +5,22 @@ import { STATUS_LABELS } from '../shared/platform';
 import type { RankedOffer } from '../shared/platform';
 import type { AdminSummary, DraftDocument, RequestRecord } from './store';
 import { randomUUID } from 'node:crypto';
+import { buildKnowledgeBase, CONTACT } from './knowledge';
+
+export interface ChatTurn {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
+const CHAT_RULES = `Du bist der digitale Assistent von Daryos (Tarifberatung und Wechselservice in Leipzig) auf der Webseite bzw. in WhatsApp.
+Regeln (verbindlich):
+- Antworte nur auf Basis der Wissensbasis unten. Erfinde niemals Preise, Tarife, Ersparnisse, Anbieterkonditionen oder Termine.
+- Für konkrete Angebote verweise auf den Online-Tarifvergleich oder die persönliche Beratung.
+- Du schließt keine Verträge ab, sagst nichts verbindlich zu und nimmst keine Kündigungen entgegen.
+- Frage nicht nach Bankdaten, Zählernummern, Ausweisdaten oder Passwörtern. Wenn jemand solche Daten sendet, bitte darum, sie im persönlichen Termin zu übermitteln.
+- Bei rechtlichen Fragen, Beschwerden, Unsicherheit oder Wunsch nach einem Menschen: biete Rückruf/Termin an (Telefon ${CONTACT.phone}).
+- Antworte in der Sprache des Kunden, freundlich, kurz (höchstens 120 Wörter).
+- Weise bei Bedarf darauf hin, dass du ein automatischer Assistent bist.`;
 
 const eur = (n: number) => n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 
@@ -94,6 +110,8 @@ export interface Assistant {
   readonly configured: boolean;
   readonly detail: string;
   answerCustomer(record: RequestRecord, question: string): Promise<string>;
+  /** Allgemeiner Webseiten-/WhatsApp-Chat auf Basis der freigegebenen Wissensbasis. */
+  chat(history: ChatTurn[]): Promise<string>;
   improveSummary(record: RequestRecord, base: AdminSummary): Promise<AdminSummary>;
   draftEmail(record: RequestRecord): Promise<DraftDocument>;
 }
@@ -110,15 +128,20 @@ export class GeminiAssistant implements Assistant {
     this.detail = `Gemini (${model})`;
   }
 
-  private async generate(prompt: string): Promise<string> {
+  private async generate(prompt: string, systemInstruction = SYSTEM_RULES): Promise<string> {
     const res = await this.ai.models.generateContent({
       model: this.model,
       contents: prompt,
-      config: { systemInstruction: SYSTEM_RULES, temperature: 0.2, maxOutputTokens: 600 },
+      config: { systemInstruction, temperature: 0.2, maxOutputTokens: 600 },
     });
     const text = res.text?.trim();
     if (!text) throw new Error('Leere Antwort des KI-Modells');
     return text;
+  }
+
+  chat(history: ChatTurn[]) {
+    const transcript = history.map((t) => `${t.role === 'user' ? 'Kunde' : 'Assistent'}: ${t.text}`).join('\n');
+    return this.generate(`Wissensbasis:\n${buildKnowledgeBase()}\n\nBisheriges Gespräch:\n${transcript}\n\nAntworte als Assistent auf die letzte Nachricht des Kunden.`, CHAT_RULES);
   }
 
   answerCustomer(record: RequestRecord, question: string) {
@@ -142,9 +165,12 @@ export class GeminiAssistant implements Assistant {
 }
 
 export class DisabledAssistant implements Assistant {
-  readonly configured = false;
+  readonly configured: boolean = false;
   readonly detail = 'KI-Assistent nicht eingerichtet (GEMINI_API_KEY fehlt). Regelbasierte Prüfung ist aktiv.';
   async answerCustomer(): Promise<string> {
+    throw new AssistantNotConfiguredError(this.detail);
+  }
+  async chat(_history: ChatTurn[]): Promise<string> {
     throw new AssistantNotConfiguredError(this.detail);
   }
   async improveSummary(_r: RequestRecord, base: AdminSummary) {

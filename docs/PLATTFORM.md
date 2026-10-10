@@ -49,8 +49,25 @@ Browser (React)            Server (Express, server.ts)
 - Nicht erratbare Anfrage-IDs (`DY-XXXX-XXXX-XXXX`, ca. 59 Bit).
 - Löschfristen: Vergleiche ohne Kontakt nach 30 Tagen, mit Kontakt nach 180 Tagen (konfigurierbar), automatisches Löschen alle 6 h.
 
+## Chat-Assistent und WhatsApp-Bot
+
+**Webseiten-Chat** (Sprechblase unten rechts): beantwortet allgemeine Fragen ausschließlich aus der freigegebenen Wissensbasis
+(`server/knowledge.ts` = Leistungen + FAQ der Webseite) über Gemini, serverseitig. Keine Tarife, keine Zusagen; Gespräche werden
+nicht auf dem Server gespeichert. Ohne `GEMINI_API_KEY` bzw. ohne Server (GitHub Pages) zeigt er WhatsApp und Terminbuchung an.
+
+**WhatsApp-Bot** (`server/whatsapp.ts`), offizielle WhatsApp Business Platform:
+- Webhook `GET/POST /api/whatsapp/webhook`: Verifizierung per Verify-Token, jede Nachricht per HMAC-Signatur (`X-Hub-Signature-256`) geprüft, Doppelzustellungen ignoriert
+- Automatische Antworten aus derselben Wissensbasis; bei „Mitarbeiter“, Beschwerden, Dateien oder ohne KI → Übergabe an einen Menschen, der Bot schweigt
+- Opt-out mit „STOP“, wieder an mit „START“
+- Anfrage-ID (`DY-…`) in der Nachricht verknüpft das Gespräch mit dem Vorgang
+- Admin-Dashboard → Tab „WhatsApp-Postfach“: Gespräche lesen, übernehmen, antworten (nur im 24-Stunden-Fenster; außerhalb nur freigegebene Vorlagen)
+
+Einrichtung: Meta-Business-Konto → Meta-App mit Produkt „WhatsApp“ → Telefonnummer verifizieren → System-User-Token erzeugen →
+Werte in `.env` bzw. Secrets eintragen → in Meta die Webhook-URL `https://IHRE-DOMAIN/api/whatsapp/webhook` und das Verify-Token eintragen und das Feld `messages` abonnieren.
+Der Webhook braucht eine öffentlich erreichbare HTTPS-Adresse (Cloud Run / AI-Studio-Deployment), GitHub Pages reicht nicht.
+
 ## Testergebnisse
-`npm test`: 19/19 bestanden, unter anderem für Erfolgsfall, ungültige Eingaben, fehlende Einwilligung, Honeypot, fremdes Angebot,
+`npm test`: 29/29 bestanden (inkl. WhatsApp: Signatur, Verifizierung, Duplikate, Opt-out, Übergabe, 24-h-Fenster, Chat-Validierung), unter anderem für Erfolgsfall, ungültige Eingaben, fehlende Einwilligung, Honeypot, fremdes Angebot,
 Doppelanfragen (gleiche Anfrage und anfrageübergreifend innerhalb von 30 Min.), API-Ausfall, Zeitüberschreitung, leeres Ergebnis,
 nicht eingerichtete Quelle, nicht autorisierte Admin-Zugriffe, alte Standard-PINs, Abmeldung, CSRF, Rate-Limits und Statusübergänge.
 Zusätzlich wurde der gesamte Ablauf im Browser durchgeklickt (Desktop 1280/1440 px und Mobil 390 px, ohne horizontales Scrollen).
