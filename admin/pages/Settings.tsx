@@ -164,6 +164,7 @@ function Connections() {
 }
 
 function ConnectionForm({ group, data, onSaved }: { group: 'gemini' | 'email' | 'whatsapp'; data: Connections; onSaved: (c: Connections) => void }) {
+  const adminEmail = data.adminEmail ?? '';
   const fields = data.groups[group];
   const st = data.status[group];
   const info = GROUP_INFO[group];
@@ -212,10 +213,13 @@ function ConnectionForm({ group, data, onSaved }: { group: 'gemini' | 'email' | 
           {fields.map((f) => (
             <Field key={f.key} label={f.label + (f.required ? ' *' : '')} error={errors[f.key]} hint={f.source === 'server' ? `Auf dem Server hinterlegt${f.display ? `: ${f.display}` : ''} – ein Eintrag hier hat Vorrang.` : f.hint} className={f.secret || f.key === 'MAIL_FROM' ? 'sm:col-span-2' : ''}>
               <input
-                type={f.secret ? 'password' : 'text'}
+                type="text"
+                name={`daryos-${f.key.toLowerCase()}`}
                 autoComplete="off"
+                data-1p-ignore
+                data-lpignore="true"
                 spellCheck={false}
-                className={inputCls}
+                className={`${inputCls} ${f.secret ? 'secret-input' : ''}`}
                 value={values[f.key] ?? ''}
                 placeholder={f.secret && f.source ? `${f.display} (gespeichert – leer lassen = unverändert)` : f.placeholder}
                 onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}
@@ -224,6 +228,7 @@ function ConnectionForm({ group, data, onSaved }: { group: 'gemini' | 'email' | 
           ))}
         </div>
         <div className="flex flex-wrap items-end gap-3 border-t border-slate-100 pt-4">
+          <input type="text" name="username" autoComplete="username" value={adminEmail} readOnly hidden aria-hidden />
           <Field label="Verwaltungs-Passwort zur Bestätigung" error={errors.password} className="grow min-w-[220px]">
             <input type="password" autoComplete="current-password" className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} />
           </Field>

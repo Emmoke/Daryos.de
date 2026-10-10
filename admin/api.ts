@@ -36,6 +36,7 @@ export type Connections = {
   status: Record<'gemini' | 'email' | 'whatsapp', { configured: boolean; detail: string; mode?: string }>;
   twoFactor: { active: boolean; source: 'verwaltung' | 'server' | null };
   webhookUrl: string;
+  adminEmail?: string;
 };
 
 export type AdminUser = { role: 'eigentuemer'; email: string; name: string };

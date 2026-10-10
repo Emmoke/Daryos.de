@@ -853,6 +853,7 @@ export function createApp(deps: AppDeps) {
       },
       twoFactor: { active: !!deps.admin.totpSecret, source: store.get('ADMIN_TOTP_SECRET') ? 'verwaltung' : deps.admin.totpSecret ? 'server' : null },
       webhookUrl: `${deps.appUrl ?? ''}/api/whatsapp/webhook`,
+      adminEmail: deps.admin.email,
     };
   };
   const isGroup = (g: string): g is IntegrationGroup => (GROUPS as string[]).includes(g);

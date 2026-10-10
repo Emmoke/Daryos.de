@@ -10,3 +10,6 @@
 @media print {
   .no-print { display: none !important; }
 }
+
+/* Schlüssel-Felder verdeckt anzeigen, ohne type="password" (sonst setzt der Browser gespeicherte Passwörter ein) */
+.secret-input { -webkit-text-security: disc; }
