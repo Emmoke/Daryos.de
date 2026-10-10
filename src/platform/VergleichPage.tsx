@@ -189,6 +189,9 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
             Aktueller Status: <strong>{sent.status.statusLabel}</strong>. Es wurde <strong>kein Vertrag</strong> abgeschlossen. Daryos prüft Ihre Anfrage
             und meldet sich über den gewünschten Kontaktweg.
           </p>
+          <p className="text-slate-400 text-sm">
+            Unterlagen (z. B. letzte Jahresabrechnung) können Sie unter <a href="#/konto" className="text-orange-400 hover:underline">Mein Konto</a> hochladen – Anmeldung per Link an Ihre E-Mail-Adresse.
+          </p>
           <div className="flex flex-wrap justify-center gap-3 pt-2">
             <a href={`#/status/${sent.requestId}`} className="px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 font-semibold">
               Status ansehen

@@ -61,6 +61,7 @@ export const api = {
   requestDraft: (id: string, offerId?: string) => request<{ request: any }>('POST', `/admin/requests/${encodeURIComponent(id)}/draft`, { offerId }),
   saveDraft: (id: string, draftId: string, subject: string, body: string) =>
     request<{ request: any }>('PUT', `/admin/requests/${encodeURIComponent(id)}/drafts/${draftId}`, { subject, body }),
+  deleteDocument: (id: string, docId: string) => request<{ request: any }>('DELETE', `/admin/requests/${encodeURIComponent(id)}/documents/${docId}`),
   sendDraft: (id: string, draftId: string) => request<{ request: any }>('POST', `/admin/requests/${encodeURIComponent(id)}/drafts/${draftId}/send`, { confirm: true }),
   assistant: () => request<{ settings: any; stats: any; configured: boolean; detail: string }>('GET', '/admin/assistant'),
   saveAssistant: (settings: unknown) => request<{ settings: any }>('PUT', '/admin/assistant', settings),

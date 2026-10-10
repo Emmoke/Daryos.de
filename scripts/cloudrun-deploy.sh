@@ -20,7 +20,7 @@ gcloud config set project "$PROJECT" --quiet >/dev/null 2>&1 || fail "Projekt $P
 
 info "1/6 Google-Dienste einschalten …"
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com \
-  firestore.googleapis.com secretmanager.googleapis.com --quiet || fail "Dienste konnten nicht eingeschaltet werden (Abrechnung aktiv?)"
+  firestore.googleapis.com secretmanager.googleapis.com storage.googleapis.com --quiet || fail "Dienste konnten nicht eingeschaltet werden (Abrechnung aktiv?)"
 ok "Dienste aktiv"
 
 info "2/6 Firestore-Datenbank prüfen …"
@@ -63,6 +63,12 @@ info "4/6 Rechte für den Server setzen …"
 PN="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
 SA="${PN}-compute@developer.gserviceaccount.com"
 gcloud secrets add-iam-policy-binding "$SECRET" --member="serviceAccount:$SA" --role=roles/secretmanager.secretAccessor --quiet >/dev/null || fail "Secret-Recht fehlgeschlagen"
+# Privater Speicher für Kundenunterlagen (kein öffentlicher Zugriff, nur der Server)
+BUCKET="${PROJECT}-uploads"
+if ! gcloud storage buckets describe "gs://$BUCKET" >/dev/null 2>&1; then
+  gcloud storage buckets create "gs://$BUCKET" --location="$REGION" --uniform-bucket-level-access --public-access-prevention --quiet >/dev/null || fail "Dateispeicher konnte nicht angelegt werden"
+fi
+gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" --member="serviceAccount:$SA" --role=roles/storage.objectAdmin --quiet >/dev/null || fail "Dateispeicher-Recht fehlgeschlagen"
 # Schlüssel zum Verschlüsseln der Zugangsdaten, die in der Verwaltung eingetragen werden (einmalig, zufällig)
 if ! gcloud secrets describe config-key >/dev/null 2>&1; then
   openssl rand -base64 48 | tr -d '\n' | gcloud secrets create config-key --replication-policy=automatic --data-file=- --quiet >/dev/null || fail "Verschlüsselungsschlüssel konnte nicht angelegt werden"
@@ -73,7 +79,7 @@ ok "Rechte gesetzt"
 
 info "5/6 Veröffentlichen (3–6 Minuten) …"
 if gcloud run deploy "$SERVICE" --source . --region "$REGION" --max-instances 1 --allow-unauthenticated --quiet \
-    --update-env-vars "STORAGE=firestore,FIREBASE_PROJECT_ID=$PROJECT,ADMIN_EMAIL=$ADMIN_EMAIL,TRUST_PROXY=true" \
+    --update-env-vars "STORAGE=firestore,FIREBASE_PROJECT_ID=$PROJECT,ADMIN_EMAIL=$ADMIN_EMAIL,TRUST_PROXY=true,STORAGE_BUCKET=$BUCKET" \
     --update-secrets "ADMIN_PASSWORD_HASH=$SECRET:latest,CONFIG_ENCRYPTION_KEY=config-key:latest"; then
   URL="$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')"
   CUR="$(gcloud run services describe "$SERVICE" --region "$REGION" --format=json | grep -A1 '"APP_URL"' | grep -o 'https://[^"]*' | head -1)"

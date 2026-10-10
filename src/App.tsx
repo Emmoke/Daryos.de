@@ -16,6 +16,7 @@ import { PartnerLogosBanner } from './components/ProviderLogos';
 import { Language, ServiceType } from './types';
 import { VergleichPage } from './platform/VergleichPage';
 import { StatusPage } from './platform/StatusPage';
+import { KontoPage } from './platform/KontoPage';
 import { ChatWidget } from './platform/ChatWidget';
 
 
@@ -111,6 +112,8 @@ export default function App() {
           <VergleichPage onOpenPrivacy={() => setLegalModal('datenschutz')} />
         ) : route.startsWith('#/status') ? (
           <StatusPage initialId={route.split('/')[2] || undefined} />
+        ) : route.startsWith('#/konto') ? (
+          <KontoPage token={route.startsWith('#/konto/anmelden/') ? route.split('/')[3] : undefined} />
         ) : (
           <>
         {/* 1. Hero mit einem klaren Hauptweg: Tarif vergleichen */}

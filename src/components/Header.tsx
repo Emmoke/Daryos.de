@@ -131,6 +131,9 @@ export const Header: React.FC<HeaderProps> = ({
           <a href="#contact" className="hover:text-blue-400 transition-colors py-1">
             {t.nav.contact}
           </a>
+          <a href="#/konto" className="hover:text-blue-400 transition-colors py-1">
+            Mein Konto
+          </a>
         </nav>
 
         {/* Zone 3: Primary Action - Calm and distinguished */}
@@ -164,6 +167,9 @@ export const Header: React.FC<HeaderProps> = ({
             </a>
             <a href="#/status" onClick={() => setMobileMenuOpen(false)} className="hover:text-blue-400 py-1">
               Anfragestatus
+            </a>
+            <a href="#/konto" onClick={() => setMobileMenuOpen(false)} className="hover:text-blue-400 py-1">
+              Mein Konto
             </a>
             <a
               href="#services"

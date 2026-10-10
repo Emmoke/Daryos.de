@@ -1,6 +1,6 @@
 // HTTP-API der Daryos-Plattform. createApp() erhält alle Abhängigkeiten, damit Tests sie austauschen können.
 import express, { type Request, type Response, type NextFunction } from 'express';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { STATUS_LABELS, type ComparisonResult, type IntegrationStatus, type PublicRequestStatus } from '../shared/platform';
 import { rankOffers } from './comparison';
 import { fetchWithTimeout, OfferProviderError, type OfferProvider } from './offers';
@@ -11,6 +11,8 @@ import { RateLimiter, rateLimit, readCookie, sameOriginOnly, SESSION_COOKIE, Ses
 import { notifierFromEnv, type Notifier } from './notifier';
 import { AssistantNotConfiguredError, assistantFromEnv, buildSystemSummary, type Assistant, type ChatTurn } from './assistant';
 import { generateTotpSecret, verifyTotp } from './totp';
+import { CustomerAuth, normalizeEmail } from './customers';
+import { detectUploadType, MAX_DOCUMENTS_PER_REQUEST, MAX_UPLOAD_BYTES, safeFileName, UPLOAD_TYPES, type FileStorage } from './files';
 import { INTEGRATION_FIELDS, IntegrationError, type IntegrationGroup, type IntegrationStore } from './integrations';
 import { TariffError, type TariffCatalog } from './tariffs';
 import { AssistantConfigError, SESSION_ID_PATTERN, toolInstructions, type AssistantConfigStore } from './assistantConfig';
@@ -33,6 +35,9 @@ export interface AppDeps {
   /** Automatisierte WhatsApp-Anbindung über die Business Platform (optional) */
   whatsapp?: { config: WhatsAppConfig; store: ConversationStore; sender: WhatsAppSender };
   /** Zugangsdaten aus der Verwaltung (verschlüsselt gespeichert); ohne diese Angabe nur Server-Variablen */
+  /** Dateispeicher für Kundenunterlagen; ohne Angabe ist das Hochladen ausgeschaltet */
+  files?: FileStorage;
+  customers?: CustomerAuth;
   integrations?: { store: IntegrationStore; baseEnv: NodeJS.ProcessEnv; conversations?: ConversationStore };
   appUrl?: string;
   secureCookies: boolean;
@@ -664,6 +669,159 @@ export function createApp(deps: AppDeps) {
       res.status(502).json({ error: 'Der KI-Assistent ist gerade nicht erreichbar.' });
     }
   }));
+
+  // ---------- Kundenkonto (Anmeldung per E-Mail-Link) und Unterlagen ----------
+  const customers = deps.customers ?? new CustomerAuth(() => now().getTime());
+  const ownRequests = async (email: string) => (await deps.store.list()).filter((r) => r.contact?.email && normalizeEmail(r.contact.email) === email);
+  const requireCustomer = (req: Request & { customerEmail?: string }, res: Response, next: NextFunction) => {
+    const email = customers.get(readCookie(req, SESSION_COOKIE));
+    if (!email) return res.status(401).json({ error: 'Bitte melden Sie sich an.' });
+    req.customerEmail = email;
+    next();
+  };
+  type CustomerRequest = Request & { customerEmail?: string };
+  const publicDocument = (d: NonNullable<RequestRecord['documents']>[number]) => ({ id: d.id, name: d.name, size: d.size, contentType: d.contentType, uploadedAt: d.uploadedAt, byCustomer: d.uploadedBy === 'kunde' });
+
+  app.post(
+    '/customer/login',
+    rateLimit(limits.contact, 'customer-login'),
+    asyncHandler(async (req, res) => {
+      const email = typeof req.body?.email === 'string' ? normalizeEmail(req.body.email) : '';
+      if (!/^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Bitte eine gültige E-Mail-Adresse eingeben.', fields: { email: 'Ungültige E-Mail-Adresse.' } });
+      if (!deps.notifier.configured) return res.status(503).json({ error: 'Das Kundenkonto ist in Kürze verfügbar. Bis dahin finden Sie den Stand Ihrer Anfrage unter „Status“ mit Ihrer Anfrage-ID.' });
+      // Gleiche Antwort, ob ein Konto existiert oder nicht (keine Rückschlüsse auf Kunden möglich)
+      const generic = { ok: true, message: 'Falls zu dieser Adresse eine Anfrage vorliegt, haben wir Ihnen einen Anmeldelink geschickt. Er gilt 15 Minuten.' };
+      if (!(await ownRequests(email)).length) return res.json(generic);
+      const link = `${deps.appUrl ?? ''}/#/konto/anmelden/${customers.createLink(email)}`;
+      const log = await deps.notifier.sendCustomerEmail(email, 'Ihr Anmeldelink für Daryos', `Guten Tag,\n\nmit diesem Link melden Sie sich in Ihrem Daryos-Kundenkonto an (gültig 15 Minuten, nur einmal verwendbar):\n\n${link}\n\nFalls Sie keinen Link angefordert haben, können Sie diese E-Mail ignorieren.\n\nIhr Daryos-Team`);
+      if (log.status !== 'sent') console.error('[daryos] Anmeldelink konnte nicht gesendet werden:', log.detail);
+      res.json(generic);
+    }),
+  );
+  app.post('/customer/verify', rateLimit(limits.login, 'customer-verify'), (req, res) => {
+    const r = customers.redeem(typeof req.body?.token === 'string' ? req.body.token : '');
+    if (!r) return res.status(401).json({ error: 'Der Anmeldelink ist abgelaufen oder wurde schon verwendet. Bitte fordern Sie einen neuen an.' });
+    setSessionCookie(res, r.session, 2 * 60 * 60);
+    res.json({ email: r.email });
+  });
+  app.post('/customer/logout', (req, res) => {
+    customers.destroy(readCookie(req, SESSION_COOKIE));
+    setSessionCookie(res, '', 0);
+    res.json({ ok: true });
+  });
+  app.get(
+    '/customer/me',
+    requireCustomer,
+    asyncHandler(async (req: CustomerRequest, res) => {
+      const list = await ownRequests(req.customerEmail!);
+      res.json({
+        email: req.customerEmail,
+        uploadsEnabled: !!deps.files,
+        requests: list.map((r) => ({
+          ...toPublicStatus(r),
+          documents: (r.documents ?? []).map(publicDocument),
+          // Nur E-Mails, die Daryos nach Prüfung tatsächlich gesendet hat
+          messages: r.drafts.filter((d) => d.sentAt).map((d) => ({ subject: d.subject, body: d.body, sentAt: d.sentAt })),
+        })),
+      });
+    }),
+  );
+  const loadOwn = async (req: CustomerRequest, res: Response) => {
+    const r = await deps.store.get(String(req.params.id));
+    if (!r || !r.contact?.email || normalizeEmail(r.contact.email) !== req.customerEmail) {
+      res.status(404).json({ error: 'Anfrage nicht gefunden.' });
+      return undefined;
+    }
+    return r;
+  };
+  app.post(
+    '/customer/requests/:id/documents',
+    requireCustomer,
+    rateLimit(limits.contact, 'upload'),
+    express.raw({ type: Object.keys(UPLOAD_TYPES), limit: MAX_UPLOAD_BYTES }),
+    asyncHandler(async (req: CustomerRequest, res) => {
+      if (!deps.files) return res.status(503).json({ error: 'Das Hochladen ist noch nicht eingerichtet.' });
+      const r = await loadOwn(req, res);
+      if (!r) return;
+      const data = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+      const type = detectUploadType(data);
+      if (!data.length || !type || type !== req.get('content-type')) return res.status(415).json({ error: 'Bitte nur PDF-, JPG- oder PNG-Dateien hochladen.' });
+      if ((r.documents ?? []).length >= MAX_DOCUMENTS_PER_REQUEST) return res.status(409).json({ error: `Höchstens ${MAX_DOCUMENTS_PER_REQUEST} Dateien pro Anfrage.` });
+      const id = randomUUID();
+      const storageKey = `requests/${r.id}/${id}`;
+      await deps.files.put(storageKey, data, type);
+      const doc = { id, name: safeFileName(req.get('x-file-name'), type), contentType: type, size: data.length, uploadedAt: now().toISOString(), uploadedBy: 'kunde', storageKey };
+      try {
+        await deps.store.update(r.id, (rec) => {
+          rec.documents = [...(rec.documents ?? []), doc];
+          logNote(rec, 'kunde', `Unterlage hochgeladen: ${doc.name}`, now());
+        });
+      } catch (err) {
+        await deps.files.remove(storageKey).catch(() => {});
+        throw err;
+      }
+      res.status(201).json({ document: publicDocument(doc) });
+    }),
+  );
+  const sendDocument = async (res: Response, d: NonNullable<RequestRecord['documents']>[number]) => {
+    const data = await deps.files?.get(d.storageKey);
+    if (!data) return res.status(404).json({ error: 'Datei nicht gefunden.' });
+    res.setHeader('Content-Type', d.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${d.name.replace(/[^\x20-\x7e]/g, '_').replace(/"/g, '')}"; filename*=UTF-8''${encodeURIComponent(d.name)}`);
+    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+    res.end(data);
+  };
+  app.get(
+    '/customer/requests/:id/documents/:docId',
+    requireCustomer,
+    asyncHandler(async (req: CustomerRequest, res) => {
+      const r = await loadOwn(req, res);
+      const d = r?.documents?.find((x) => x.id === req.params.docId);
+      if (!r) return;
+      if (!d) return res.status(404).json({ error: 'Datei nicht gefunden.' });
+      await sendDocument(res, d);
+    }),
+  );
+  app.delete(
+    '/customer/requests/:id/documents/:docId',
+    requireCustomer,
+    asyncHandler(async (req: CustomerRequest, res) => {
+      const r = await loadOwn(req, res);
+      if (!r) return;
+      const d = r.documents?.find((x) => x.id === req.params.docId && x.uploadedBy === 'kunde');
+      if (!d) return res.status(404).json({ error: 'Datei nicht gefunden.' });
+      await deps.store.update(r.id, (rec) => {
+        rec.documents = (rec.documents ?? []).filter((x) => x.id !== d.id);
+        logNote(rec, 'kunde', `Unterlage gelöscht: ${d.name}`, now());
+      });
+      await deps.files?.remove(d.storageKey).catch(() => {});
+      res.json({ ok: true });
+    }),
+  );
+  app.get(
+    '/admin/requests/:id/documents/:docId',
+    requireAdmin,
+    asyncHandler(async (req, res) => {
+      const d = (await deps.store.get(String(req.params.id)))?.documents?.find((x) => x.id === req.params.docId);
+      if (!d) return res.status(404).json({ error: 'Datei nicht gefunden.' });
+      await sendDocument(res, d);
+    }),
+  );
+  app.delete(
+    '/admin/requests/:id/documents/:docId',
+    requireAdmin,
+    asyncHandler(async (req: AdminRequest, res) => {
+      const r = await deps.store.get(String(req.params.id));
+      const d = r?.documents?.find((x) => x.id === req.params.docId);
+      if (!r || !d) return res.status(404).json({ error: 'Datei nicht gefunden.' });
+      const updated = await deps.store.update(r.id, (rec) => {
+        rec.documents = (rec.documents ?? []).filter((x) => x.id !== d.id);
+        logNote(rec, `admin:${req.admin!.email}`, `Unterlage gelöscht: ${d.name}`, now());
+      });
+      await deps.files?.remove(d.storageKey).catch(() => {});
+      res.json({ request: updated });
+    }),
+  );
 
   // ---------- Verbindungen: Zugangsdaten in der Verwaltung eintragen ----------
   const GROUPS = Object.keys(INTEGRATION_FIELDS) as IntegrationGroup[];
