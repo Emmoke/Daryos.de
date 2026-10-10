@@ -120,6 +120,17 @@ function Connections() {
         Danach den Server neu starten bzw. neu bereitstellen.
       </Notice>
 
+      <Card title="Datenbank (Cloud Firestore)" actions={status(i.storage?.configured)}>
+        <p className="mb-3 text-sm text-slate-700">Aktuell: <strong>{i.storage?.detail ?? 'unbekannt'}</strong>. Ohne Firestore gehen Daten auf Cloud Run bei jedem Neustart verloren.</p>
+        <ol className="space-y-2">
+          <Step done={i.storage?.configured}>Unter <a className="text-indigo-600 hover:underline" href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer">console.firebase.google.com</a> ein Projekt anlegen (oder das Google-Cloud-Projekt von Cloud Run auswählen).</Step>
+          <Step done={i.storage?.configured}>„Firestore Database“ → „Datenbank erstellen“ → Standort <Code>europe-west3 (Frankfurt)</Code> → Produktionsmodus.</Step>
+          <Step done={i.storage?.configured}>Dem Cloud-Run-Dienstkonto die Rolle <Code>Cloud Datastore User</Code> geben (bei Cloud Run im selben Projekt meist schon vorhanden).</Step>
+          <Step done={i.storage?.configured}>Secrets/Variablen setzen: <Code>STORAGE=firestore</Code> und <Code>FIREBASE_PROJECT_ID</Code> (Projekt-ID). Dienst mit <Code>--max-instances=1</Code> betreiben.</Step>
+        </ol>
+        <p className="mt-3 text-xs text-slate-500">Der Browser greift nie direkt auf die Datenbank zu – nur der Server. Die Firestore-Sicherheitsregeln können daher alles für Browser sperren.</p>
+      </Card>
+
       <Card title="Chat-Assistent auf der Webseite (Gemini)" actions={status(chatOn)}>
         <ol className="space-y-2">
           <Step done={chatOn}>API-Schlüssel erstellen: <a className="text-indigo-600 hover:underline inline-flex items-center gap-0.5" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com/apikey <ExternalLink className="w-3 h-3" aria-hidden /></a></Step>

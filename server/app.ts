@@ -22,6 +22,8 @@ export interface AppDeps {
   sessions: SessionManager;
   admin: { email: string; name: string; passwordHash?: string; totpSecret?: string };
   accounting?: AccountingStore;
+  /** Anzeigename des Datenspeichers (z. B. Cloud Firestore) */
+  storageName?: string;
   whatsappNumber?: string;
   /** Automatisierte WhatsApp-Anbindung über die Business Platform (optional) */
   whatsapp?: { config: WhatsAppConfig; store: ConversationStore; sender: WhatsAppSender };
@@ -420,6 +422,7 @@ export function createApp(deps: AppDeps) {
             ? { configured: true, mode: 'click_to_chat', detail: `Nur Chat-Link auf ${deps.whatsappNumber}. Für den Bot WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_APP_SECRET und WHATSAPP_VERIFY_TOKEN setzen.` }
             : { configured: false, mode: 'none', detail: 'WhatsApp nicht eingerichtet.' },
         assistant: { configured: deps.assistant.configured, detail: deps.assistant.detail },
+        storage: { configured: /firestore/i.test(deps.storageName ?? ''), detail: deps.storageName ?? 'Arbeitsspeicher' },
       });
     },
   );

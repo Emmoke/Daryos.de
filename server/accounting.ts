@@ -6,8 +6,7 @@
 // - Ausgestellte Rechnungen und Buchungen werden nie gelöscht oder verändert:
 //   Korrektur nur über Stornorechnung bzw. Gegenbuchung
 // - Kleinunternehmerregelung (§ 19 UStG) als Einstellung: dann ohne Umsatzsteuer mit Pflichthinweis
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
+import type { Backend } from './persistence';
 import { randomUUID } from 'node:crypto';
 
 export interface BusinessSettings {
@@ -140,23 +139,52 @@ export function settingsComplete(s: BusinessSettings): string[] {
   return missing;
 }
 
+const COL = { meta: 'accounting_meta', invoices: 'accounting_invoices', bookings: 'accounting_bookings' } as const;
+
 export class AccountingStore {
   private data: AccountingData = { settings: { ...DEFAULT_SETTINGS }, invoices: [], bookings: [], counters: {} };
-  private writing: Promise<void> = Promise.resolve();
 
-  private constructor(private readonly file?: string, private readonly now: () => Date = () => new Date()) {}
+  private constructor(private readonly backend?: Backend, private readonly now: () => Date = () => new Date()) {}
 
-  static async open(file?: string, now?: () => Date) {
-    const store = new AccountingStore(file, now);
-    if (file) {
-      try {
-        const loaded = JSON.parse(await fs.readFile(file, 'utf8')) as AccountingData;
-        store.data = { ...store.data, ...loaded, settings: { ...DEFAULT_SETTINGS, ...loaded.settings } };
-      } catch (err) {
-        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-      }
+  static async open(backend?: Backend, now?: () => Date) {
+    const store = new AccountingStore(backend, now);
+    if (backend) {
+      const meta = await backend.loadAll<{ key: string; value: unknown }>(COL.meta);
+      const settings = meta.find((m) => m.key === 'settings')?.value as Partial<BusinessSettings> | undefined;
+      const counters = meta.find((m) => m.key === 'counters')?.value as Record<string, number> | undefined;
+      store.data = {
+        settings: { ...DEFAULT_SETTINGS, ...settings },
+        counters: counters ?? {},
+        invoices: await backend.loadAll<Invoice>(COL.invoices),
+        bookings: await backend.loadAll<Booking>(COL.bookings),
+      };
     }
     return store;
+  }
+
+  /**
+   * Schreibt alle seit `before` geänderten Datensätze ins Backend (Zähler zuerst, dann Rechnungen, dann Buchungen).
+   * Schlägt das fehl, wird der Arbeitsspeicher auf `before` zurückgesetzt, damit nichts Ungespeichertes angezeigt wird.
+   */
+  private async commit(before: AccountingData) {
+    if (!this.backend) return;
+    const changed = <T extends { id: string }>(now: T[], prev: T[]) => {
+      const old = new Map(prev.map((x) => [x.id, JSON.stringify(x)]));
+      return now.filter((x) => old.get(x.id) !== JSON.stringify(x));
+    };
+    try {
+      if (JSON.stringify(this.data.counters) !== JSON.stringify(before.counters)) {
+        await this.backend.put(COL.meta, 'counters', { key: 'counters', value: this.data.counters });
+      }
+      if (JSON.stringify(this.data.settings) !== JSON.stringify(before.settings)) {
+        await this.backend.put(COL.meta, 'settings', { key: 'settings', value: this.data.settings });
+      }
+      for (const inv of changed(this.data.invoices, before.invoices)) await this.backend.put(COL.invoices, inv.id, inv);
+      for (const b of changed(this.data.bookings, before.bookings)) await this.backend.put(COL.bookings, b.id, b);
+    } catch (err) {
+      this.data = before;
+      throw err;
+    }
   }
 
   getSettings() {
@@ -164,6 +192,7 @@ export class AccountingStore {
   }
 
   async updateSettings(body: unknown) {
+    const before = structuredClone(this.data);
     const b = (body ?? {}) as Record<string, unknown>;
     const s = this.data.settings;
     const next: BusinessSettings = {
@@ -189,7 +218,7 @@ export class AccountingStore {
     if (!/^[A-Z]{1,6}$/.test(next.invoicePrefix)) errors.invoicePrefix = 'Nur Buchstaben A–Z.';
     if (Object.keys(errors).length) throw new AccountingError('Bitte prüfen Sie die Angaben.', errors);
     this.data.settings = next;
-    await this.persist();
+    await this.commit(before);
     return this.getSettings();
   }
 
@@ -216,6 +245,7 @@ export class AccountingStore {
   }
 
   async createInvoice(body: unknown, actor: string) {
+    const before = structuredClone(this.data);
     const missingSettings = settingsComplete(this.data.settings);
     if (missingSettings.length) {
       throw new AccountingError(`Bitte zuerst die Firmendaten vervollständigen: ${missingSettings.join(', ')}.`, {}, 409);
@@ -271,11 +301,12 @@ export class AccountingStore {
       createdBy: actor,
     };
     this.data.invoices.push(invoice);
-    await this.persist();
+    await this.commit(before);
     return structuredClone(invoice);
   }
 
   async markPaid(id: string, paidAt: unknown, actor: string) {
+    const before = structuredClone(this.data);
     const inv = this.data.invoices.find((x) => x.id === id);
     if (!inv) throw new AccountingError('Rechnung nicht gefunden.', {}, 404);
     if (inv.kind !== 'rechnung' || inv.status !== 'offen') throw new AccountingError('Nur offene Rechnungen können als bezahlt markiert werden.', {}, 409);
@@ -294,12 +325,13 @@ export class AccountingStore {
       createdAt: this.now().toISOString(),
       createdBy: actor,
     });
-    await this.persist();
+    await this.commit(before);
     return structuredClone(inv);
   }
 
   /** Storniert eine Rechnung über eine Stornorechnung mit negativen Beträgen (die Originalrechnung bleibt erhalten). */
   async cancelInvoice(id: string, reason: unknown, actor: string) {
+    const before = structuredClone(this.data);
     const inv = this.data.invoices.find((x) => x.id === id);
     if (!inv) throw new AccountingError('Rechnung nicht gefunden.', {}, 404);
     if (inv.kind !== 'rechnung' || inv.status === 'storniert') throw new AccountingError('Diese Rechnung kann nicht storniert werden.', {}, 409);
@@ -341,11 +373,12 @@ export class AccountingStore {
     inv.status = 'storniert';
     inv.cancelledByInvoiceId = storno.id;
     this.data.invoices.push(storno);
-    await this.persist();
+    await this.commit(before);
     return { invoice: structuredClone(inv), storno: structuredClone(storno) };
   }
 
   async addBooking(body: unknown, actor: string) {
+    const before = structuredClone(this.data);
     const b = (body ?? {}) as Record<string, unknown>;
     const errors: Record<string, string> = {};
     const type = b.type === 'einnahme' || b.type === 'ausgabe' ? b.type : null;
@@ -376,12 +409,13 @@ export class AccountingStore {
       createdBy: actor,
     };
     this.data.bookings.push(booking);
-    await this.persist();
+    await this.commit(before);
     return structuredClone(booking);
   }
 
   /** Gegenbuchung statt Löschen (nachvollziehbar). */
   async reverseBooking(id: string, actor: string) {
+    const before = structuredClone(this.data);
     const orig = this.data.bookings.find((x) => x.id === id);
     if (!orig) throw new AccountingError('Buchung nicht gefunden.', {}, 404);
     if (orig.reversedByBookingId || orig.reversesBookingId) throw new AccountingError('Diese Buchung wurde bereits storniert bzw. ist selbst eine Gegenbuchung.', {}, 409);
@@ -398,7 +432,7 @@ export class AccountingStore {
     };
     orig.reversedByBookingId = rev.id;
     this.data.bookings.push(rev);
-    await this.persist();
+    await this.commit(before);
     return structuredClone(rev);
   }
 
@@ -447,18 +481,5 @@ export class AccountingStore {
       .reverse()
       .map((b) => [b.date, b.type === 'einnahme' ? 'Einnahme' : 'Ausgabe', esc(b.category), esc(b.description), fmt(b.grossCents), `${b.vatRate}`, fmt(b.grossCents - Math.round((b.grossCents * 100) / (100 + b.vatRate))), esc(b.receiptNo ?? ''), esc(b.invoiceId ? (this.data.invoices.find((i) => i.id === b.invoiceId)?.number ?? '') : '')].join(';'));
     return '﻿' + ['Datum;Art;Kategorie;Beschreibung;Brutto EUR;USt %;USt EUR;Beleg-Nr.;Rechnung', ...rows].join('\r\n') + '\r\n';
-  }
-
-  private persist() {
-    if (!this.file) return Promise.resolve();
-    const file = this.file;
-    const snapshot = JSON.stringify(this.data, null, 2);
-    this.writing = this.writing.catch(() => {}).then(async () => {
-      await fs.mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
-      const tmp = `${file}.${process.pid}.tmp`;
-      await fs.writeFile(tmp, snapshot, { mode: 0o600 });
-      await fs.rename(tmp, file);
-    });
-    return this.writing;
   }
 }

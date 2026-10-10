@@ -81,8 +81,34 @@ Einrichtung: Meta-Business-Konto → Meta-App mit Produkt „WhatsApp“ → Tel
 Werte in `.env` bzw. Secrets eintragen → in Meta die Webhook-URL `https://IHRE-DOMAIN/api/whatsapp/webhook` und das Verify-Token eintragen und das Feld `messages` abonnieren.
 Der Webhook braucht eine öffentlich erreichbare HTTPS-Adresse (Cloud Run / AI-Studio-Deployment), GitHub Pages reicht nicht.
 
+## Dauerhafte Datenbank (Cloud Firestore)
+
+`server/persistence.ts`: Alle Daten (Anfragen, WhatsApp, Buchhaltung) werden bei jeder Änderung sofort einzeln gespeichert –
+lokal als JSON-Dateien in `data/`, im Betrieb mit `STORAGE=firestore` in Cloud Firestore (ein Dokument je Datensatz,
+Sammlungen `daryos_requests`, `daryos_whatsapp_conversations`, `daryos_accounting_invoices`, `daryos_accounting_bookings`,
+`daryos_accounting_meta`). Schlägt das Speichern fehl, wird nichts Ungespeichertes angezeigt; Rechnungsnummern bleiben lückenlos.
+
+Einrichtung:
+1. https://console.firebase.google.com → Projekt anlegen (oder das Google-Cloud-Projekt wählen, in dem Cloud Run läuft).
+2. Firestore Database → Datenbank erstellen → Standort `europe-west3` (Frankfurt) → Produktionsmodus.
+3. Regeln aus `firestore.rules` übernehmen (sperrt jeden Browser-Zugriff; nur der Server greift zu).
+4. Auf Cloud Run hat das Dienstkonto im selben Projekt in der Regel Zugriff (sonst Rolle „Cloud Datastore User“ vergeben).
+5. Variablen: `STORAGE=firestore`, `FIREBASE_PROJECT_ID=<projekt-id>`.
+
+Lokal gegen Firestore testen: `GOOGLE_APPLICATION_CREDENTIALS` auf eine Dienstkonto-JSON setzen oder den Firestore-Emulator nutzen
+(`FIRESTORE_EMULATOR_HOST=127.0.0.1:8085`).
+
+## Veröffentlichen auf Cloud Run (Beispiel)
+
+```bash
+gcloud run deploy daryos --source . --region europe-west3 --max-instances 1 --allow-unauthenticated \
+  --set-env-vars STORAGE=firestore,FIREBASE_PROJECT_ID=<projekt-id>,ADMIN_EMAIL=<mail>,APP_URL=https://<adresse> \
+  --set-secrets ADMIN_PASSWORD_HASH=admin-password-hash:latest,ADMIN_TOTP_SECRET=admin-totp:latest,GEMINI_API_KEY=gemini-key:latest
+```
+Secrets vorher im Secret Manager anlegen. Danach: `https://<adresse>/` (Webseite) und `https://<adresse>/verwaltung/` (Verwaltung).
+
 ## Testergebnisse
-`npm test`: 35/35 bestanden (inkl. WhatsApp: Signatur, Verifizierung, Duplikate, Opt-out, Übergabe, 24-h-Fenster, Chat-Validierung), unter anderem für Erfolgsfall, ungültige Eingaben, fehlende Einwilligung, Honeypot, fremdes Angebot,
+`npm test`: 38/38 bestanden (inkl. Neustart-/Firestore-/Rollback-Tests; zusätzlich manuell gegen den offiziellen Firestore-Emulator geprüft) (inkl. WhatsApp: Signatur, Verifizierung, Duplikate, Opt-out, Übergabe, 24-h-Fenster, Chat-Validierung), unter anderem für Erfolgsfall, ungültige Eingaben, fehlende Einwilligung, Honeypot, fremdes Angebot,
 Doppelanfragen (gleiche Anfrage und anfrageübergreifend innerhalb von 30 Min.), API-Ausfall, Zeitüberschreitung, leeres Ergebnis,
 nicht eingerichtete Quelle, nicht autorisierte Admin-Zugriffe, alte Standard-PINs, Abmeldung, CSRF, Rate-Limits und Statusübergänge.
 Zusätzlich wurde der gesamte Ablauf im Browser durchgeklickt (Desktop 1280/1440 px und Mobil 390 px, ohne horizontales Scrollen).
@@ -105,7 +131,7 @@ Zusätzlich wurde der gesamte Ablauf im Browser durchgeklickt (Desktop 1280/1440
 Aktuelle Preise vor dem Start in den Google- und Meta-Preisrechnern prüfen.
 
 ## Offene Sicherheits- und Rechtsfragen
-- **Datenspeicherung**: `FileRequestStore` ist nur für einen einzelnen Server geeignet. Auf Cloud Run ist das Dateisystem flüchtig → vor dem Echtbetrieb auf Firestore umstellen.
+- **Datenspeicherung**: erledigt – mit `STORAGE=firestore` liegen alle Daten in Cloud Firestore (siehe unten). Der Server lädt beim Start alles in den Speicher, deshalb genau eine Instanz betreiben (`--max-instances=1`).
 - Sitzungen und Rate-Limits liegen im Speicher (pro Instanz) → für mehrere Instanzen Firestore/Redis bzw. Firebase Auth.
 - Das frühere Browser-Cockpit (CRM/Rechnungen im `localStorage`, Beispieldaten) wurde entfernt und durch die Verwaltungs-App mit Serverdaten ersetzt.
 - Der alte **Schnell-Rechner** auf der Startseite nutzt hinterlegte Richtwerte mit echten Anbieternamen. Der Hinweis „reale Anbieterdaten“ wurde in „Richtwerte“ geändert. Prüfen, ob die Werte belegt sind, sonst ersetzen oder entfernen.

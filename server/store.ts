@@ -1,9 +1,6 @@
-// Datenhaltung für Kundenanfragen.
-// RequestStore ist bewusst als Interface definiert: Für den Produktivbetrieb wird eine Firestore-Implementierung
-// ergänzt; für Entwicklung und Tests genügen Datei- bzw. Speicherablage.
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
+// Datenhaltung für Kundenanfragen. Gespeichert wird über ein Backend (Dateien oder Cloud Firestore, siehe persistence.ts).
 import { randomBytes } from 'node:crypto';
+import type { Backend } from './persistence';
 import type { ComparisonInput, ComparisonResult, RequestStatus, StatusHistoryEntry } from '../shared/platform';
 import type { ContactInput } from './validation';
 
@@ -74,13 +71,28 @@ export function newRequestId(): string {
 
 export const REQUEST_ID_PATTERN = /^DY-[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/;
 
+const COLLECTION = 'requests';
+
+/**
+ * Hält Anfragen im Arbeitsspeicher und schreibt jede Änderung zuerst ins Backend.
+ * Erst wenn das Speichern geklappt hat, wird der Arbeitsspeicher aktualisiert – so weichen beide nie voneinander ab.
+ * Ohne Backend (Tests) wird nichts dauerhaft gespeichert.
+ */
 export class MemoryRequestStore implements RequestStore {
   protected records = new Map<string, RequestRecord>();
 
+  constructor(private readonly backend?: Backend) {}
+
+  static async open(backend: Backend): Promise<MemoryRequestStore> {
+    const store = new MemoryRequestStore(backend);
+    for (const r of await backend.loadAll<RequestRecord>(COLLECTION)) store.records.set(r.id, r);
+    return store;
+  }
+
   async create(record: RequestRecord) {
     if (this.records.has(record.id)) throw new Error('Doppelte Anfrage-ID');
+    await this.backend?.put(COLLECTION, record.id, record);
     this.records.set(record.id, structuredClone(record));
-    await this.persist();
   }
 
   async get(id: string) {
@@ -93,8 +105,8 @@ export class MemoryRequestStore implements RequestStore {
     if (!current) return undefined;
     const draft = structuredClone(current);
     mutate(draft); // wirft bei ungültigem Statuswechsel – dann bleibt der alte Stand erhalten
+    await this.backend?.put(COLLECTION, id, draft);
     this.records.set(id, draft);
-    await this.persist();
     return structuredClone(draft);
   }
 
@@ -115,47 +127,13 @@ export class MemoryRequestStore implements RequestStore {
   async purgeExpired(now: Date) {
     const iso = now.toISOString();
     let removed = 0;
-    for (const [id, r] of this.records) {
+    for (const [id, r] of [...this.records]) {
       if (r.deleteAfter < iso) {
+        await this.backend?.remove(COLLECTION, id);
         this.records.delete(id);
         removed++;
       }
     }
-    if (removed) await this.persist();
     return removed;
-  }
-
-  protected async persist(): Promise<void> {}
-}
-
-/** Speichert alle Anfragen als JSON-Datei (atomar über temporäre Datei). Nur für Prototyp/Einzelserver geeignet. */
-export class FileRequestStore extends MemoryRequestStore {
-  private writing: Promise<void> = Promise.resolve();
-
-  private constructor(private readonly file: string) {
-    super();
-  }
-
-  static async open(file: string): Promise<FileRequestStore> {
-    const store = new FileRequestStore(file);
-    try {
-      const data = JSON.parse(await fs.readFile(file, 'utf8')) as RequestRecord[];
-      for (const r of data) store.records.set(r.id, r);
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-    }
-    return store;
-  }
-
-  protected persist(): Promise<void> {
-    const snapshot = JSON.stringify([...this.records.values()], null, 2);
-    // .catch: ein fehlgeschlagener Schreibvorgang darf nachfolgende nicht dauerhaft blockieren
-    this.writing = this.writing.catch(() => {}).then(async () => {
-      await fs.mkdir(path.dirname(this.file), { recursive: true, mode: 0o700 });
-      const tmp = `${this.file}.${process.pid}.tmp`;
-      await fs.writeFile(tmp, snapshot, { mode: 0o600 });
-      await fs.rename(tmp, this.file);
-    });
-    return this.writing;
   }
 }
