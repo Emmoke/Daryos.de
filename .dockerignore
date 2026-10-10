@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-admin
+data
+.env*
+!.env.example
+.git
+Daryos Chat-Symbol
+Daryos Chat-Symbol.zip
