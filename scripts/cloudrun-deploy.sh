@@ -77,6 +77,17 @@ gcloud secrets add-iam-policy-binding config-key --member="serviceAccount:$SA" -
 gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA" --role=roles/datastore.user --condition=None --quiet >/dev/null || fail "Datenbank-Recht fehlgeschlagen"
 ok "Rechte gesetzt"
 
+# Verweise auf Secrets entfernen, die es nicht (mehr) gibt – sonst schlägt jede Veröffentlichung fehl
+STALE=""
+for ref in $(gcloud run services describe "$SERVICE" --region "$REGION" --format=json 2>/dev/null | node -e '
+  let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{for(const e of JSON.parse(d).spec.template.spec.containers[0].env||[]){const k=e.valueFrom&&e.valueFrom.secretKeyRef;if(k)console.log(e.name+"="+k.name)}}catch{}})'); do
+  if ! gcloud secrets describe "${ref#*=}" >/dev/null 2>&1; then STALE="${STALE:+$STALE,}${ref%%=*}"; fi
+done
+if [ -n "$STALE" ]; then
+  echo "  Entferne Verweise auf fehlende Secrets: $STALE"
+  gcloud run services update "$SERVICE" --region "$REGION" --remove-secrets "$STALE" --quiet >/dev/null 2>&1 || true
+fi
+
 info "5/6 Veröffentlichen (3–6 Minuten) …"
 if gcloud run deploy "$SERVICE" --source . --region "$REGION" --max-instances 1 --allow-unauthenticated --quiet \
     --update-env-vars "STORAGE=firestore,FIREBASE_PROJECT_ID=$PROJECT,ADMIN_EMAIL=$ADMIN_EMAIL,TRUST_PROXY=true,STORAGE_BUCKET=$BUCKET" \

@@ -65,8 +65,8 @@ setup_gemini() {
     return
   fi
   echo "  Empfangen: ${KEY:0:4}… (${#KEY} Zeichen)"
-  if [[ ! "$KEY" =~ ^AIza[0-9A-Za-z_-]{30,}$ ]]; then
-    fail "Das sieht nicht wie ein Gemini-Schlüssel aus (beginnt mit „AIza“). Nichts wurde geändert."
+  if [[ ! "$KEY" =~ ^(AIza[0-9A-Za-z_-]{30,}|AQ\.[0-9A-Za-z_.-]{20,})$ ]]; then
+    fail "Das sieht nicht wie ein Gemini-Schlüssel aus (beginnt mit „AQ.“ oder „AIza“). Nichts wurde geändert."
     return
   fi
   printf '%s' "$KEY" | put_secret gemini-key || { fail "Speichern fehlgeschlagen"; return; }

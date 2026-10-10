@@ -19,7 +19,7 @@ export interface IntegrationField {
 
 export const INTEGRATION_FIELDS: Record<IntegrationGroup, IntegrationField[]> = {
   gemini: [
-    { key: 'GEMINI_API_KEY', label: 'API-Schlüssel', secret: true, required: true, placeholder: 'AIza…', hint: 'aistudio.google.com/apikey → „API-Schlüssel erstellen“', pattern: /^AIza[0-9A-Za-z_-]{30,}$/, patternError: 'Ein Gemini-Schlüssel beginnt mit „AIza“.' },
+    { key: 'GEMINI_API_KEY', label: 'API-Schlüssel', secret: true, required: true, placeholder: 'AQ.… oder AIza…', hint: 'aistudio.google.com/apikey → „API-Schlüssel erstellen“', pattern: /^(AIza[0-9A-Za-z_-]{30,}|AQ\.[0-9A-Za-z_.-]{20,})$/, patternError: 'Ein Gemini-Schlüssel beginnt mit „AQ.“ oder „AIza“ – bitte nur den Schlüssel einfügen, ohne Leerzeichen.' },
     { key: 'GEMINI_MODEL', label: 'Modell (optional)', placeholder: 'gemini-2.5-flash', pattern: /^[a-z0-9.-]{3,60}$/, patternError: 'Ungültiger Modellname.' },
   ],
   email: [

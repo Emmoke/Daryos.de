@@ -28,6 +28,10 @@ test('Zugangsdaten: verschlüsselt gespeichert, mit falschem Schlüssel unlesbar
   const ro = await IntegrationStore.open(backend, undefined);
   await assert.rejects(ro.update('gemini', { GEMINI_API_KEY: GEMINI }, [], 'a', new Date()), (e: any) => e.status === 503);
   await assert.rejects(s.update('gemini', { GEMINI_API_KEY: 'falsch' }, [], 'a', new Date()), (e: any) => !!e.fields.GEMINI_API_KEY);
+  // Neues Google-Format (AQ.…) wird angenommen
+  const fresh = await IntegrationStore.open(new MemoryBackend(), KEY);
+  await fresh.update('gemini', { GEMINI_API_KEY: 'AQ.' + 'Ab9_x-'.repeat(8) }, [], 'a', new Date());
+  assert.ok(fresh.get('GEMINI_API_KEY')?.startsWith('AQ.'));
   // Vorrang vor Server-Variablen; leeres Geheimnis = unverändert
   assert.equal(s.merged({ GEMINI_API_KEY: 'server' }).GEMINI_API_KEY, GEMINI);
   await s.update('gemini', { GEMINI_API_KEY: '' }, [], 'a', new Date());
