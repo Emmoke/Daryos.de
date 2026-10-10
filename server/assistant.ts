@@ -173,6 +173,8 @@ export interface Assistant {
   chat(history: ChatTurn[], opts?: ChatOptions): Promise<string>;
   improveSummary(record: RequestRecord, base: AdminSummary): Promise<AdminSummary>;
   draftEmail(record: RequestRecord, offerId?: string): Promise<DraftDocument>;
+  /** Beratungs-Chat für den Inhaber in der Verwaltung (Kontext ohne personenbezogene Kundendaten) */
+  adminChat(prompt: string, rules: string): Promise<string>;
 }
 
 export class AssistantNotConfiguredError extends Error {}
@@ -187,11 +189,11 @@ export class GeminiAssistant implements Assistant {
     this.detail = `Gemini (${model})`;
   }
 
-  private async generate(prompt: string, systemInstruction = SYSTEM_RULES): Promise<string> {
+  private async generate(prompt: string, systemInstruction = SYSTEM_RULES, maxOutputTokens = 600, temperature = 0.2): Promise<string> {
     const res = await this.ai.models.generateContent({
       model: this.model,
       contents: prompt,
-      config: { systemInstruction, temperature: 0.2, maxOutputTokens: 600 },
+      config: { systemInstruction, temperature, maxOutputTokens },
     });
     const text = res.text?.trim();
     if (!text) throw new Error('Leere Antwort des KI-Modells');
@@ -200,6 +202,10 @@ export class GeminiAssistant implements Assistant {
 
   chat(history: ChatTurn[], opts?: ChatOptions) {
     return this.generate(buildChatPrompt(history, opts), CHAT_RULES);
+  }
+
+  adminChat(prompt: string, rules: string) {
+    return this.generate(prompt, rules, 2048, 0.4);
   }
 
   answerCustomer(record: RequestRecord, question: string) {
@@ -231,6 +237,9 @@ export class DisabledAssistant implements Assistant {
     throw new AssistantNotConfiguredError(this.detail);
   }
   async chat(_history: ChatTurn[], _opts?: ChatOptions): Promise<string> {
+    throw new AssistantNotConfiguredError(this.detail);
+  }
+  async adminChat(_prompt: string, _rules: string): Promise<string> {
     throw new AssistantNotConfiguredError(this.detail);
   }
   async improveSummary(_r: RequestRecord, base: AdminSummary) {

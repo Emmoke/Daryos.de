@@ -8,6 +8,7 @@ import { WhatsAppPage } from './pages/WhatsApp';
 import { TariffsPage } from './pages/Tariffs';
 import { AssistantPage } from './pages/Assistant';
 import { GuidePage } from './pages/Guide';
+import { Copilot } from './Copilot';
 import { AccountingPage } from './pages/Accounting';
 import { SettingsPage } from './pages/Settings';
 
@@ -119,6 +120,7 @@ export function AdminApp() {
         {page === 'einstellungen' && <SettingsPage twoFactor={twoFactor} onTwoFactorChange={setTwoFactor} />}
         {page === 'anleitung' && <GuidePage />}
       </main>
+      <Copilot />
     </div>
   );
 }

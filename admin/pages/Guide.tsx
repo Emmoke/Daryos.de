@@ -75,6 +75,14 @@ export function GuidePage() {
             </ol>
           </Card>
 
+          <Card title="Ihr Assistent (unten rechts)">
+            <ul className="list-disc pl-5 space-y-1.5 text-sm text-slate-700">
+              <li>Begrüßt Sie beim Öffnen mit dem <strong>Lagebild</strong>: Neues seit dem letzten Besuch, Dringendes, Erinnerungen (Nachfassen, ablaufende Tarife, überfällige Rechnungen).</li>
+              <li>Im Chat: Beratung, Tages-/Wochenplan, Textentwürfe für Kunden, Ideen zur Automatisierung. Anfrage-IDs in Antworten sind anklickbar.</li>
+              <li>Er führt selbst nichts aus und sieht keine Kundennamen oder Kontaktdaten – er sagt Ihnen, wo Sie es erledigen.</li>
+            </ul>
+          </Card>
+
           <Card title="Kundenkonto & Unterlagen">
             <ol className="list-decimal pl-5 space-y-1.5 text-sm text-slate-700">
               <li>Kunde öffnet auf der Webseite <strong>„Mein Konto“</strong> und gibt die E-Mail seiner Anfrage ein.</li>

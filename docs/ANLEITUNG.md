@@ -38,6 +38,16 @@ passieren nur durch Sie.**
 **Mein Konto (Kunden):** Webseite → „Mein Konto“ → E-Mail der Anfrage eingeben → Link in der E-Mail anklicken (15 Min. gültig) →
 Anfragen, gesendete Angebote und Unterlagen-Upload (PDF/JPG/PNG bis 8 MB). Funktioniert, sobald E-Mail eingerichtet ist.
 
+## 1b. Ihr Assistent in der Verwaltung
+
+Knopf **„Assistent“** unten rechts (öffnet sich bei Dringendem automatisch):
+- **Lagebild** beim Öffnen: neue Anfragen und Unterlagen seit dem letzten Besuch, wartende Prüfungen (über 24 h = dringend),
+  Nachfassen (Angebot > 3 Tage ohne Zusage), eingereicht > 7 Tage ohne Bestätigung, WhatsApp, ablaufende Tarife,
+  überfällige Rechnungen, fehlende Verbindungen. Funktioniert auch ohne KI.
+- **Chat** (mit Gemini): „Was zuerst?“, „Plan für diese Woche“, „Schreibe eine Nachfass-E-Mail“, „Was kann ich automatisieren?“.
+- Datenschutz: An die KI gehen nur Anfrage-ID, Status, Sparte, PLZ-Bereich, Verbrauch und fehlende Angaben – keine Namen,
+  E-Mail-Adressen oder Telefonnummern. Der Assistent kann nichts senden, freigeben oder ändern.
+
 ## 2. Tagesablauf (ca. 10 Minuten)
 
 1. **Übersicht** → „Zu erledigen“.
