@@ -8,13 +8,14 @@ import { newRequestId, REQUEST_ID_PATTERN, type RequestRecord, type RequestStore
 import { validateComparisonInput, validateContactInput } from './validation';
 import { logNote, transition, TransitionError } from './workflow';
 import { RateLimiter, rateLimit, readCookie, sameOriginOnly, SESSION_COOKIE, SessionManager, verifyPassword, type AdminUser } from './security';
-import type { Notifier } from './notifier';
-import { AssistantNotConfiguredError, buildSystemSummary, type Assistant, type ChatTurn } from './assistant';
-import { verifyTotp } from './totp';
+import { notifierFromEnv, type Notifier } from './notifier';
+import { AssistantNotConfiguredError, assistantFromEnv, buildSystemSummary, type Assistant, type ChatTurn } from './assistant';
+import { generateTotpSecret, verifyTotp } from './totp';
+import { INTEGRATION_FIELDS, IntegrationError, type IntegrationGroup, type IntegrationStore } from './integrations';
 import { TariffError, type TariffCatalog } from './tariffs';
 import { AssistantConfigError, SESSION_ID_PATTERN, toolInstructions, type AssistantConfigStore } from './assistantConfig';
 import { AccountingError, EXPENSE_CATEGORIES, INCOME_CATEGORIES, settingsComplete, type AccountingStore } from './accounting';
-import { ConversationStore, handleWebhook, sendAndLog, verifyChallenge, verifySignature, withinServiceWindow, type WhatsAppConfig, type WhatsAppSender } from './whatsapp';
+import { CloudApiSender, ConversationStore, handleWebhook, whatsappConfigFromEnv, sendAndLog, verifyChallenge, verifySignature, withinServiceWindow, type WhatsAppConfig, type WhatsAppSender } from './whatsapp';
 
 export interface AppDeps {
   store: RequestStore;
@@ -31,6 +32,8 @@ export interface AppDeps {
   whatsappNumber?: string;
   /** Automatisierte WhatsApp-Anbindung über die Business Platform (optional) */
   whatsapp?: { config: WhatsAppConfig; store: ConversationStore; sender: WhatsAppSender };
+  /** Zugangsdaten aus der Verwaltung (verschlüsselt gespeichert); ohne diese Angabe nur Server-Variablen */
+  integrations?: { store: IntegrationStore; baseEnv: NodeJS.ProcessEnv; conversations?: ConversationStore };
   appUrl?: string;
   secureCookies: boolean;
   offerTimeoutMs?: number;
@@ -60,20 +63,38 @@ export function createApp(deps: AppDeps) {
     status: new RateLimiter(60, 10 * 60_000),
   };
   const chatLimiter = limits.chat ?? new RateLimiter(30, 10 * 60_000);
-  const wa = deps.whatsapp;
+  let wa = deps.whatsapp;
   const chatOptions = () => {
     const c = deps.assistantConfig?.getSettings();
     return c ? { extraInstructions: c.extraInstructions, knowledge: c.knowledge, toolInstructions: toolInstructions(c.tools) } : {};
   };
-  const waDeps = wa && {
-    chatOptions,
-    store: wa.store,
-    sender: wa.sender,
-    assistant: deps.assistant,
-    requests: deps.store,
-    autoReply: wa.config.autoReply,
-    retentionDays: retention.contact,
-    now,
+  const buildWaDeps = () =>
+    wa && {
+      chatOptions,
+      store: wa.store,
+      sender: wa.sender,
+      get assistant() {
+        return deps.assistant;
+      },
+      requests: deps.store,
+      autoReply: wa.config.autoReply,
+      retentionDays: retention.contact,
+      now,
+    };
+  let waDeps = buildWaDeps();
+
+  // Nach dem Speichern von Zugangsdaten in der Verwaltung: Verbindungen ohne Neustart neu aufbauen
+  const applyIntegrations = () => {
+    const i = deps.integrations;
+    if (!i) return;
+    const env = i.store.merged(i.baseEnv);
+    deps.assistant = assistantFromEnv(env);
+    deps.notifier = notifierFromEnv(env);
+    deps.whatsappNumber = env.WHATSAPP_NUMBER?.replace(/\D/g, '') || undefined;
+    deps.admin.totpSecret = env.ADMIN_TOTP_SECRET || undefined;
+    const cfg = whatsappConfigFromEnv(env);
+    wa = cfg && i.conversations ? { config: cfg, store: i.conversations, sender: new CloudApiSender(cfg) } : undefined;
+    waDeps = buildWaDeps();
   };
   const whatsappStatus = () =>
     wa
@@ -643,6 +664,131 @@ export function createApp(deps: AppDeps) {
       res.status(502).json({ error: 'Der KI-Assistent ist gerade nicht erreichbar.' });
     }
   }));
+
+  // ---------- Verbindungen: Zugangsdaten in der Verwaltung eintragen ----------
+  const GROUPS = Object.keys(INTEGRATION_FIELDS) as IntegrationGroup[];
+  const passwordConfirmed = (req: Request) => {
+    const pw = typeof req.body?.password === 'string' ? req.body.password : '';
+    return !!deps.admin.passwordHash && !!pw && pw.length <= 200 && verifyPassword(pw, deps.admin.passwordHash);
+  };
+  const integrationHandler =
+    (fn: (req: AdminRequest, res: Response, store: IntegrationStore) => Promise<unknown> | unknown) =>
+    asyncHandler(async (req: AdminRequest, res) => {
+      if (!deps.integrations) return res.status(404).json({ error: 'Nicht aktiviert.' });
+      try {
+        await fn(req, res, deps.integrations.store);
+      } catch (err) {
+        if (err instanceof IntegrationError) return res.status(err.status).json({ error: err.message, fields: err.fields });
+        throw err;
+      }
+    });
+  const connectionsView = (store: IntegrationStore) => {
+    const env = deps.integrations!.baseEnv;
+    return {
+      writable: store.writable,
+      lastUpdate: store.lastUpdate,
+      groups: Object.fromEntries(GROUPS.map((g) => [g, store.describe(g, env)])),
+      status: {
+        gemini: { configured: deps.assistant.configured, detail: deps.assistant.detail },
+        email: { configured: deps.notifier.configured, detail: deps.notifier.detail },
+        whatsapp: whatsappStatus(),
+      },
+      twoFactor: { active: !!deps.admin.totpSecret, source: store.get('ADMIN_TOTP_SECRET') ? 'verwaltung' : deps.admin.totpSecret ? 'server' : null },
+      webhookUrl: `${deps.appUrl ?? ''}/api/whatsapp/webhook`,
+    };
+  };
+  const isGroup = (g: string): g is IntegrationGroup => (GROUPS as string[]).includes(g);
+
+  app.get('/admin/connections', requireAdmin, integrationHandler((_q, res, store) => res.json(connectionsView(store))));
+  app.put(
+    '/admin/connections/:group',
+    requireAdmin,
+    rateLimit(limits.login, 'confirm'),
+    integrationHandler(async (req, res, store) => {
+      const group = String(req.params.group);
+      if (!isGroup(group)) return res.status(404).json({ error: 'Unbekannte Verbindung.' });
+      if (!passwordConfirmed(req)) return res.status(403).json({ error: 'Bitte bestätigen Sie mit Ihrem Verwaltungs-Passwort.', fields: { password: 'Passwort stimmt nicht.' } });
+      const values = req.body?.values && typeof req.body.values === 'object' ? req.body.values : {};
+      const clear = Array.isArray(req.body?.clear) ? req.body.clear.filter((k: unknown): k is string => typeof k === 'string') : [];
+      await store.update(group, values, clear, `admin:${req.admin!.email}`, now());
+      applyIntegrations();
+      console.log(`[daryos] Verbindung „${group}“ in der Verwaltung geändert von ${req.admin!.email}`);
+      res.json(connectionsView(store));
+    }),
+  );
+  app.post(
+    '/admin/connections/:group/test',
+    requireAdmin,
+    rateLimit(limits.assistant, 'conntest'),
+    integrationHandler(async (req, res) => {
+      const group = String(req.params.group);
+      if (group === 'gemini') {
+        if (!deps.assistant.configured) return res.status(503).json({ error: 'Noch kein Gemini-Schlüssel eingetragen.' });
+        try {
+          const reply = await deps.assistant.chat([{ role: 'user', text: 'Antworte nur mit einem kurzen Gruß.' }]);
+          return res.json({ ok: true, message: `Verbunden – Antwort: „${reply.slice(0, 120)}“` });
+        } catch (err) {
+          const m = String((err as Error)?.message ?? '');
+          const hint = /API key not valid|API_KEY_INVALID|permission|403/i.test(m) ? 'Der Schlüssel wird von Google abgelehnt – bitte neu kopieren.' : /quota|429/i.test(m) ? 'Kontingent erschöpft – später erneut versuchen.' : /not found|404/i.test(m) ? 'Modell nicht gefunden – Feld „Modell“ leer lassen.' : 'Gemini ist nicht erreichbar.';
+          return res.status(502).json({ error: hint });
+        }
+      }
+      if (group === 'email') {
+        const to = deps.integrations!.store.merged(deps.integrations!.baseEnv).ADMIN_NOTIFY_EMAIL;
+        if (!deps.notifier.configured || !to) return res.status(503).json({ error: 'E-Mail ist noch nicht vollständig eingerichtet (Server, Absender, Benachrichtigung an).' });
+        const log = await deps.notifier.sendCustomerEmail(to, 'Daryos – Test-E-Mail', 'Diese Test-E-Mail bestätigt, dass der E-Mail-Versand aus der Daryos-Verwaltung funktioniert.');
+        return log.status === 'sent' ? res.json({ ok: true, message: `Test-E-Mail an ${to} gesendet.` }) : res.status(502).json({ error: `Versand fehlgeschlagen: ${log.detail}` });
+      }
+      if (group === 'whatsapp') {
+        const st = whatsappStatus();
+        return st.mode === 'none' ? res.status(503).json({ error: st.detail }) : res.json({ ok: true, message: st.detail });
+      }
+      res.status(404).json({ error: 'Unbekannte Verbindung.' });
+    }),
+  );
+
+  // Zwei-Faktor-Anmeldung direkt in der Verwaltung einrichten (Schlüssel bleibt bis zur Bestätigung nur im Arbeitsspeicher)
+  let pendingTotp: { secret: string; email: string; expires: number } | null = null;
+  app.post(
+    '/admin/2fa/setup',
+    requireAdmin,
+    rateLimit(limits.login, 'confirm'),
+    integrationHandler(async (req, res, store) => {
+      if (!passwordConfirmed(req)) return res.status(403).json({ error: 'Passwort stimmt nicht.', fields: { password: 'Passwort stimmt nicht.' } });
+      if (!store.writable) throw new IntegrationError('Speichern ist noch nicht möglich: Auf dem Server fehlt CONFIG_ENCRYPTION_KEY. Bitte einmal „bash scripts/cloudrun-deploy.sh“ ausführen.', 503);
+      const secret = generateTotpSecret();
+      pendingTotp = { secret, email: req.admin!.email, expires: now().getTime() + 10 * 60_000 };
+      const label = encodeURIComponent(`Daryos:${req.admin!.email}`);
+      res.json({ secret, otpauth: `otpauth://totp/${label}?secret=${secret}&issuer=Daryos` });
+    }),
+  );
+  app.post(
+    '/admin/2fa/enable',
+    requireAdmin,
+    rateLimit(limits.login, 'confirm'),
+    integrationHandler(async (req, res, store) => {
+      const code = typeof req.body?.code === 'string' ? req.body.code.replace(/\s/g, '') : '';
+      if (!pendingTotp || pendingTotp.email !== req.admin!.email || pendingTotp.expires < now().getTime()) return res.status(409).json({ error: 'Bitte zuerst „Einrichtung starten“ (gilt 10 Minuten).' });
+      if (!verifyTotp(pendingTotp.secret, code, now().getTime())) return res.status(400).json({ error: 'Der Code stimmt nicht. Bitte den aktuellen Code aus der App eingeben.', fields: { code: 'Code stimmt nicht.' } });
+      await store.setExtra('ADMIN_TOTP_SECRET', pendingTotp.secret, `admin:${req.admin!.email}`, now());
+      pendingTotp = null;
+      applyIntegrations();
+      res.json({ ok: true, twoFactor: true });
+    }),
+  );
+  app.post(
+    '/admin/2fa/disable',
+    requireAdmin,
+    rateLimit(limits.login, 'confirm'),
+    integrationHandler(async (req, res, store) => {
+      const code = typeof req.body?.code === 'string' ? req.body.code.replace(/\s/g, '') : '';
+      if (!passwordConfirmed(req) || !deps.admin.totpSecret || !verifyTotp(deps.admin.totpSecret, code, now().getTime())) return res.status(403).json({ error: 'Passwort oder Code stimmt nicht.' });
+      if (!store.get('ADMIN_TOTP_SECRET')) return res.status(409).json({ error: 'Die Zwei-Faktor-Anmeldung wurde auf dem Server eingerichtet und kann nur dort entfernt werden.' });
+      await store.setExtra('ADMIN_TOTP_SECRET', undefined, `admin:${req.admin!.email}`, now());
+      applyIntegrations();
+      res.json({ ok: true, twoFactor: !!deps.admin.totpSecret });
+    }),
+  );
 
   // ---------- Tarifkatalog ----------
   const tariffHandler =

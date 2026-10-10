@@ -63,15 +63,24 @@ info "4/6 Rechte für den Server setzen …"
 PN="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
 SA="${PN}-compute@developer.gserviceaccount.com"
 gcloud secrets add-iam-policy-binding "$SECRET" --member="serviceAccount:$SA" --role=roles/secretmanager.secretAccessor --quiet >/dev/null || fail "Secret-Recht fehlgeschlagen"
+# Schlüssel zum Verschlüsseln der Zugangsdaten, die in der Verwaltung eingetragen werden (einmalig, zufällig)
+if ! gcloud secrets describe config-key >/dev/null 2>&1; then
+  openssl rand -base64 48 | tr -d '\n' | gcloud secrets create config-key --replication-policy=automatic --data-file=- --quiet >/dev/null || fail "Verschlüsselungsschlüssel konnte nicht angelegt werden"
+fi
+gcloud secrets add-iam-policy-binding config-key --member="serviceAccount:$SA" --role=roles/secretmanager.secretAccessor --quiet >/dev/null || fail "Secret-Recht fehlgeschlagen"
 gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA" --role=roles/datastore.user --condition=None --quiet >/dev/null || fail "Datenbank-Recht fehlgeschlagen"
 ok "Rechte gesetzt"
 
 info "5/6 Veröffentlichen (3–6 Minuten) …"
 if gcloud run deploy "$SERVICE" --source . --region "$REGION" --max-instances 1 --allow-unauthenticated --quiet \
     --update-env-vars "STORAGE=firestore,FIREBASE_PROJECT_ID=$PROJECT,ADMIN_EMAIL=$ADMIN_EMAIL,TRUST_PROXY=true" \
-    --update-secrets "ADMIN_PASSWORD_HASH=$SECRET:latest"; then
+    --update-secrets "ADMIN_PASSWORD_HASH=$SECRET:latest,CONFIG_ENCRYPTION_KEY=config-key:latest"; then
   URL="$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')"
-  gcloud run services update "$SERVICE" --region "$REGION" --update-env-vars "APP_URL=$URL" --quiet >/dev/null 2>&1
+  CUR="$(gcloud run services describe "$SERVICE" --region "$REGION" --format=json | grep -A1 '"APP_URL"' | grep -o 'https://[^"]*' | head -1)"
+  # Eine eigene Domain (z. B. https://daryos.de) nicht überschreiben
+  if [ -z "$CUR" ] || [[ "$CUR" == *".run.app" ]]; then
+    gcloud run services update "$SERVICE" --region "$REGION" --update-env-vars "APP_URL=$URL" --quiet >/dev/null 2>&1
+  fi
   info "6/6 Fertig!"
   echo "  Webseite:    $URL"
   echo "  Verwaltung:  $URL/verwaltung/"

@@ -116,7 +116,7 @@ export function AdminApp() {
         {page === 'whatsapp' && <WhatsAppPage />}
         {page === 'assistent' && <AssistantPage />}
         {page === 'buchhaltung' && <AccountingPage />}
-        {page === 'einstellungen' && <SettingsPage twoFactor={twoFactor} />}
+        {page === 'einstellungen' && <SettingsPage twoFactor={twoFactor} onTwoFactorChange={setTwoFactor} />}
         {page === 'anleitung' && <GuidePage />}
       </main>
     </div>
