@@ -67,8 +67,13 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
   const [sent, setSent] = useState<ContactResponse | null>(null);
   const [integrations, setIntegrations] = useState<IntegrationStatus | null>(null);
 
+  const [serverMissing, setServerMissing] = useState('');
+
   useEffect(() => {
-    api.integrations().then(setIntegrations).catch(() => setIntegrations(null));
+    api.integrations().then(setIntegrations).catch((err) => {
+      setIntegrations(null);
+      if (err instanceof ApiError && err.status === 503) setServerMissing(err.message);
+    });
   }, []);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -257,6 +262,11 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
         Geben Sie Ihre Verbrauchsdaten ein – wir zeigen Ihnen verfügbare Angebote aus unserer angebundenen Angebotsquelle. Für den Vergleich benötigen wir
         <strong> keine persönlichen Kontaktdaten</strong>.
       </p>
+      {serverMissing && (
+        <div role="alert" className="mb-6 p-4 rounded-xl border border-blue-500/50 bg-blue-500/10 text-blue-100 text-sm">
+          {serverMissing} <a href="#booking" className="underline font-semibold">Zum Beratungstermin</a>
+        </div>
+      )}
       {integrations?.offerProvider.isDemo && (
         <div className="mb-6">
           <DemoBanner />
