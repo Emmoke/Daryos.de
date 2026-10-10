@@ -17,6 +17,7 @@ import { AssistantConfigStore } from './server/assistantConfig';
 import { CloudApiSender, ConversationStore, whatsappConfigFromEnv } from './server/whatsapp';
 import { encryptionKeyFromEnv, IntegrationStore } from './server/integrations';
 import { fileStorageFromEnv } from './server/files';
+import { CopilotStore } from './server/copilot';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -62,8 +63,8 @@ async function initApi(attempt = 1): Promise<void> {
     console.log(`[daryos] Datenspeicher: ${backend.name}`);
     const files = await fileStorageFromEnv(env, root);
     console.log(`[daryos] Dateispeicher: ${files.name}`);
-    const [store, accounting, tariffs, assistantConfig, waStore, integrations] = await withTimeout(
-      Promise.all([MemoryRequestStore.open(backend), AccountingStore.open(backend), TariffCatalog.open(backend), AssistantConfigStore.open(backend), ConversationStore.open(backend), IntegrationStore.open(backend, encryptionKeyFromEnv(env, isProd))]),
+    const [store, accounting, tariffs, assistantConfig, waStore, integrations, copilot] = await withTimeout(
+      Promise.all([MemoryRequestStore.open(backend), AccountingStore.open(backend), TariffCatalog.open(backend), AssistantConfigStore.open(backend), ConversationStore.open(backend), IntegrationStore.open(backend, encryptionKeyFromEnv(env, isProd)), CopilotStore.open(backend)]),
       30_000,
       'Laden der Daten',
     );
@@ -84,6 +85,7 @@ async function initApi(attempt = 1): Promise<void> {
       whatsappNumber: cfg.WHATSAPP_NUMBER?.replace(/\D/g, '') || undefined,
       whatsapp: waConfig ? { config: waConfig, store: waStore, sender: new CloudApiSender(waConfig) } : undefined,
       files,
+      copilot,
       integrations: { store: integrations, baseEnv: env, conversations: waStore },
       appUrl: env.APP_URL && env.APP_URL !== 'MY_APP_URL' ? env.APP_URL.replace(/\/$/, '') : `http://localhost:${port}`,
       secureCookies: isProd,

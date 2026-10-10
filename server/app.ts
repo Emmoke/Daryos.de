@@ -12,6 +12,7 @@ import { notifierFromEnv, type Notifier } from './notifier';
 import { AssistantNotConfiguredError, assistantFromEnv, buildSystemSummary, type Assistant, type ChatTurn } from './assistant';
 import { generateTotpSecret, verifyTotp } from './totp';
 import { CustomerAuth, normalizeEmail } from './customers';
+import { buildBriefing, buildCopilotContext, buildCopilotPrompt, COPILOT_RULES, type CopilotStore } from './copilot';
 import { detectUploadType, MAX_DOCUMENTS_PER_REQUEST, MAX_UPLOAD_BYTES, safeFileName, UPLOAD_TYPES, type FileStorage } from './files';
 import { INTEGRATION_FIELDS, IntegrationError, type IntegrationGroup, type IntegrationStore } from './integrations';
 import { TariffError, type TariffCatalog } from './tariffs';
@@ -38,6 +39,8 @@ export interface AppDeps {
   /** Dateispeicher für Kundenunterlagen; ohne Angabe ist das Hochladen ausgeschaltet */
   files?: FileStorage;
   customers?: CustomerAuth;
+  /** KI-Mitarbeiter der Verwaltung (merkt sich den letzten Besuch) */
+  copilot?: CopilotStore;
   integrations?: { store: IntegrationStore; baseEnv: NodeJS.ProcessEnv; conversations?: ConversationStore };
   appUrl?: string;
   secureCookies: boolean;
@@ -669,6 +672,60 @@ export function createApp(deps: AppDeps) {
       res.status(502).json({ error: 'Der KI-Assistent ist gerade nicht erreichbar.' });
     }
   }));
+
+  // ---------- KI-Mitarbeiter der Verwaltung ----------
+  const copilotLimiter = new RateLimiter(60, 10 * 60_000);
+  const copilotInput = async (since?: string) => {
+    const conversations = wa?.store.list() ?? [];
+    return {
+      now: now(),
+      since,
+      requests: await deps.store.list(),
+      tariffs: deps.tariffs?.list() ?? [],
+      invoices: deps.accounting?.listInvoices() ?? [],
+      settingsMissing: deps.accounting ? settingsComplete(deps.accounting.getSettings()) : [],
+      whatsapp: { configured: !!wa, conversations: conversations.length, needsHuman: conversations.filter((c) => c.needsHuman && !c.optedOut).length },
+      connections: { gemini: deps.assistant.configured, email: deps.notifier.configured },
+      chat: deps.assistantConfig?.stats(),
+    };
+  };
+  app.get(
+    '/admin/copilot/briefing',
+    requireAdmin,
+    asyncHandler(async (req: AdminRequest, res) => {
+      const since = deps.copilot?.lastSeen(req.admin!.email);
+      res.json({ since: since ?? null, items: buildBriefing(await copilotInput(since)), aiAvailable: deps.assistant.configured, generatedAt: now().toISOString() });
+    }),
+  );
+  app.post(
+    '/admin/copilot/seen',
+    requireAdmin,
+    asyncHandler(async (req: AdminRequest, res) => {
+      await deps.copilot?.markSeen(req.admin!.email, now().toISOString());
+      res.json({ ok: true });
+    }),
+  );
+  app.post(
+    '/admin/copilot/chat',
+    requireAdmin,
+    rateLimit(copilotLimiter, 'copilot'),
+    asyncHandler(async (req: AdminRequest, res) => {
+      const raw = Array.isArray(req.body?.messages) ? req.body.messages.slice(-20) : [];
+      const history = raw
+        .filter((m: any) => (m?.role === 'user' || m?.role === 'assistant') && typeof m?.text === 'string' && m.text.trim())
+        .map((m: any) => ({ role: m.role as 'user' | 'assistant', text: String(m.text).slice(0, 4000) }));
+      if (!history.length || history[history.length - 1].role !== 'user') return res.status(400).json({ error: 'Bitte eine Frage eingeben.' });
+      if (!deps.assistant.configured) return res.status(503).json({ error: 'Gemini ist noch nicht verbunden (Einstellungen → Verbindungen). Das Lagebild oben funktioniert trotzdem.' });
+      const input = await copilotInput(deps.copilot?.lastSeen(req.admin!.email));
+      const context = buildCopilotContext(input, buildBriefing(input));
+      try {
+        res.json({ reply: await deps.assistant.adminChat(buildCopilotPrompt(history, context), COPILOT_RULES) });
+      } catch (err) {
+        console.error('[daryos] Verwaltungs-Assistent:', (err as Error)?.message);
+        res.status(502).json({ error: 'Gemini ist gerade nicht erreichbar. Bitte später erneut versuchen oder unter Einstellungen → Verbindungen „Testen“.' });
+      }
+    }),
+  );
 
   // ---------- Kundenkonto (Anmeldung per E-Mail-Link) und Unterlagen ----------
   const customers = deps.customers ?? new CustomerAuth(() => now().getTime());

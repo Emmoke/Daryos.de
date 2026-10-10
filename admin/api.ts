@@ -28,6 +28,8 @@ export async function request<T>(method: string, path: string, body?: unknown): 
   return json as T;
 }
 
+export type BriefingItem = { level: 'wichtig' | 'hinweis' | 'info' | 'ok'; text: string; href?: string };
+
 export type ConnectionField = { key: string; label: string; secret: boolean; required: boolean; placeholder?: string; hint?: string; source: 'verwaltung' | 'server' | null; display: string };
 export type Connections = {
   writable: boolean;
@@ -48,6 +50,9 @@ export const api = {
   logout: () => request<{ ok: true }>('POST', '/admin/logout', {}),
   overview: () => request<any>('GET', '/admin/overview'),
   integrations: () => request<Record<string, any>>('GET', '/admin/integrations'),
+  copilotBriefing: () => request<{ since: string | null; items: BriefingItem[]; aiAvailable: boolean; generatedAt: string }>('GET', '/admin/copilot/briefing'),
+  copilotSeen: () => request<{ ok: true }>('POST', '/admin/copilot/seen', {}),
+  copilotChat: (messages: { role: 'user' | 'assistant'; text: string }[]) => request<{ reply: string }>('POST', '/admin/copilot/chat', { messages }),
   connections: () => request<Connections>('GET', '/admin/connections'),
   saveConnection: (group: string, values: Record<string, string>, clear: string[], password: string) =>
     request<Connections>('PUT', `/admin/connections/${group}`, { values, clear, password }),

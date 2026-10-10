@@ -19,7 +19,14 @@ export function StatusBadge({ status }: { status: RequestStatus }) {
 export function RequestsPage() {
   const [filter, setFilter] = useState<RequestStatus | ''>('WAITING_FOR_ADMIN');
   const [list, setList] = useState<any[] | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  // Direktlink #/anfragen/DY-… (z. B. aus dem Assistenten) öffnet die Anfrage
+  const fromHash = () => window.location.hash.split('/')[2] || null;
+  const [selected, setSelected] = useState<string | null>(fromHash);
+  useEffect(() => {
+    const onHash = () => { const id = fromHash(); if (id) setSelected(id); };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
   const [error, setError] = useState('');
 
   const reload = useCallback(() => {
