@@ -15,7 +15,11 @@ import { LegalModals } from './components/LegalModals';
 import { AdminCockpit, TariffPricingConfig } from './components/AdminCockpit';
 import { PartnerLogosBanner } from './components/ProviderLogos';
 import { Language, ServiceType, AuthUser } from './types';
-import { MessageSquare, Phone } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
+import { api } from './platform/api';
+import { VergleichPage } from './platform/VergleichPage';
+import { StatusPage } from './platform/StatusPage';
+import { AdminDashboard, AdminLogin } from './platform/AdminDashboard';
 
 const defaultPricing: TariffPricingConfig = {
   stromArbeitspreis: 26.8,
@@ -37,41 +41,41 @@ export default function App() {
   const [legalModal, setLegalModal] = useState<'impressum' | 'datenschutz' | null>(null);
   const [adminCockpitOpen, setAdminCockpitOpen] = useState<boolean>(false);
 
-  // Authentifizierter Nutzer (NUR Eigentümer und Administratoren)
-  const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
-    try {
-      const session = localStorage.getItem('daryos_admin_session') === 'true';
-      if (!session) return null;
-      const role = (localStorage.getItem('daryos_auth_role') as 'eigentuemer' | 'admin') || 'eigentuemer';
-      const email = localStorage.getItem('daryos_auth_email') || 'Emmoke@outlook.de';
-      const name = localStorage.getItem('daryos_auth_name') || (role === 'eigentuemer' ? 'Daryos Inhaber' : 'Administrator');
-      return { role, email, name };
-    } catch (e) {
-      return null;
-    }
-  });
+  // Angemeldeter Administrator – die Sitzung liegt als HttpOnly-Cookie beim Server, nicht im localStorage
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [route, setRoute] = useState<string>(() => window.location.hash);
 
-  const handleLoginSuccess = (user: AuthUser) => {
+  useEffect(() => {
+    api.admin.me().then((r) => setAuthUser(r.user)).catch(() => setAuthUser(null));
     try {
-      localStorage.setItem('daryos_admin_session', 'true');
-      localStorage.setItem('daryos_auth_role', user.role);
-      localStorage.setItem('daryos_auth_email', user.email);
-      localStorage.setItem('daryos_auth_name', user.name);
+      // Alte, unsichere Browser-Sitzungen der früheren PIN-Anmeldung entfernen
+      ['daryos_admin_session', 'daryos_auth_role', 'daryos_auth_email', 'daryos_auth_name', 'daryos_admin_pin'].forEach((k) => localStorage.removeItem(k));
     } catch (e) {
       // ignore
     }
+  }, []);
+
+  useEffect(() => {
+    const onHash = () => {
+      const hash = window.location.hash;
+      setRoute(hash);
+      if (hash.startsWith('#/')) {
+        window.scrollTo({ top: 0 });
+      } else if (hash.length > 1) {
+        // Anker der Startseite erst nach dem Rendern ansteuern
+        setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' }), 50);
+      }
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  const handleLoginSuccess = (user: AuthUser) => {
     setAuthUser(user);
   };
 
   const handleLogout = () => {
-    try {
-      localStorage.removeItem('daryos_admin_session');
-      localStorage.removeItem('daryos_auth_role');
-      localStorage.removeItem('daryos_auth_email');
-      localStorage.removeItem('daryos_auth_name');
-    } catch (e) {
-      // ignore
-    }
+    api.admin.logout().catch(() => {});
     setAuthUser(null);
     setAdminCockpitOpen(false);
   };
@@ -108,6 +112,8 @@ export default function App() {
     const el = document.getElementById('booking');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.location.hash = '#booking'; // von einer Plattform-Seite zurück zur Startseite
     }
   };
 
@@ -141,8 +147,20 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* Main Content Sections */}
+      {/* Main Content: Plattform-Seiten über #/…, sonst die Startseite */}
       <main className="flex-1">
+        {route.startsWith('#/vergleich') ? (
+          <VergleichPage onOpenPrivacy={() => setLegalModal('datenschutz')} />
+        ) : route.startsWith('#/status') ? (
+          <StatusPage initialId={route.split('/')[2] || undefined} />
+        ) : route.startsWith('#/admin') ? (
+          authUser ? (
+            <AdminDashboard user={authUser as any} onLogout={handleLogout} onOpenCockpit={() => setAdminCockpitOpen(true)} />
+          ) : (
+            <AdminLogin onLogin={handleLoginSuccess} />
+          )
+        ) : (
+          <>
         {/* 1. Hero */}
         <Hero
           currentLang={currentLang}
@@ -196,6 +214,8 @@ export default function App() {
 
         {/* 9. Contact, Hours & Map */}
         <ContactSection currentLang={currentLang} />
+          </>
+        )}
       </main>
 
       {/* Footer */}

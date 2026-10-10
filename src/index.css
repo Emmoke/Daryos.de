@@ -30,3 +30,11 @@
   background: #334155;
 }
 
+
+/* Druckansicht: nur das geöffnete Angebots-Detailfenster drucken */
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; color: #000 !important; background: #fff !important; border-color: #ccc !important; }
+  .print-area { position: absolute; inset: 0; margin: 0; max-width: none; }
+  .no-print { display: none !important; }
+}

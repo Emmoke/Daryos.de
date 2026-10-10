@@ -121,14 +121,16 @@ export const Header: React.FC<HeaderProps> = ({
         </a>
 
         {/* Zone 2: 4-6 Clean Text Navigation Links with Calm Hover */}
-        <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-slate-300">
+        <nav className="hidden xl:flex items-center gap-5 text-sm font-medium text-slate-300">
+          <a href="#/vergleich" className="text-orange-400 hover:text-orange-300 font-semibold transition-colors py-1">
+            Tarifvergleich
+          </a>
           <a href="#services" className="hover:text-blue-400 transition-colors py-1">
             {t.nav.services}
           </a>
           <a href="#calculator" className="hover:text-blue-400 transition-colors py-1">
             {t.nav.calculator}
           </a>
-          <a href="#transparency" className="hover:text-blue-400 transition-colors py-1">Transparenz</a>
           <a href="#process" className="hover:text-blue-400 transition-colors py-1">
             {t.nav.process}
           </a>
@@ -165,10 +167,10 @@ export const Header: React.FC<HeaderProps> = ({
                 ) : (
                   <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
                 )}
-                <span>
+                <span className="hidden 2xl:inline">
                   {authUser.role === 'eigentuemer' ? 'Eigentümer-Cockpit' : 'Admin-Cockpit'}
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/40 text-slate-300 font-mono">
+                <span className="hidden 2xl:inline text-[10px] px-1.5 py-0.5 rounded bg-black/40 text-slate-300 font-mono">
                   {authUser.role === 'eigentuemer' ? 'Inhaber' : 'Admin'}
                 </span>
               </button>
@@ -195,16 +197,17 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={onOpenBooking}
-            className="px-4 py-2.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-500 transition-colors whitespace-nowrap border border-blue-500/40 shadow-sm flex items-center gap-2 cursor-pointer"
+            className="px-3 sm:px-4 py-2.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-500 transition-colors whitespace-nowrap border border-blue-500/40 shadow-sm flex items-center gap-2 cursor-pointer"
           >
-            <CalendarCheck className="w-4 h-4 shrink-0" />
-            <span>{t.nav.bookAppointment}</span>
+            <CalendarCheck className="w-4 h-4 shrink-0" aria-hidden />
+            <span className="hidden sm:inline">{t.nav.bookAppointment}</span>
+            <span className="sr-only sm:hidden">{t.nav.bookAppointment}</span>
           </button>
 
           {/* Mobile hamburger button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 text-slate-300 hover:text-white rounded-lg border border-white/[0.08] hover:bg-slate-900"
+            className="xl:hidden p-2 text-slate-300 hover:text-white rounded-lg border border-white/[0.08] hover:bg-slate-900"
             aria-label="Menü öffnen"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -214,8 +217,14 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#0a0b0e] border-b border-white/[0.08] px-6 py-5 space-y-4">
+        <div className="xl:hidden bg-[#0a0b0e] border-b border-white/[0.08] px-6 py-5 space-y-4">
           <nav className="flex flex-col space-y-3 text-base font-medium text-slate-300">
+            <a href="#/vergleich" onClick={() => setMobileMenuOpen(false)} className="text-orange-400 font-semibold py-1">
+              Tarifvergleich
+            </a>
+            <a href="#/status" onClick={() => setMobileMenuOpen(false)} className="hover:text-blue-400 py-1">
+              Anfragestatus
+            </a>
             <a
               href="#services"
               onClick={() => setMobileMenuOpen(false)}

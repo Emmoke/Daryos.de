@@ -322,13 +322,18 @@ export const CalculatorComponent: React.FC<CalculatorProps> = ({
         <div className="text-center max-w-3xl mx-auto mb-10 space-y-2.5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-400 uppercase tracking-wider">
             <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-            <span>Postleitzahl-Genau & Reale Anbieterdaten</span>
+            <span>Schnell-Rechner mit Richtwerten</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             {t.calculator.title}
           </h2>
           <p className="text-sm sm:text-base text-slate-400">
-            Ermitteln Sie in wenigen Sekunden Ihr realistisches Einsparpotenzial für Ihre genaue Postleitzahl, Vertragslaufzeit und reale Anbieterangebote.
+            Grobe, unverbindliche Beispielrechnung mit hinterlegten Richtwerten. Die Werte sind keine aktuellen Anbieterangebote.
+          </p>
+          <p className="text-sm">
+            <a href="#/vergleich" className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold">
+              Zum Tarifvergleich mit abgerufenen Angeboten
+            </a>
           </p>
         </div>
 

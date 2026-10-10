@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api, ApiError } from '../platform/api';
 import { 
   Tablet, 
   Settings, 
@@ -96,13 +97,9 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
   onLogout,
   isStandaloneApp = false,
 }) => {
-  // Gespeicherte Eigentümer-Email & anpassbare PIN (Sicherheitsverwaltung)
+  // Gespeicherte Eigentümer-Email (Anmeldung erfolgt serverseitig)
   const [ownerEmail, setOwnerEmail] = useState<string>(() => {
     return localStorage.getItem('daryos_owner_email') || 'Emmoke@outlook.de';
-  });
-
-  const [storedPin, setStoredPin] = useState<string>(() => {
-    return localStorage.getItem('daryos_admin_pin') || '04329';
   });
 
   const [isPinChangeModalOpen, setIsPinChangeModalOpen] = useState(false);
@@ -1802,99 +1799,25 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
     setTimeout(() => setActionNotice(null), 3500);
   };
 
-  // Eigentümer- & Admin-Authentifizierung
-  const handlePinSubmit = (e: React.FormEvent) => {
+  // Eigentümer-Authentifizierung: Passwortprüfung ausschließlich serverseitig (/api/admin/login)
+  const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanPin = pinInput.trim();
-    const validPins = [storedPin, '04329', '1234', 'daryos2026'];
-    if (loginRole === 'eigentuemer') {
-      if (validPins.includes(cleanPin) || cleanPin === '') {
-        onLoginSuccess({
-          role: 'eigentuemer',
-          name: 'Daryos Inhaber (Eigentümer)',
-          email: ownerEmail,
-        });
-        setPinError('');
-        setPinInput('');
-      } else {
-        setPinError(`Ungültiges Passwort oder PIN. (Autorisiert für ${ownerEmail} · Standard: 04329 oder 1234)`);
-      }
-    } else {
-      if (validPins.includes(cleanPin) || cleanPin === 'admin2026') {
-        onLoginSuccess({
-          role: 'admin',
-          name: 'Administrator',
-          email: 'admin@daryos.de',
-        });
-        setPinError('');
-        setPinInput('');
-      } else {
-        setPinError('Ungültige Administrator-PIN. (Standard: 1234 oder 04329)');
-      }
+    try {
+      const { user } = await api.admin.login(pinInput);
+      onLoginSuccess(user);
+      setPinError('');
+    } catch (err) {
+      setPinError(err instanceof ApiError ? err.message : 'Anmeldung fehlgeschlagen.');
+    } finally {
+      setPinInput('');
     }
-  };
-
-  const handleQuickOwnerUnlock = () => {
-    onLoginSuccess({
-      role: 'eigentuemer',
-      name: 'Daryos Inhaber (Eigentümer)',
-      email: ownerEmail,
-    });
-    setPinError('');
-    setPinInput('');
   };
 
   // Handler: PIN und Eigentümer-E-Mail im System ändern
   const handleSavePinAndEmail = (e: React.FormEvent) => {
     e.preventDefault();
-    setPinChangeError('');
     setPinChangeSuccess('');
-
-    const cleanCurrent = currentPinCheck.trim();
-    if (cleanCurrent !== storedPin && cleanCurrent !== '04329' && cleanCurrent !== '1234') {
-      setPinChangeError('Die aktuelle PIN ist nicht korrekt.');
-      return;
-    }
-
-    if (newPinInput.trim().length < 4) {
-      setPinChangeError('Die neue PIN muss mindestens 4 Ziffern oder Zeichen haben.');
-      return;
-    }
-
-    if (newPinInput.trim() !== confirmPinInput.trim()) {
-      setPinChangeError('Die Bestätigungs-PIN stimmt nicht mit der neuen PIN überein.');
-      return;
-    }
-
-    if (!editOwnerEmailInput.includes('@')) {
-      setPinChangeError('Bitte eine gültige E-Mail-Adresse für den Eigentümer eingeben.');
-      return;
-    }
-
-    const cleanNewPin = newPinInput.trim();
-    const cleanNewEmail = editOwnerEmailInput.trim();
-
-    setStoredPin(cleanNewPin);
-    setOwnerEmail(cleanNewEmail);
-    try {
-      localStorage.setItem('daryos_admin_pin', cleanNewPin);
-      localStorage.setItem('daryos_owner_email', cleanNewEmail);
-      if (authUser) {
-        onLoginSuccess({
-          ...authUser,
-          email: cleanNewEmail,
-        });
-      }
-    } catch (err) {}
-
-    setPinChangeSuccess('✓ PIN und Eigentümer-E-Mail wurden erfolgreich aktualisiert & gespeichert!');
-    setTimeout(() => {
-      setIsPinChangeModalOpen(false);
-      setPinChangeSuccess('');
-      setCurrentPinCheck('');
-      setNewPinInput('');
-      setConfirmPinInput('');
-    }, 1800);
+    setPinChangeError('Das Passwort wird serverseitig verwaltet: neuen Hash mit "npm run admin:hash" erzeugen und als ADMIN_PASSWORD_HASH hinterlegen.');
   };
 
   // Handler für CHECK24 & Makler-Verbindung: Vertrag mit Kunde verbinden
@@ -2484,15 +2407,6 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsPinChangeModalOpen(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-2xs"
-                  title="PIN ändern & Eigentümer-E-Mail verbinden"
-                >
-                  <Key className="w-3.5 h-3.5 text-amber-700" />
-                  <span className="hidden sm:inline">PIN & E-Mail ändern</span>
-                </button>
 
                 <button
                   onClick={exportAccountingPDF}
@@ -2602,7 +2516,7 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                       <input
                         type="password"
                         autoFocus
-                        placeholder="PIN oder Passwort (z.B. 04329 / 1234)"
+                        placeholder="Passwort"
                         value={pinInput}
                         onChange={(e) => setPinInput(e.target.value)}
                         className="w-full text-center tracking-widest text-base font-mono py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all placeholder:font-sans placeholder:tracking-normal placeholder:text-xs"
@@ -2627,9 +2541,8 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                       </label>
                       <input
                         type="password"
-                        maxLength={8}
                         autoFocus
-                        placeholder="Admin-PIN (1234 oder 04329)"
+                        placeholder="Passwort"
                         value={pinInput}
                         onChange={(e) => setPinInput(e.target.value)}
                         className="w-full text-center tracking-widest text-lg font-mono py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all placeholder:font-sans placeholder:tracking-normal placeholder:text-xs"
@@ -2661,17 +2574,6 @@ export const AdminCockpit: React.FC<AdminCockpitProps> = ({
                 </button>
               </form>
 
-              {/* Schnelle Freischaltung für Tablet / Inhaber */}
-              <div className="pt-2 border-t border-slate-100 text-center">
-                <button
-                  type="button"
-                  onClick={handleQuickOwnerUnlock}
-                  className="text-[11px] text-slate-500 hover:text-amber-800 hover:underline cursor-pointer inline-flex items-center gap-1"
-                >
-                  <Crown className="w-3 h-3 text-amber-500" />
-                  <span>Schnell-Zugang als Eigentümer (Emmoke@outlook.de)</span>
-                </button>
-              </div>
             </div>
           </div>
         ) : (
