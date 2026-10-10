@@ -10,6 +10,7 @@ import { offerProviderFromEnv } from './server/offers';
 import { notifierFromEnv } from './server/notifier';
 import { assistantFromEnv } from './server/assistant';
 import { hashPassword, SessionManager } from './server/security';
+import { AccountingStore } from './server/accounting';
 import { CloudApiSender, ConversationStore, whatsappConfigFromEnv } from './server/whatsapp';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -27,6 +28,7 @@ if (!passwordHash && env.ADMIN_PASSWORD) {
 }
 
 const store = await FileRequestStore.open(env.DATA_FILE || path.join(root, 'data', 'requests.json'));
+const accounting = await AccountingStore.open(env.ACCOUNTING_DATA_FILE || path.join(root, 'data', 'buchhaltung.json'));
 const waConfig = whatsappConfigFromEnv(env);
 const waStore = waConfig ? await ConversationStore.open(env.WHATSAPP_DATA_FILE || path.join(root, 'data', 'whatsapp.json')) : undefined;
 const api = createApp({
@@ -35,7 +37,8 @@ const api = createApp({
   notifier: notifierFromEnv(env),
   assistant: assistantFromEnv(env),
   sessions: new SessionManager(),
-  admin: { email: env.ADMIN_EMAIL || 'admin@daryos.de', name: env.ADMIN_NAME || 'Daryos Inhaber', passwordHash },
+  admin: { email: env.ADMIN_EMAIL || 'admin@daryos.de', name: env.ADMIN_NAME || 'Daryos Inhaber', passwordHash, totpSecret: env.ADMIN_TOTP_SECRET || undefined },
+  accounting,
   whatsappNumber: env.WHATSAPP_NUMBER?.replace(/\D/g, '') || undefined,
   whatsapp: waConfig && waStore ? { config: waConfig, store: waStore, sender: new CloudApiSender(waConfig) } : undefined,
   appUrl: env.APP_URL && env.APP_URL !== 'MY_APP_URL' ? env.APP_URL.replace(/\/$/, '') : `http://localhost:${port}`,
@@ -60,12 +63,24 @@ app.use((_req, res, next) => {
 });
 app.use('/api', api);
 
+// Die Verwaltungs-App ist eine eigene Anwendung unter /verwaltung (eigener Build, nicht Teil der öffentlichen Seite)
+const ADMIN_BASE = '/verwaltung';
+app.use(ADMIN_BASE, (_req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  next();
+});
+
 if (isProd) {
+  const distAdmin = path.join(root, 'dist-admin');
+  app.use(ADMIN_BASE, express.static(distAdmin, { index: false, maxAge: '1h' }));
+  app.get(new RegExp(`^${ADMIN_BASE}(/.*)?$`), (_req, res) => res.sendFile(path.join(distAdmin, 'index.html')));
   const dist = path.join(root, 'dist');
   app.use(express.static(dist, { index: false, maxAge: '1h' }));
   app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')));
 } else {
   const { createServer } = await import('vite');
+  const viteAdmin = await createServer({ configFile: path.join(root, 'vite.admin.config.ts'), server: { middlewareMode: true }, appType: 'spa' });
+  app.use(viteAdmin.middlewares);
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'spa' });
   app.use(vite.middlewares);
 }
@@ -80,6 +95,6 @@ purge();
 setInterval(purge, 6 * 60 * 60 * 1000).unref();
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`[daryos] Server läuft auf http://localhost:${port} (${isProd ? 'Produktion' : 'Entwicklung'})`);
+  console.log(`[daryos] Server läuft auf http://localhost:${port} (${isProd ? 'Produktion' : 'Entwicklung'}) – Verwaltung: http://localhost:${port}${ADMIN_BASE}/`);
   if (!passwordHash) console.warn('[daryos] Admin-Zugang deaktiviert: ADMIN_PASSWORD_HASH (oder lokal ADMIN_PASSWORD) setzen.');
 });
