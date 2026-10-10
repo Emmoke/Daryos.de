@@ -116,8 +116,7 @@ function Connections() {
   return (
     <div className="space-y-6 max-w-3xl">
       <Notice tone="blue">
-        Zugangsdaten werden nie hier im Browser eingegeben, sondern als <strong>Secrets</strong> auf dem Server hinterlegt (Google AI Studio → Secrets bzw. Cloud Run → Variablen &amp; Secrets).
-        Danach den Server neu starten bzw. neu bereitstellen.
+        Zugangsdaten werden nie hier im Browser eingegeben, sondern als <strong>Secrets</strong> auf dem Server hinterlegt (Google Secret Manager / Cloud Run).
         <span className="block mt-2">Am einfachsten in der <a className="underline" href="https://shell.cloud.google.com/?show=terminal" target="_blank" rel="noopener noreferrer">Google Cloud Shell</a>: <Code>cd ~/Daryos.de && git pull && bash scripts/cloudrun-config.sh</Code> – das Menü richtet Zwei-Faktor, Chat-Assistent und E-Mail Schritt für Schritt ein.</span>
       </Notice>
 
@@ -135,10 +134,10 @@ function Connections() {
       <Card title="Chat-Assistent auf der Webseite (Gemini)" actions={status(chatOn)}>
         <ol className="space-y-2">
           <Step done={chatOn}>API-Schlüssel erstellen: <a className="text-indigo-600 hover:underline inline-flex items-center gap-0.5" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com/apikey <ExternalLink className="w-3 h-3" aria-hidden /></a></Step>
-          <Step done={chatOn}>Als Secret <Code>GEMINI_API_KEY</Code> hinterlegen (in AI Studio meist automatisch vorhanden).</Step>
-          <Step done={chatOn}>Server neu starten – die Sprechblase auf der Webseite beantwortet dann Fragen aus Ihren Leistungen und FAQ.</Step>
+          <Step done={chatOn}>In der <a className="text-indigo-600 hover:underline" href="https://shell.cloud.google.com/?show=terminal" target="_blank" rel="noopener noreferrer">Cloud Shell</a>: <Code>cd ~/Daryos.de && bash scripts/cloudrun-config.sh</Code> → <strong>2</strong> wählen → Schlüssel einfügen (bleibt unsichtbar) → Enter.</Step>
+          <Step done={chatOn}>Nach „Chat-Assistent aktiv“ etwa 1 Minute warten und diese Seite neu laden – hier steht dann „verbunden“. Test: KI-Assistent → Testen.</Step>
         </ol>
-        <p className="mt-3 text-xs text-slate-500">Der Assistent nennt keine Preise oder Tarife und gibt keine Zusagen. Inhalte ändern Sie über Leistungen/FAQ der Webseite.</p>
+        <p className="mt-3 text-xs text-slate-500">Der Assistent erfindet keine Preise und gibt keine Zusagen. Ton, Wissen und Werkzeuge passen Sie unter „KI-Assistent“ an.</p>
       </Card>
 
       <Card title="WhatsApp-Bot (WhatsApp Business Platform)" actions={status(waBot)}>

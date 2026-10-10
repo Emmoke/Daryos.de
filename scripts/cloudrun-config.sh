@@ -66,7 +66,7 @@ setup_gemini() {
   fi
   printf '%s' "$KEY" | put_secret gemini-key || { fail "Speichern fehlgeschlagen"; return; }
   unset KEY
-  gcloud run services update "$SERVICE" --region "$REGION" --update-secrets GEMINI_API_KEY=gemini-key:latest --quiet >/dev/null 2>&1 \
+  gcloud run services update "$SERVICE" --region "$REGION" --update-secrets GEMINI_API_KEY=gemini-key:latest --quiet 2>&1 | tail -3; [ "${PIPESTATUS[0]}" = 0 ] \
     && ok "Chat-Assistent aktiv. Test: Verwaltung → KI-Assistent → Testen." \
     || fail "Dienst-Aktualisierung fehlgeschlagen"
 }
