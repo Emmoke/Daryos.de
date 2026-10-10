@@ -9,7 +9,8 @@ import { validateComparisonInput, validateContactInput } from './validation';
 import { logNote, transition, TransitionError } from './workflow';
 import { RateLimiter, rateLimit, readCookie, sameOriginOnly, SESSION_COOKIE, SessionManager, verifyPassword, type AdminUser } from './security';
 import type { Notifier } from './notifier';
-import { AssistantNotConfiguredError, buildSystemSummary, type Assistant } from './assistant';
+import { AssistantNotConfiguredError, buildSystemSummary, type Assistant, type ChatTurn } from './assistant';
+import { ConversationStore, handleWebhook, sendAndLog, verifyChallenge, verifySignature, withinServiceWindow, type WhatsAppConfig, type WhatsAppSender } from './whatsapp';
 
 export interface AppDeps {
   store: RequestStore;
@@ -19,11 +20,13 @@ export interface AppDeps {
   sessions: SessionManager;
   admin: { email: string; name: string; passwordHash?: string };
   whatsappNumber?: string;
+  /** Automatisierte WhatsApp-Anbindung über die Business Platform (optional) */
+  whatsapp?: { config: WhatsAppConfig; store: ConversationStore; sender: WhatsAppSender };
   appUrl?: string;
   secureCookies: boolean;
   offerTimeoutMs?: number;
   retentionDays?: { comparison: number; contact: number };
-  limits?: { compare: RateLimiter; contact: RateLimiter; login: RateLimiter; assistant: RateLimiter; status: RateLimiter };
+  limits?: { compare: RateLimiter; contact: RateLimiter; login: RateLimiter; assistant: RateLimiter; status: RateLimiter; chat?: RateLimiter };
   now?: () => Date;
 }
 
@@ -47,10 +50,28 @@ export function createApp(deps: AppDeps) {
     assistant: new RateLimiter(10, 10 * 60_000),
     status: new RateLimiter(60, 10 * 60_000),
   };
+  const chatLimiter = limits.chat ?? new RateLimiter(30, 10 * 60_000);
+  const wa = deps.whatsapp;
+  const waDeps = wa && {
+    store: wa.store,
+    sender: wa.sender,
+    assistant: deps.assistant,
+    requests: deps.store,
+    autoReply: wa.config.autoReply,
+    retentionDays: retention.contact,
+    now,
+  };
+  const whatsappStatus = () =>
+    wa
+      ? { configured: true, mode: 'business_api' as const, detail: `WhatsApp Business Platform aktiv (automatische Antworten: ${wa.config.autoReply ? 'an' : 'aus'})`, number: deps.whatsappNumber }
+      : deps.whatsappNumber
+        ? { configured: true, mode: 'click_to_chat' as const, detail: 'WhatsApp-Chat-Link (keine automatisierte Business-API)', number: deps.whatsappNumber }
+        : { configured: false, mode: 'none' as const, detail: 'WhatsApp ist noch nicht eingerichtet.' };
   const daysFromNow = (d: number) => new Date(now().getTime() + d * 86_400_000).toISOString();
 
   const app = express.Router();
-  app.use(express.json({ limit: '20kb' }));
+  // Rohdaten aufbewahren: nötig für die Signaturprüfung des WhatsApp-Webhooks
+  app.use(express.json({ limit: '20kb', verify: (req, _res, buf) => ((req as Request & { rawBody?: Buffer }).rawBody = Buffer.from(buf)) }));
   app.use(sameOriginOnly);
   app.use((_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
@@ -63,13 +84,60 @@ export function createApp(deps: AppDeps) {
     const status: IntegrationStatus = {
       offerProvider: deps.offerProvider.info,
       email: { configured: deps.notifier.configured, detail: deps.notifier.configured ? 'eingerichtet' : 'nicht eingerichtet' },
-      whatsapp: deps.whatsappNumber
-        ? { configured: true, mode: 'click_to_chat', detail: 'WhatsApp-Chat-Link (keine automatisierte Business-API)', number: deps.whatsappNumber }
-        : { configured: false, mode: 'none', detail: 'WhatsApp ist noch nicht eingerichtet.' },
+      whatsapp: whatsappStatus(),
       assistant: { configured: deps.assistant.configured, detail: deps.assistant.configured ? 'aktiv' : 'nicht eingerichtet' },
+      chat: { configured: deps.assistant.configured },
     };
     res.json(status);
   });
+
+  // Webseiten-Chat: Antworten nur aus der freigegebenen Wissensbasis, keine Speicherung des Gesprächs
+  app.post(
+    '/chat',
+    rateLimit(chatLimiter, 'chat'),
+    asyncHandler(async (req, res) => {
+      const raw = Array.isArray(req.body?.messages) ? req.body.messages : null;
+      if (!raw || raw.length === 0 || raw.length > 20) return res.status(400).json({ error: 'Ungültiger Gesprächsverlauf.' });
+      const history: ChatTurn[] = [];
+      for (const m of raw) {
+        if ((m?.role !== 'user' && m?.role !== 'assistant') || typeof m?.text !== 'string' || !m.text.trim() || m.text.length > 1000) {
+          return res.status(400).json({ error: 'Nachrichten müssen 1 bis 1.000 Zeichen lang sein.' });
+        }
+        history.push({ role: m.role, text: m.text.trim() });
+      }
+      if (history.at(-1)!.role !== 'user') return res.status(400).json({ error: 'Die letzte Nachricht muss vom Kunden stammen.' });
+      try {
+        const reply = await deps.assistant.chat(history.slice(-12));
+        res.json({ reply, disclaimer: 'Automatischer Assistent – unverbindliche Auskunft, keine Tarifzusage.' });
+      } catch (err) {
+        if (err instanceof AssistantNotConfiguredError) {
+          return res.status(503).json({ error: 'Der Chat-Assistent ist noch nicht eingerichtet.' });
+        }
+        res.status(502).json({ error: 'Der Chat-Assistent ist gerade nicht erreichbar.' });
+      }
+    }),
+  );
+
+  // ---------- WhatsApp Business Platform (Webhook von Meta) ----------
+
+  app.get('/whatsapp/webhook', (req, res) => {
+    if (!wa) return res.status(404).json({ error: 'WhatsApp ist nicht eingerichtet.' });
+    const challenge = verifyChallenge(req.query as Record<string, unknown>, wa.config.verifyToken);
+    if (!challenge) return res.status(403).send('Forbidden');
+    res.type('text/plain').send(challenge);
+  });
+
+  app.post(
+    '/whatsapp/webhook',
+    asyncHandler(async (req, res) => {
+      if (!wa || !waDeps) return res.status(404).json({ error: 'WhatsApp ist nicht eingerichtet.' });
+      if (!verifySignature((req as Request & { rawBody?: Buffer }).rawBody, req.get('x-hub-signature-256'), wa.config.appSecret)) {
+        return res.status(401).json({ error: 'Ungültige Signatur.' });
+      }
+      const processed = await handleWebhook(req.body, waDeps);
+      res.json({ ok: true, processed });
+    }),
+  );
 
   app.post(
     '/compare',
@@ -276,9 +344,11 @@ export function createApp(deps: AppDeps) {
       res.json({
         offerProvider: deps.offerProvider.info,
         email: { configured: deps.notifier.configured, detail: deps.notifier.detail },
-        whatsapp: deps.whatsappNumber
-          ? { configured: true, mode: 'click_to_chat', detail: `Chat-Link auf ${deps.whatsappNumber}. Automatisierte Nachrichten erfordern die WhatsApp Business Platform (nicht eingerichtet).` }
-          : { configured: false, mode: 'none', detail: 'WHATSAPP_NUMBER nicht gesetzt.' },
+        whatsapp: wa
+          ? whatsappStatus()
+          : deps.whatsappNumber
+            ? { configured: true, mode: 'click_to_chat', detail: `Nur Chat-Link auf ${deps.whatsappNumber}. Für den Bot WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_APP_SECRET und WHATSAPP_VERIFY_TOKEN setzen.` }
+            : { configured: false, mode: 'none', detail: 'WhatsApp nicht eingerichtet.' },
         assistant: { configured: deps.assistant.configured, detail: deps.assistant.detail },
       });
     },
@@ -393,6 +463,62 @@ export function createApp(deps: AppDeps) {
         logNote(rec, `admin:${req.admin!.email}`, `Entwurf erstellt (${draft.createdBy}) – nicht versendet`, now());
       });
       res.status(201).json({ request: updated, draft });
+    }),
+  );
+
+  // ---------- WhatsApp-Postfach für Administratoren ----------
+
+  app.get('/admin/whatsapp/conversations', requireAdmin, (_req, res) => {
+    if (!wa) return res.json({ configured: false, conversations: [] });
+    res.json({
+      configured: true,
+      conversations: wa.store.list().map((c) => ({
+        waId: c.waId,
+        name: c.name ?? null,
+        updatedAt: c.updatedAt,
+        needsHuman: c.needsHuman,
+        optedOut: c.optedOut,
+        linkedRequestId: c.linkedRequestId ?? null,
+        lastMessage: c.messages.at(-1)?.text.slice(0, 120) ?? '',
+        canReply: withinServiceWindow(c, now()),
+      })),
+    });
+  });
+
+  app.get('/admin/whatsapp/conversations/:waId', requireAdmin, (req, res) => {
+    const c = wa?.store.get(String(req.params.waId));
+    if (!c) return res.status(404).json({ error: 'Unterhaltung nicht gefunden.' });
+    res.json({ conversation: c, canReply: withinServiceWindow(c, now()) });
+  });
+
+  app.post(
+    '/admin/whatsapp/conversations/:waId/reply',
+    requireAdmin,
+    asyncHandler(async (req: AdminRequest, res) => {
+      if (!wa || !waDeps) return res.status(404).json({ error: 'WhatsApp ist nicht eingerichtet.' });
+      const c = wa.store.get(String(req.params.waId));
+      if (!c) return res.status(404).json({ error: 'Unterhaltung nicht gefunden.' });
+      const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
+      if (!text || text.length > 4000) return res.status(400).json({ error: 'Bitte eine Nachricht mit 1 bis 4.000 Zeichen eingeben.' });
+      if (c.optedOut) return res.status(409).json({ error: 'Der Kunde hat WhatsApp-Nachrichten abbestellt.' });
+      if (!withinServiceWindow(c, now())) {
+        return res.status(409).json({ error: 'Das 24-Stunden-Fenster ist abgelaufen. Außerhalb davon sind nur freigegebene WhatsApp-Vorlagen erlaubt.' });
+      }
+      const updated = await sendAndLog(c.waId, text, `admin:${req.admin!.email}`, waDeps);
+      const last = updated.messages.at(-1)!;
+      res.status(last.status === 'sent' ? 200 : 502).json({ conversation: updated, ...(last.error ? { error: `Versand fehlgeschlagen: ${last.error}` } : {}) });
+    }),
+  );
+
+  app.post(
+    '/admin/whatsapp/conversations/:waId/bot',
+    requireAdmin,
+    asyncHandler(async (req, res) => {
+      if (!wa) return res.status(404).json({ error: 'WhatsApp ist nicht eingerichtet.' });
+      if (!wa.store.get(String(req.params.waId))) return res.status(404).json({ error: 'Unterhaltung nicht gefunden.' });
+      const needsHuman = req.body?.needsHuman === true;
+      const conversation = await wa.store.upsert(String(req.params.waId), (c) => (c.needsHuman = needsHuman), now(), retention.contact);
+      res.json({ conversation });
     }),
   );
 

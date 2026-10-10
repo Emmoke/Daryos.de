@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, FileText, Loader2, LogOut, RefreshCw, Send, ShieldCheck, XCircle } from 'lucide-react';
+import { AlertTriangle, Bot, CheckCircle2, FileText, Loader2, LogOut, MessageCircle, RefreshCw, Send, ShieldCheck, UserRound, XCircle } from 'lucide-react';
 import { REQUEST_STATUSES, STATUS_LABELS, type RankedOffer, type RequestStatus } from '../../shared/platform';
-import { api, ApiError, dateTime, eur, type AdminListItem } from './api';
+import { api, ApiError, dateTime, eur, type AdminListItem, type WaListItem } from './api';
 
 type AdminUser = { role: 'eigentuemer'; email: string; name: string };
 
@@ -55,6 +55,7 @@ export function AdminLogin({ onLogin }: { onLogin: (u: AdminUser) => void }) {
 }
 
 export function AdminDashboard({ user, onLogout, onOpenCockpit }: { user: AdminUser; onLogout: () => void; onOpenCockpit: () => void }) {
+  const [tab, setTab] = useState<'requests' | 'whatsapp'>('requests');
   const [filter, setFilter] = useState<RequestStatus | ''>('WAITING_FOR_ADMIN');
   const [list, setList] = useState<AdminListItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -110,6 +111,15 @@ export function AdminDashboard({ user, onLogout, onOpenCockpit }: { user: AdminU
         </div>
       )}
 
+      <div role="tablist" className="flex gap-2 border-b border-slate-800">
+        {([['requests', 'Anfragen'], ['whatsapp', 'WhatsApp-Postfach']] as const).map(([k, label]) => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${tab === k ? 'border-orange-500 text-white' : 'border-transparent text-slate-400 hover:text-white'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'whatsapp' ? <WhatsAppInbox onUnauthorized={onLogout} /> : (<>
       <div className="flex flex-wrap items-center gap-2">
         <select value={filter} onChange={(e) => setFilter(e.target.value as RequestStatus | '')} className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm" aria-label="Status filtern">
           <option value="">Alle Status</option>
@@ -143,6 +153,7 @@ export function AdminDashboard({ user, onLogout, onOpenCockpit }: { user: AdminU
         </ul>
         {selectedId ? <RequestDetail id={selectedId} onChanged={reload} onUnauthorized={onLogout} /> : <p className="text-slate-400 text-sm">Anfrage auswählen.</p>}
       </div>
+      </>)}
     </section>
   );
 }
@@ -310,5 +321,125 @@ function RequestDetail({ id, onChanged, onUnauthorized }: { id: string; onChange
         )}
       </section>
     </article>
+  );
+}
+
+function WhatsAppInbox({ onUnauthorized }: { onUnauthorized: () => void }) {
+  const [data, setData] = useState<{ configured: boolean; conversations: WaListItem[] } | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [conv, setConv] = useState<{ conversation: any; canReply: boolean } | null>(null);
+  const [text, setText] = useState('');
+  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const reload = useCallback(() => {
+    api.admin.waList().then(setData).catch((err) => {
+      if (err instanceof ApiError && err.status === 401) onUnauthorized();
+    });
+  }, [onUnauthorized]);
+
+  useEffect(() => {
+    reload();
+    const t = setInterval(reload, 15_000);
+    return () => clearInterval(t);
+  }, [reload]);
+
+  useEffect(() => {
+    if (!selected) return;
+    setMsg(null);
+    api.admin.waGet(selected).then(setConv).catch((err) => setMsg({ text: err.message, error: true }));
+  }, [selected, data]);
+
+  if (!data) return <Loader2 className="w-5 h-5 animate-spin" />;
+  if (!data.configured) {
+    return (
+      <div className="p-5 rounded-2xl border border-amber-600/50 bg-amber-900/10 text-sm space-y-2">
+        <p className="font-semibold">Die WhatsApp Business Platform ist noch nicht verbunden.</p>
+        <p className="text-slate-300">
+          Benötigt: Meta-Business-Konto, WhatsApp-Business-Nummer und eine Meta-App. Danach auf dem Server setzen: WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID,
+          WHATSAPP_APP_SECRET, WHATSAPP_VERIFY_TOKEN. Webhook-Adresse in Meta: <code className="text-orange-300">https://IHRE-DOMAIN/api/whatsapp/webhook</code>
+        </p>
+      </div>
+    );
+  }
+
+  const act = async (fn: () => Promise<{ conversation: any }>, ok: string) => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await fn();
+      setConv((c) => (c ? { ...c, conversation: r.conversation } : c));
+      setMsg({ text: ok });
+      reload();
+    } catch (err) {
+      setMsg({ text: err instanceof ApiError ? err.message : 'Fehler', error: true });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-6">
+      <ul className="space-y-2" aria-label="WhatsApp-Unterhaltungen">
+        {data.conversations.length === 0 && <li className="text-sm text-slate-400">Noch keine Nachrichten.</li>}
+        {data.conversations.map((c) => (
+          <li key={c.waId}>
+            <button onClick={() => setSelected(c.waId)} className={`w-full text-left p-3 rounded-xl border ${selected === c.waId ? 'border-orange-500 bg-orange-500/10' : 'border-slate-800 bg-slate-900 hover:bg-slate-800'}`}>
+              <div className="flex justify-between gap-2 text-sm">
+                <span className="font-medium">{c.name || `+${c.waId}`}</span>
+                {c.needsHuman && <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">Mitarbeiter gefragt</span>}
+                {c.optedOut && <span className="text-[10px] px-2 py-0.5 rounded bg-slate-600/40 text-slate-300">abgemeldet</span>}
+              </div>
+              <p className="text-xs text-slate-400 truncate">{c.lastMessage}</p>
+              <p className="text-[11px] text-slate-500">{dateTime(c.updatedAt)}{c.linkedRequestId ? ` · ${c.linkedRequestId}` : ''}</p>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {conv && selected ? (
+        <article className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4 text-sm">
+          <header className="flex flex-wrap justify-between gap-2">
+            <div>
+              <h2 className="font-bold">{conv.conversation.name || 'Kunde'} · +{conv.conversation.waId}</h2>
+              {conv.conversation.linkedRequestId && <p className="text-xs text-slate-400">Verknüpft mit Anfrage {conv.conversation.linkedRequestId}</p>}
+            </div>
+            <button
+              disabled={busy}
+              onClick={() => act(() => api.admin.waBot(selected, !conv.conversation.needsHuman), conv.conversation.needsHuman ? 'Bot antwortet wieder automatisch.' : 'Sie haben übernommen – der Bot schweigt.')}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-600 hover:bg-slate-800 text-xs"
+            >
+              {conv.conversation.needsHuman ? <><Bot className="w-3.5 h-3.5" aria-hidden /> An Bot zurückgeben</> : <><UserRound className="w-3.5 h-3.5" aria-hidden /> Gespräch übernehmen</>}
+            </button>
+          </header>
+          <ol className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+            {conv.conversation.messages.map((m: any) => (
+              <li key={m.id} className={`flex ${m.direction === 'out' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-xl px-3 py-2 ${m.direction === 'out' ? 'bg-emerald-800/40' : 'bg-slate-800'}`}>
+                  <p className="whitespace-pre-line">{m.text}</p>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {m.author === 'kunde' ? 'Kunde' : m.author === 'bot' ? 'Bot' : m.author.replace('admin:', '')} · {dateTime(m.at)}
+                    {m.status === 'failed' && <span className="text-rose-400"> · nicht zugestellt ({m.error})</span>}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          {conv.canReply && !conv.conversation.optedOut ? (
+            <form onSubmit={(e) => { e.preventDefault(); act(() => api.admin.waReply(selected, text), 'Gesendet.').then(() => setText('')); }} className="flex gap-2">
+              <label htmlFor="wa-reply" className="sr-only">Antwort</label>
+              <input id="wa-reply" value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} placeholder="Antwort an den Kunden" className="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg" />
+              <button disabled={busy || !text.trim()} className="flex items-center gap-1 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50"><Send className="w-4 h-4" aria-hidden /> Senden</button>
+            </form>
+          ) : (
+            <p className="text-xs text-amber-300 flex gap-1"><MessageCircle className="w-3.5 h-3.5" aria-hidden />
+              {conv.conversation.optedOut ? 'Der Kunde hat WhatsApp-Nachrichten abbestellt.' : '24-Stunden-Fenster abgelaufen – Antwort nur über eine freigegebene WhatsApp-Vorlage oder einen anderen Kanal.'}
+            </p>
+          )}
+          {msg && <p role="status" className={msg.error ? 'text-rose-400' : 'text-emerald-400'}>{msg.text}</p>}
+        </article>
+      ) : (
+        <p className="text-sm text-slate-400">Unterhaltung auswählen.</p>
+      )}
+    </div>
   );
 }

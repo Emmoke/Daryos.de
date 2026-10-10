@@ -142,6 +142,7 @@ export interface PublicRequestStatus {
 export interface IntegrationStatus {
   offerProvider: { id: string; name: string; isDemo: boolean; configured: boolean };
   email: { configured: boolean; detail: string };
-  whatsapp: { configured: boolean; mode: 'none' | 'click_to_chat'; detail: string; number?: string };
+  whatsapp: { configured: boolean; mode: 'none' | 'click_to_chat' | 'business_api'; detail: string; number?: string };
+  chat: { configured: boolean };
   assistant: { configured: boolean; detail: string };
 }

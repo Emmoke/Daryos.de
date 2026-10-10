@@ -15,11 +15,11 @@ import { LegalModals } from './components/LegalModals';
 import { AdminCockpit, TariffPricingConfig } from './components/AdminCockpit';
 import { PartnerLogosBanner } from './components/ProviderLogos';
 import { Language, ServiceType, AuthUser } from './types';
-import { MessageSquare } from 'lucide-react';
 import { api } from './platform/api';
 import { VergleichPage } from './platform/VergleichPage';
 import { StatusPage } from './platform/StatusPage';
 import { AdminDashboard, AdminLogin } from './platform/AdminDashboard';
+import { ChatWidget } from './platform/ChatWidget';
 
 const defaultPricing: TariffPricingConfig = {
   stromArbeitspreis: 26.8,
@@ -244,18 +244,8 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* Floating Quick Action Button for Mobile / Quick Contact (capped to <= 15% mobile viewport) */}
-      <div className="fixed bottom-5 right-5 z-40 flex items-center gap-2">
-        <a
-          href="https://wa.me/4917643416174"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full shadow-2xl transition-transform hover:scale-110 flex items-center justify-center border border-emerald-400/30"
-          aria-label="WhatsApp Chat starten"
-        >
-          <MessageSquare className="w-5 h-5" />
-        </a>
-      </div>
+      {/* Chat-Assistent mit WhatsApp- und Termin-Schnellzugriff */}
+      {!route.startsWith('#/admin') && <ChatWidget onOpenBooking={scrollToBooking} />}
     </div>
   );
 }

@@ -15,7 +15,8 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ currentLang, o
   const [activeModalService, setActiveModalService] = useState<ServiceDetail | null>(null);
 
   return (
-    <section id="services" className="py-20 bg-[#050508] border-t border-white/[0.08] scroll-mt-20">
+    <section id="services" className="relative py-24 bg-[#05060a] scroll-mt-20 overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" aria-hidden />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
@@ -35,7 +36,12 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ currentLang, o
           {servicesData.map((service) => (
             <div
               key={service.id}
-              className="bg-[#0b0c10] rounded-2xl overflow-hidden border border-white/[0.08] shadow-lg flex flex-col justify-between hover:border-white/[0.16] transition-all group"
+              onMouseMove={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                e.currentTarget.style.setProperty('--x', `${e.clientX - r.left}px`);
+                e.currentTarget.style.setProperty('--y', `${e.clientY - r.top}px`);
+              }}
+              className="spotlight bg-[#0b0c10]/80 backdrop-blur rounded-2xl overflow-hidden border border-white/[0.08] shadow-lg flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-900/20 group"
             >
               <div>
                 {/* Image Container with Fallback */}

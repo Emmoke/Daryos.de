@@ -10,6 +10,7 @@ import { offerProviderFromEnv } from './server/offers';
 import { notifierFromEnv } from './server/notifier';
 import { assistantFromEnv } from './server/assistant';
 import { hashPassword, SessionManager } from './server/security';
+import { CloudApiSender, ConversationStore, whatsappConfigFromEnv } from './server/whatsapp';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -26,6 +27,8 @@ if (!passwordHash && env.ADMIN_PASSWORD) {
 }
 
 const store = await FileRequestStore.open(env.DATA_FILE || path.join(root, 'data', 'requests.json'));
+const waConfig = whatsappConfigFromEnv(env);
+const waStore = waConfig ? await ConversationStore.open(env.WHATSAPP_DATA_FILE || path.join(root, 'data', 'whatsapp.json')) : undefined;
 const api = createApp({
   store,
   offerProvider: offerProviderFromEnv(env),
@@ -34,6 +37,7 @@ const api = createApp({
   sessions: new SessionManager(),
   admin: { email: env.ADMIN_EMAIL || 'admin@daryos.de', name: env.ADMIN_NAME || 'Daryos Inhaber', passwordHash },
   whatsappNumber: env.WHATSAPP_NUMBER?.replace(/\D/g, '') || undefined,
+  whatsapp: waConfig && waStore ? { config: waConfig, store: waStore, sender: new CloudApiSender(waConfig) } : undefined,
   appUrl: env.APP_URL && env.APP_URL !== 'MY_APP_URL' ? env.APP_URL.replace(/\/$/, '') : `http://localhost:${port}`,
   secureCookies: isProd,
   retentionDays: { comparison: Number(env.RETENTION_DAYS_COMPARISON || 30), contact: Number(env.RETENTION_DAYS_CONTACT || 180) },
@@ -67,7 +71,11 @@ if (isProd) {
 }
 
 // Abgelaufene Anfragen regelmäßig löschen (Aufbewahrungsfristen)
-const purge = () => store.purgeExpired(new Date()).then((n) => n && console.log(`[daryos] ${n} abgelaufene Anfrage(n) gelöscht`));
+const purge = async () => {
+  const n = await store.purgeExpired(new Date());
+  const w = (await waStore?.purgeExpired(new Date())) ?? 0;
+  if (n || w) console.log(`[daryos] ${n} Anfrage(n) und ${w} WhatsApp-Unterhaltung(en) nach Ablauf der Frist gelöscht`);
+};
 purge();
 setInterval(purge, 6 * 60 * 60 * 1000).unref();
 
