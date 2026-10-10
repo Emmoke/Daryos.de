@@ -19,6 +19,14 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   } catch {
     throw new ApiError('Keine Verbindung zum Server. Bitte prüfen Sie Ihre Internetverbindung.', 0);
   }
+  const isJson = (res.headers.get('content-type') || '').includes('application/json');
+  if (!isJson) {
+    // z. B. GitHub Pages: dort gibt es nur die statische Seite, keinen Server
+    throw new ApiError(
+      'Der Tarifvergleich ist unter dieser Adresse noch nicht verfügbar (reine Vorschau ohne Server). Bitte vereinbaren Sie einen Beratungstermin oder kontaktieren Sie Daryos direkt.',
+      503,
+    );
+  }
   const json = await res.json().catch(() => ({}));
   // 502 beim Vergleich enthält trotzdem ein auswertbares Ergebnis (Quelle gestört)
   if (!res.ok && !(res.status === 502 && json?.comparison)) {
