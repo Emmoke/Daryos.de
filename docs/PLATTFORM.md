@@ -10,8 +10,23 @@ npm test                    # 19 automatisierte Tests
 npm run build && npm start  # Produktionsmodus (dist/ + API)
 ```
 
-Seiten: `#/vergleich` (Tarifvergleich), `#/status/<ID>` (Anfragestatus), `#/admin` (geschütztes Dashboard).
-Die bisherige Startseite bleibt unter `/` unverändert erreichbar.
+Öffentliche Seite: `/` (Startseite), `#/vergleich` (Tarifvergleich), `#/status/<ID>` (Anfragestatus).
+**Verwaltung (eigene App): `/verwaltung/`** – Übersicht, Anfragen, WhatsApp, Buchhaltung, Einstellungen.
+Die öffentliche Seite enthält keinen Verwaltungscode und keinen Link dorthin.
+
+```bash
+npm run build:all           # öffentliche Seite (dist/) + Verwaltung (dist-admin/)
+npm run admin:hash -- "…"   # Passwort-Hash für ADMIN_PASSWORD_HASH
+npm run admin:2fa           # Schlüssel für die Zwei-Faktor-Anmeldung (ADMIN_TOTP_SECRET)
+```
+
+## Verwaltung und Buchhaltung
+
+- Anmeldung: Passwort (scrypt-Hash) + optional TOTP-Code aus einer Authenticator-App; Sitzung 8 h, HttpOnly-Cookie, 5 Versuche / 15 Min.
+- Buchhaltung (`server/accounting.ts`): Firmendaten, Rechnungen mit lückenloser Nummer (RE-JJJJ-NNNN), PDF mit Pflichtangaben,
+  Kleinunternehmerregelung § 19 UStG als Einstellung, „bezahlt“ erzeugt automatisch die Einnahme-Buchung,
+  Korrekturen nur über Stornorechnung bzw. Gegenbuchung (nichts wird gelöscht), Auswertung je Monat/Kategorie, CSV-Export für den Steuerberater.
+- Hinweis: Hilfe für die Einnahmen-Überschuss-Rechnung; ersetzt keine Steuerberatung und kein zertifiziertes Buchhaltungsprogramm.
 
 ## Architektur
 
@@ -67,7 +82,7 @@ Werte in `.env` bzw. Secrets eintragen → in Meta die Webhook-URL `https://IHRE
 Der Webhook braucht eine öffentlich erreichbare HTTPS-Adresse (Cloud Run / AI-Studio-Deployment), GitHub Pages reicht nicht.
 
 ## Testergebnisse
-`npm test`: 29/29 bestanden (inkl. WhatsApp: Signatur, Verifizierung, Duplikate, Opt-out, Übergabe, 24-h-Fenster, Chat-Validierung), unter anderem für Erfolgsfall, ungültige Eingaben, fehlende Einwilligung, Honeypot, fremdes Angebot,
+`npm test`: 35/35 bestanden (inkl. WhatsApp: Signatur, Verifizierung, Duplikate, Opt-out, Übergabe, 24-h-Fenster, Chat-Validierung), unter anderem für Erfolgsfall, ungültige Eingaben, fehlende Einwilligung, Honeypot, fremdes Angebot,
 Doppelanfragen (gleiche Anfrage und anfrageübergreifend innerhalb von 30 Min.), API-Ausfall, Zeitüberschreitung, leeres Ergebnis,
 nicht eingerichtete Quelle, nicht autorisierte Admin-Zugriffe, alte Standard-PINs, Abmeldung, CSRF, Rate-Limits und Statusübergänge.
 Zusätzlich wurde der gesamte Ablauf im Browser durchgeklickt (Desktop 1280/1440 px und Mobil 390 px, ohne horizontales Scrollen).
@@ -92,7 +107,7 @@ Aktuelle Preise vor dem Start in den Google- und Meta-Preisrechnern prüfen.
 ## Offene Sicherheits- und Rechtsfragen
 - **Datenspeicherung**: `FileRequestStore` ist nur für einen einzelnen Server geeignet. Auf Cloud Run ist das Dateisystem flüchtig → vor dem Echtbetrieb auf Firestore umstellen.
 - Sitzungen und Rate-Limits liegen im Speicher (pro Instanz) → für mehrere Instanzen Firestore/Redis bzw. Firebase Auth.
-- Das bestehende **Berater-Cockpit** (CRM, Rechnungen) speichert seine Daten weiterhin nur im `localStorage` des Browsers und enthält Beispieldaten. Es ist jetzt hinter der Server-Anmeldung, die Daten sollten aber in die Datenbank umziehen.
+- Das frühere Browser-Cockpit (CRM/Rechnungen im `localStorage`, Beispieldaten) wurde entfernt und durch die Verwaltungs-App mit Serverdaten ersetzt.
 - Der alte **Schnell-Rechner** auf der Startseite nutzt hinterlegte Richtwerte mit echten Anbieternamen. Der Hinweis „reale Anbieterdaten“ wurde in „Richtwerte“ geändert. Prüfen, ob die Werte belegt sind, sonst ersetzen oder entfernen.
 - Rechtlich prüfen lassen: Vermittlerstatus und Informationspflichten (u. a. EnWG, Preisangaben, Fernabsatz/Widerruf), DSGVO (Verzeichnis, AV-Verträge mit Google/Meta/SMTP, Einwilligungstexte), Provisionsoffenlegung, Inhalte von Impressum und Datenschutzerklärung.
 - Backups und Wiederherstellungstests (Firestore-Export) einrichten.

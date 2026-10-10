@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { CalendarCheck, Loader2, MessageCircle, Send, X } from 'lucide-react';
 import { api, ApiError } from './api';
-import { DaryosMark } from '../components/Logo';
+import chatSymbol from '../assets/brand/daryos-chat-symbol-hell.webp';
 
 type Turn = { role: 'user' | 'assistant'; text: string };
 
@@ -82,8 +82,8 @@ export function ChatWidget({ onOpenBooking }: { onOpenBooking: () => void }) {
             className="w-[calc(100vw-2.5rem)] max-w-sm h-[min(560px,calc(100vh-7rem))] flex flex-col rounded-2xl bg-white text-slate-900 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] ring-1 ring-black/5 overflow-hidden"
           >
             <header className="flex items-center gap-3 px-4 py-3.5 bg-slate-900 text-white">
-              <span className="relative grid place-items-center w-10 h-10 rounded-full bg-white">
-                <DaryosMark size={24} />
+              <span className="relative grid place-items-center w-10 h-10">
+                <img src={chatSymbol} alt="" width={40} height={40} className="w-10 h-10" />
                 <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ring-2 ring-slate-900 ${available === false ? 'bg-slate-400' : 'bg-emerald-400'}`} aria-hidden />
               </span>
               <div className="flex-1 min-w-0">
@@ -165,22 +165,13 @@ export function ChatWidget({ onOpenBooking }: { onOpenBooking: () => void }) {
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? 'Chat schließen' : 'Chat mit Daryos öffnen'}
         aria-expanded={open}
-        className="group relative flex items-center gap-2.5 h-14 rounded-full bg-white pl-3 pr-4 text-slate-900 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.55)] ring-1 ring-black/5 transition hover:shadow-[0_12px_34px_-4px_rgba(37,99,235,0.45)]"
+        className="group relative grid place-items-center w-16 h-16 transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-xl"
       >
         {open ? (
-          <span className="grid place-items-center w-8 h-8"><X className="w-5 h-5" /></span>
+          <span className="grid place-items-center w-12 h-12 rounded-full bg-white text-slate-900 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.55)]"><X className="w-5 h-5" /></span>
         ) : (
-          <span className="relative grid place-items-center w-8 h-8">
-            <DaryosMark size={30} />
-            <span className="absolute -top-1.5 -right-2 grid place-items-center w-4 h-4 rounded-full bg-blue-600 ring-2 ring-white" aria-hidden>
-              <MessageCircle className="w-2.5 h-2.5 text-white" />
-            </span>
-          </span>
+          <img src={chatSymbol} alt="" width={64} height={64} className="w-16 h-16 drop-shadow-[0_10px_18px_rgba(0,0,0,0.55)]" />
         )}
-        <span className="hidden sm:flex flex-col items-start leading-none pr-0.5">
-          <span className="font-logo italic font-bold text-[17px] text-blue-600">Daryos</span>
-          <span className="text-[10px] font-medium text-slate-500 mt-0.5">{open ? 'Schließen' : 'Fragen? Chat'}</span>
-        </span>
       </button>
     </div>
   );

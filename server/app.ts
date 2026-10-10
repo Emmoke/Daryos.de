@@ -10,6 +10,8 @@ import { logNote, transition, TransitionError } from './workflow';
 import { RateLimiter, rateLimit, readCookie, sameOriginOnly, SESSION_COOKIE, SessionManager, verifyPassword, type AdminUser } from './security';
 import type { Notifier } from './notifier';
 import { AssistantNotConfiguredError, buildSystemSummary, type Assistant, type ChatTurn } from './assistant';
+import { verifyTotp } from './totp';
+import { AccountingError, EXPENSE_CATEGORIES, INCOME_CATEGORIES, settingsComplete, type AccountingStore } from './accounting';
 import { ConversationStore, handleWebhook, sendAndLog, verifyChallenge, verifySignature, withinServiceWindow, type WhatsAppConfig, type WhatsAppSender } from './whatsapp';
 
 export interface AppDeps {
@@ -18,7 +20,8 @@ export interface AppDeps {
   notifier: Notifier;
   assistant: Assistant;
   sessions: SessionManager;
-  admin: { email: string; name: string; passwordHash?: string };
+  admin: { email: string; name: string; passwordHash?: string; totpSecret?: string };
+  accounting?: AccountingStore;
   whatsappNumber?: string;
   /** Automatisierte WhatsApp-Anbindung über die Business Platform (optional) */
   whatsapp?: { config: WhatsAppConfig; store: ConversationStore; sender: WhatsAppSender };
@@ -313,7 +316,11 @@ export function createApp(deps: AppDeps) {
         return res.status(503).json({ error: 'Der Administrator-Zugang ist noch nicht eingerichtet (ADMIN_PASSWORD_HASH fehlt).' });
       }
       const password = typeof req.body?.password === 'string' ? req.body.password : '';
-      if (!password || password.length > 200 || !verifyPassword(password, deps.admin.passwordHash)) {
+      const code = typeof req.body?.code === 'string' ? req.body.code.replace(/\s/g, '') : '';
+      const passwordOk = !!password && password.length <= 200 && verifyPassword(password, deps.admin.passwordHash);
+      // Bei aktivierter Zwei-Faktor-Anmeldung müssen Passwort UND Code stimmen; die Fehlermeldung verrät nicht, was falsch war
+      const codeOk = !deps.admin.totpSecret || verifyTotp(deps.admin.totpSecret, code, now().getTime());
+      if (!passwordOk || !codeOk) {
         return res.status(401).json({ error: 'Anmeldung fehlgeschlagen.' });
       }
       const user: AdminUser = { role: 'eigentuemer', email: deps.admin.email, name: deps.admin.name };
@@ -335,7 +342,70 @@ export function createApp(deps: AppDeps) {
     next();
   };
 
-  app.get('/admin/me', requireAdmin, (req: AdminRequest, res) => res.json({ user: req.admin }));
+  app.get('/admin/auth-config', (_req, res) => res.json({ configured: !!deps.admin.passwordHash, twoFactor: !!deps.admin.totpSecret }));
+
+  app.get('/admin/me', requireAdmin, (req: AdminRequest, res) => res.json({ user: req.admin, twoFactor: !!deps.admin.totpSecret }));
+
+  // ---------- Übersicht ----------
+  app.get(
+    '/admin/overview',
+    requireAdmin,
+    asyncHandler(async (_req, res) => {
+      const all = await deps.store.list();
+      const byStatus: Record<string, number> = {};
+      for (const r of all) byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+      const year = now().toISOString().slice(0, 4);
+      const conversations = wa?.store.list() ?? [];
+      res.json({
+        requests: { total: all.length, byStatus, waiting: byStatus.WAITING_FOR_ADMIN ?? 0, recent: all.slice(0, 5).map((r) => ({ id: r.id, status: r.status, createdAt: r.createdAt, customerName: r.contact?.name ?? null, energyType: r.input.energyType })) },
+        whatsapp: { configured: !!wa, conversations: conversations.length, needsHuman: conversations.filter((c) => c.needsHuman && !c.optedOut).length },
+        accounting: deps.accounting ? { ...deps.accounting.summary(year), settingsMissing: settingsComplete(deps.accounting.getSettings()) } : null,
+      });
+    }),
+  );
+
+  // ---------- Buchhaltung ----------
+  const acc = (res: Response) => {
+    if (!deps.accounting) {
+      res.status(404).json({ error: 'Buchhaltung ist nicht aktiviert.' });
+      return undefined;
+    }
+    return deps.accounting;
+  };
+  const accHandler =
+    (fn: (req: AdminRequest, res: Response, a: AccountingStore) => Promise<unknown> | unknown) =>
+    asyncHandler(async (req: AdminRequest, res) => {
+      const a = acc(res);
+      if (!a) return;
+      try {
+        await fn(req, res, a);
+      } catch (err) {
+        if (err instanceof AccountingError) return res.status(err.status).json({ error: err.message, fields: err.fields });
+        throw err;
+      }
+    });
+  const actorOf = (req: AdminRequest) => `admin:${req.admin!.email}`;
+  const yearParam = (req: Request) => (typeof req.query.year === 'string' && /^\d{4}$/.test(req.query.year) ? req.query.year : now().toISOString().slice(0, 4));
+
+  app.get('/admin/accounting/settings', requireAdmin, accHandler((_q, res, a) => res.json({ settings: a.getSettings(), missing: settingsComplete(a.getSettings()) })));
+  app.put('/admin/accounting/settings', requireAdmin, accHandler(async (req, res, a) => {
+    const settings = await a.updateSettings(req.body);
+    res.json({ settings, missing: settingsComplete(settings) });
+  }));
+  app.get('/admin/accounting/summary', requireAdmin, accHandler((req, res, a) => res.json(a.summary(yearParam(req)))));
+  app.get('/admin/accounting/invoices', requireAdmin, accHandler((_q, res, a) => res.json({ invoices: a.listInvoices() })));
+  app.post('/admin/accounting/invoices', requireAdmin, accHandler(async (req, res, a) => res.status(201).json({ invoice: await a.createInvoice(req.body, actorOf(req)) })));
+  app.post('/admin/accounting/invoices/:id/paid', requireAdmin, accHandler(async (req, res, a) => res.json({ invoice: await a.markPaid(String(req.params.id), req.body?.paidAt, actorOf(req)) })));
+  app.post('/admin/accounting/invoices/:id/cancel', requireAdmin, accHandler(async (req, res, a) => res.json(await a.cancelInvoice(String(req.params.id), req.body?.reason, actorOf(req)))));
+  app.get('/admin/accounting/bookings', requireAdmin, accHandler((req, res, a) => res.json({ bookings: a.listBookings(yearParam(req)), categories: { einnahme: INCOME_CATEGORIES, ausgabe: EXPENSE_CATEGORIES } })));
+  app.post('/admin/accounting/bookings', requireAdmin, accHandler(async (req, res, a) => res.status(201).json({ booking: await a.addBooking(req.body, actorOf(req)) })));
+  app.post('/admin/accounting/bookings/:id/reverse', requireAdmin, accHandler(async (req, res, a) => res.status(201).json({ booking: await a.reverseBooking(String(req.params.id), actorOf(req)) })));
+  app.get('/admin/accounting/export.csv', requireAdmin, accHandler((req, res, a) => {
+    const year = yearParam(req);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="Daryos-Buchungen-${year}.csv"`);
+    res.send(a.bookingsCsv(year));
+  }));
 
   app.get(
     '/admin/integrations',
