@@ -85,7 +85,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ currentLang, o
                   {/* Provider Logos Mini Bar on Card */}
                   <div className="pt-2 border-t border-white/[0.04]">
                     <span className="text-[10px] font-semibold text-slate-400 block mb-1.5 uppercase tracking-wider">
-                      Verglichene Anbieter (Auszug):
+                      Vergleichbare Anbieter (Auszug):
                     </span>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {service.providersExample.slice(0, 3).map((prov, pIdx) => (

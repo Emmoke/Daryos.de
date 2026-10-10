@@ -4,6 +4,7 @@ import type { ComparisonInput, EnergyType, IntegrationStatus, RankedOffer } from
 import { estimateConsumption } from '../../server/validation';
 import { api, ApiError, dateTime, eur, type CompareResponse, type ContactResponse } from './api';
 import { downloadOfferPdf } from './offerPdf';
+import { compareLocally, whatsappInquiryUrl } from './localCompare';
 
 type SortKey = 'annual' | 'firstYear' | 'guarantee' | 'term';
 
@@ -31,6 +32,18 @@ function DemoBanner() {
           sobald Daryos eine autorisierte Angebotsquelle angebunden hat.
         </p>
       </div>
+    </div>
+  );
+}
+
+function PreviewNote() {
+  return (
+    <div role="note" className="p-4 rounded-xl border border-blue-500/50 bg-blue-500/10 text-blue-100 text-sm">
+      <p className="font-semibold">Vorschau-Modus</p>
+      <p>
+        Diese Adresse läuft ohne Server. Der Vergleich wird direkt in Ihrem Browser mit Testdaten berechnet und nicht gespeichert. Ihre Anfrage
+        senden Sie per WhatsApp – Daryos prüft dann echte, aktuell verfügbare Angebote für Sie.
+      </p>
     </div>
   );
 }
@@ -103,7 +116,19 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
       minPriceGuaranteeMonths: form.minPriceGuaranteeMonths,
       ecoOnly: form.ecoOnly,
     };
+    const runLocally = async () => {
+      const local = await compareLocally(payload);
+      if (!local.ok) {
+        setErrors(local.fields);
+        setGlobalError('Bitte prüfen Sie Ihre Angaben.');
+        return;
+      }
+      setResult(local.response);
+      setSubmittedInput(local.input);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
     try {
+      if (serverMissing) return await runLocally();
       const res = await api.compare(payload);
       setResult(res);
       setSubmittedInput({
@@ -115,7 +140,10 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (err instanceof ApiError && err.status === 503 && !Object.keys(err.fields).length) {
+        setServerMissing(err.message);
+        await runLocally();
+      } else if (err instanceof ApiError) {
         setErrors(err.fields);
         setGlobalError(err.message);
       }
@@ -123,6 +151,16 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
       setLoading(false);
     }
   };
+
+  // Im Vorschau-Modus (ohne Server) geht die Anfrage per WhatsApp statt über das Formular
+  const startContact = (r: RankedOffer) => {
+    if (serverMissing && submittedInput) {
+      window.open(whatsappInquiryUrl(r, submittedInput), '_blank', 'noopener,noreferrer');
+      return;
+    }
+    setContactOffer(r);
+  };
+  const contactLabel = serverMissing ? 'Per WhatsApp anfragen' : 'Unverbindlich anfragen';
 
   const visibleOffers = useMemo(() => {
     if (!result) return [];
@@ -180,6 +218,7 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
           </p>
         </header>
         {c.isDemo && <DemoBanner />}
+        {serverMissing && <PreviewNote />}
 
         {c.status !== 'ok' && (
           <div role="alert" className="p-4 rounded-xl border border-rose-500/50 bg-rose-500/10 text-rose-100">
@@ -220,7 +259,8 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
                   key={r.offer.id}
                   ranked={r}
                   onDetails={() => setDetail(r)}
-                  onContact={() => setContactOffer(r)}
+                  onContact={() => startContact(r)}
+                  contactLabel={contactLabel}
                 />
               ))}
             </ul>
@@ -235,8 +275,9 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
             requestId={result.requestId}
             integrations={integrations}
             onClose={() => setDetail(null)}
+            contactLabel={contactLabel}
             onContact={() => {
-              setContactOffer(detail);
+              startContact(detail);
               setDetail(null);
             }}
           />
@@ -263,11 +304,11 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
         <strong> keine persönlichen Kontaktdaten</strong>.
       </p>
       {serverMissing && (
-        <div role="alert" className="mb-6 p-4 rounded-xl border border-blue-500/50 bg-blue-500/10 text-blue-100 text-sm">
-          {serverMissing} <a href="#booking" className="underline font-semibold">Zum Beratungstermin</a>
+        <div className="mb-6">
+          <PreviewNote />
         </div>
       )}
-      {integrations?.offerProvider.isDemo && (
+      {(integrations?.offerProvider.isDemo || serverMissing) && (
         <div className="mb-6">
           <DemoBanner />
         </div>
@@ -380,7 +421,7 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
           Verwendungszweck: Ihre Angaben werden nur für die Angebotssuche verwendet und ohne Kontaktdaten gespeichert (Löschung nach 30 Tagen).{' '}
           <button type="button" onClick={onOpenPrivacy} className="underline">Datenschutz</button>
         </p>
-        {globalError && !Object.keys(errors).length && <p role="alert" className="text-rose-400">{globalError}</p>}
+        {globalError && !Object.keys(errors).length && globalError !== serverMissing && <p role="alert" className="text-rose-400">{globalError}</p>}
         <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-lg font-bold">
           {loading ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden /> : null}
           {loading ? 'Angebote werden abgerufen …' : 'Angebote anzeigen'}
@@ -390,7 +431,7 @@ export function VergleichPage({ onOpenPrivacy }: Props) {
   );
 }
 
-function OfferCard({ ranked, onDetails, onContact }: { ranked: RankedOffer; onDetails: () => void; onContact: () => void }) {
+function OfferCard({ ranked, onDetails, onContact, contactLabel }: { ranked: RankedOffer; onDetails: () => void; onContact: () => void; contactLabel: string }) {
   const o = ranked.offer;
   return (
     <li className={`p-5 rounded-2xl border ${ranked.isCheapest ? 'border-emerald-500/60 bg-emerald-500/5' : 'border-slate-800 bg-slate-900'} ${!ranked.complete ? 'opacity-70' : ''}`}>
@@ -430,7 +471,7 @@ function OfferCard({ ranked, onDetails, onContact }: { ranked: RankedOffer; onDe
       <div className="flex flex-wrap gap-2 mt-4">
         <button onClick={onDetails} className="px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 text-sm font-medium">Details & Druck</button>
         {ranked.complete && (
-          <button onClick={onContact} className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-sm font-semibold">Unverbindlich anfragen</button>
+          <button onClick={onContact} className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-sm font-semibold">{contactLabel}</button>
         )}
       </div>
     </li>
@@ -456,8 +497,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-function OfferDetailModal({ ranked, input, requestId, integrations, onClose, onContact }: {
-  ranked: RankedOffer; input: ComparisonInput; requestId: string; integrations: IntegrationStatus | null; onClose: () => void; onContact: () => void;
+function OfferDetailModal({ ranked, input, requestId, integrations, onClose, onContact, contactLabel }: {
+  ranked: RankedOffer; input: ComparisonInput; requestId: string; integrations: IntegrationStatus | null; onClose: () => void; onContact: () => void; contactLabel: string;
 }) {
   const o = ranked.offer;
   const wa = integrations?.whatsapp.configured && integrations.whatsapp.number;
@@ -504,7 +545,7 @@ function OfferDetailModal({ ranked, input, requestId, integrations, onClose, onC
               <MessageSquare className="w-4 h-4" aria-hidden /> Frage per WhatsApp
             </a>
           )}
-          {ranked.complete && <button onClick={onContact} className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 font-semibold">Unverbindlich anfragen</button>}
+          {ranked.complete && <button onClick={onContact} className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 font-semibold">{contactLabel}</button>}
         </div>
       </div>
     </Modal>

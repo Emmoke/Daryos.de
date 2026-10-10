@@ -6,7 +6,7 @@ export const servicesData: ServiceDetail[] = [
     title: 'Stromvertrag',
     tagline: 'Tarife für Ihren Verbrauch vergleichen – mit Blick auf Preis, Laufzeit und Vertragsbedingungen.',
     badge: '⚡ Strom',
-    image: new URL('../assets/images/strom_energy_clean_1791468917569.jpg', import.meta.url).href,
+    image: new URL('../assets/images/strom_energy_clean.webp', import.meta.url).href,
     description:
       'Wir vergleichen verfügbare Stromtarife anhand Ihrer Angaben. Dabei berücksichtigen wir unter anderem Arbeitspreis, Grundpreis, Laufzeit, Preisgarantie und mögliche Bonusbedingungen. Welche Optionen passen, hängt von Ihrem Verbrauch und Ihrer Wohnadresse ab.',
     savingsHint: 'Individuelles Sparpotenzial nach Tarifprüfung',
@@ -29,7 +29,7 @@ export const servicesData: ServiceDetail[] = [
     title: 'Gasvertrag',
     tagline: 'Gasangebote nach Verbrauch und Vertragsbedingungen vergleichen.',
     badge: '🔥 Gas',
-    image: new URL('../assets/images/gas_heating_warm_1791468927843.jpg', import.meta.url).href,
+    image: new URL('../assets/images/gas_heating_warm.webp', import.meta.url).href,
     description:
       'Wir vergleichen verfügbare Gasangebote und erläutern Arbeitspreis, Grundpreis, Laufzeit und Preisgarantie. Die tatsächlichen Kosten hängen vom Jahresverbrauch, der Adresse und den jeweiligen Vertragsbedingungen ab.',
     savingsHint: 'Individuelles Sparpotenzial nach Tarifprüfung',
@@ -52,7 +52,7 @@ export const servicesData: ServiceDetail[] = [
     title: 'Internet & Festnetz',
     tagline: 'Internetoptionen transparent nach Preis, Geschwindigkeit und Laufzeit vergleichen.',
     badge: '🌐 Internet & Festnetz',
-    image: new URL('../assets/images/fiber_internet_speed_1791468940279.jpg', import.meta.url).href,
+    image: new URL('../assets/images/fiber_internet_speed.webp', import.meta.url).href,
     description:
       'Wir helfen beim Vergleich verfügbarer DSL-, Kabel- und Glasfaserangebote. Verfügbarkeit, tatsächliche Geschwindigkeit, Routerkosten, Bonusbedingungen und mögliche Kosten nach der Aktionsphase sollten vor Abschluss geprüft werden.',
     savingsHint: 'Verfügbarkeit und Gesamtkosten individuell prüfen',
@@ -75,7 +75,7 @@ export const servicesData: ServiceDetail[] = [
     title: 'Autoversicherung',
     tagline: 'Autoversicherungen nach Beitrag, Deckung und individuellen Angaben vergleichen.',
     badge: '🚗 Autoversicherung',
-    image: new URL('../assets/images/car_insurance_mobility_1791468952430.jpg', import.meta.url).href,
+    image: new URL('../assets/images/car_insurance_mobility.webp', import.meta.url).href,
     description:
       'Wir unterstützen beim Vergleich von Haftpflicht, Teilkasko und Vollkasko. Entscheidend sind unter anderem Fahrleistung, Fahrerkreis, Schadenfreiheitsklasse, Selbstbeteiligung und die konkreten Versicherungsbedingungen.',
     savingsHint: 'Individuelle Prüfung von Beitrag und Deckung',
