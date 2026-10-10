@@ -1,0 +1,13 @@
+# Dateien, die beim Veröffentlichen auf Google Cloud (gcloud run deploy --source) NICHT hochgeladen werden.
+# Wichtig: Muster mit führendem "/" gelten nur im Hauptordner (sonst würde z. B. src/data mit ausgeschlossen).
+.git
+.gcloudignore
+/node_modules/
+/dist/
+/dist-admin/
+/data/
+.env*
+!.env.example
+/Daryos Chat-Symbol/
+/Daryos Chat-Symbol.zip
+/package-lock.json
