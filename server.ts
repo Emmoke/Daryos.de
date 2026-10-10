@@ -15,6 +15,7 @@ import { AccountingStore } from './server/accounting';
 import { CatalogOrFallbackProvider, TariffCatalog } from './server/tariffs';
 import { AssistantConfigStore } from './server/assistantConfig';
 import { CloudApiSender, ConversationStore, whatsappConfigFromEnv } from './server/whatsapp';
+import { encryptionKeyFromEnv, IntegrationStore } from './server/integrations';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -58,25 +59,28 @@ async function initApi(attempt = 1): Promise<void> {
   try {
     const backend = await backendFromEnv(env, root);
     console.log(`[daryos] Datenspeicher: ${backend.name}`);
-    const waConfig = whatsappConfigFromEnv(env);
-    const [store, accounting, tariffs, assistantConfig, waStore] = await withTimeout(
-      Promise.all([MemoryRequestStore.open(backend), AccountingStore.open(backend), TariffCatalog.open(backend), AssistantConfigStore.open(backend), waConfig ? ConversationStore.open(backend) : Promise.resolve(undefined)]),
+    const [store, accounting, tariffs, assistantConfig, waStore, integrations] = await withTimeout(
+      Promise.all([MemoryRequestStore.open(backend), AccountingStore.open(backend), TariffCatalog.open(backend), AssistantConfigStore.open(backend), ConversationStore.open(backend), IntegrationStore.open(backend, encryptionKeyFromEnv(env, isProd))]),
       30_000,
       'Laden der Daten',
     );
+    // In der Verwaltung eingetragene Zugangsdaten haben Vorrang vor Server-Variablen
+    const cfg = integrations.merged(env);
+    const waConfig = whatsappConfigFromEnv(cfg);
     apiHandler = createApp({
       store,
       offerProvider: new CatalogOrFallbackProvider(tariffs, offerProviderFromEnv(env)),
       tariffs,
       assistantConfig,
-      notifier: notifierFromEnv(env),
-      assistant: assistantFromEnv(env),
+      notifier: notifierFromEnv(cfg),
+      assistant: assistantFromEnv(cfg),
       sessions: new SessionManager(),
-      admin: { email: env.ADMIN_EMAIL || 'admin@daryos.de', name: env.ADMIN_NAME || 'Daryos Inhaber', passwordHash, totpSecret: env.ADMIN_TOTP_SECRET || undefined },
+      admin: { email: env.ADMIN_EMAIL || 'admin@daryos.de', name: env.ADMIN_NAME || 'Daryos Inhaber', passwordHash, totpSecret: cfg.ADMIN_TOTP_SECRET || undefined },
       accounting,
       storageName: backend.name,
-      whatsappNumber: env.WHATSAPP_NUMBER?.replace(/\D/g, '') || undefined,
-      whatsapp: waConfig && waStore ? { config: waConfig, store: waStore, sender: new CloudApiSender(waConfig) } : undefined,
+      whatsappNumber: cfg.WHATSAPP_NUMBER?.replace(/\D/g, '') || undefined,
+      whatsapp: waConfig ? { config: waConfig, store: waStore, sender: new CloudApiSender(waConfig) } : undefined,
+      integrations: { store: integrations, baseEnv: env, conversations: waStore },
       appUrl: env.APP_URL && env.APP_URL !== 'MY_APP_URL' ? env.APP_URL.replace(/\/$/, '') : `http://localhost:${port}`,
       secureCookies: isProd,
       retentionDays: { comparison: Number(env.RETENTION_DAYS_COMPARISON || 30), contact: Number(env.RETENTION_DAYS_CONTACT || 180) },
@@ -88,7 +92,7 @@ async function initApi(attempt = 1): Promise<void> {
     const purge = async () => {
       try {
         const n = await store.purgeExpired(new Date());
-        const w = (await waStore?.purgeExpired(new Date())) ?? 0;
+        const w = await waStore.purgeExpired(new Date());
         await assistantConfig.purgeExpired(new Date());
         if (n || w) console.log(`[daryos] ${n} Anfrage(n) und ${w} WhatsApp-Unterhaltung(en) nach Ablauf der Frist gelöscht`);
       } catch (err) {

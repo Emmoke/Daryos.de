@@ -28,6 +28,16 @@ export async function request<T>(method: string, path: string, body?: unknown): 
   return json as T;
 }
 
+export type ConnectionField = { key: string; label: string; secret: boolean; required: boolean; placeholder?: string; hint?: string; source: 'verwaltung' | 'server' | null; display: string };
+export type Connections = {
+  writable: boolean;
+  lastUpdate: { updatedAt?: string; updatedBy?: string };
+  groups: Record<'gemini' | 'email' | 'whatsapp', ConnectionField[]>;
+  status: Record<'gemini' | 'email' | 'whatsapp', { configured: boolean; detail: string; mode?: string }>;
+  twoFactor: { active: boolean; source: 'verwaltung' | 'server' | null };
+  webhookUrl: string;
+};
+
 export type AdminUser = { role: 'eigentuemer'; email: string; name: string };
 
 export const api = {
@@ -37,6 +47,13 @@ export const api = {
   logout: () => request<{ ok: true }>('POST', '/admin/logout', {}),
   overview: () => request<any>('GET', '/admin/overview'),
   integrations: () => request<Record<string, any>>('GET', '/admin/integrations'),
+  connections: () => request<Connections>('GET', '/admin/connections'),
+  saveConnection: (group: string, values: Record<string, string>, clear: string[], password: string) =>
+    request<Connections>('PUT', `/admin/connections/${group}`, { values, clear, password }),
+  testConnection: (group: string) => request<{ ok: true; message: string }>('POST', `/admin/connections/${group}/test`, {}),
+  totpSetup: (password: string) => request<{ secret: string; otpauth: string }>('POST', '/admin/2fa/setup', { password }),
+  totpEnable: (code: string) => request<{ ok: true; twoFactor: boolean }>('POST', '/admin/2fa/enable', { code }),
+  totpDisable: (password: string, code: string) => request<{ ok: true; twoFactor: boolean }>('POST', '/admin/2fa/disable', { password, code }),
   requests: (status?: string) => request<{ requests: any[] }>('GET', `/admin/requests${status ? `?status=${status}` : ''}`),
   request: (id: string) => request<{ request: any }>('GET', `/admin/requests/${encodeURIComponent(id)}`),
   requestAction: (id: string, body: { action: string; note?: string; providerConfirmationRef?: string }) =>

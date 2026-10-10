@@ -60,13 +60,18 @@ setup_gemini() {
   echo "  3. Hier einfügen (Rechtsklick → Einfügen). Der Schlüssel bleibt unsichtbar. Dann Enter."
   read -r -s -p "  Schlüssel: " KEY; echo
   KEY="$(echo -n "$KEY" | tr -d '[:space:]')"
+  if [ -z "$KEY" ]; then
+    fail "Nichts empfangen. In der Cloud Shell einfügen mit Strg+Umschalt+V oder Rechtsklick → Einfügen."
+    return
+  fi
+  echo "  Empfangen: ${KEY:0:4}… (${#KEY} Zeichen)"
   if [[ ! "$KEY" =~ ^AIza[0-9A-Za-z_-]{30,}$ ]]; then
     fail "Das sieht nicht wie ein Gemini-Schlüssel aus (beginnt mit „AIza“). Nichts wurde geändert."
     return
   fi
   printf '%s' "$KEY" | put_secret gemini-key || { fail "Speichern fehlgeschlagen"; return; }
   unset KEY
-  gcloud run services update "$SERVICE" --region "$REGION" --update-secrets GEMINI_API_KEY=gemini-key:latest --quiet >/dev/null 2>&1 \
+  gcloud run services update "$SERVICE" --region "$REGION" --update-secrets GEMINI_API_KEY=gemini-key:latest --quiet 2>&1 | tail -3; [ "${PIPESTATUS[0]}" = 0 ] \
     && ok "Chat-Assistent aktiv. Test: Verwaltung → KI-Assistent → Testen." \
     || fail "Dienst-Aktualisierung fehlgeschlagen"
 }
