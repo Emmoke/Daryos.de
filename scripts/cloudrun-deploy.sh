@@ -37,13 +37,13 @@ NEED_NEW=0
 if ! gcloud secrets describe "$SECRET" >/dev/null 2>&1; then
   gcloud secrets create "$SECRET" --replication-policy=automatic --quiet >/dev/null || fail "Secret konnte nicht angelegt werden"
   NEED_NEW=1
-elif ! gcloud secrets versions access latest --secret="$SECRET" 2>/dev/null | npx --yes tsx scripts/check-admin-hash.ts 2>/dev/null; then
+elif ! gcloud secrets versions access latest --secret="$SECRET" 2>/dev/null | ./node_modules/.bin/tsx scripts/check-admin-hash.ts 2>/dev/null; then
   NEED_NEW=1
 fi
 if [ "${NEUES_PASSWORT:-0}" = "1" ]; then NEED_NEW=1; fi
 if [ "$NEED_NEW" = "1" ]; then
   PW="$(openssl rand -base64 15 | tr -d '/+=' | cut -c1-16)"
-  npx --yes tsx scripts/hash-password.ts "$PW" | tr -d '\n' | gcloud secrets versions add "$SECRET" --data-file=- >/dev/null || fail "Passwort konnte nicht gespeichert werden"
+  ./node_modules/.bin/tsx scripts/hash-password.ts "$PW" | tr -d '\n' | gcloud secrets versions add "$SECRET" --data-file=- >/dev/null || fail "Passwort konnte nicht gespeichert werden"
   NEWEST="$(gcloud secrets versions list "$SECRET" --filter='state=ENABLED' --sort-by='~createTime' --format='value(name.basename())' | head -1)"
   for V in $(gcloud secrets versions list "$SECRET" --filter='state=ENABLED' --format='value(name.basename())'); do
     [ "$V" != "$NEWEST" ] && gcloud secrets versions disable "$V" --secret="$SECRET" --quiet >/dev/null
