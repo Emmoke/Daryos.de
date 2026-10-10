@@ -942,11 +942,13 @@ export function createApp(deps: AppDeps) {
         if (!deps.assistant.configured) return res.status(503).json({ error: 'Noch kein Gemini-Schlüssel eingetragen.' });
         try {
           const reply = await deps.assistant.chat([{ role: 'user', text: 'Antworte nur mit einem kurzen Gruß.' }]);
-          return res.json({ ok: true, message: `Verbunden – Antwort: „${reply.slice(0, 120)}“` });
+          return res.json({ ok: true, message: `Verbunden (${deps.assistant.detail}) – Antwort: „${reply.slice(0, 120)}“` });
         } catch (err) {
           const m = String((err as Error)?.message ?? '');
-          const hint = /API key not valid|API_KEY_INVALID|permission|403/i.test(m) ? 'Der Schlüssel wird von Google abgelehnt – bitte neu kopieren.' : /quota|429/i.test(m) ? 'Kontingent erschöpft – später erneut versuchen.' : /not found|404/i.test(m) ? 'Modell nicht gefunden – Feld „Modell“ leer lassen.' : 'Gemini ist nicht erreichbar.';
-          return res.status(502).json({ error: hint });
+          const hint = /API key not valid|API_KEY_INVALID|UNAUTHENTICATED|permission|401|403/i.test(m) ? 'Der Schlüssel wird von Google abgelehnt – bitte neu kopieren oder neuen Schlüssel erstellen.' : /quota|429|RESOURCE_EXHAUSTED/i.test(m) ? 'Kontingent erschöpft – später erneut versuchen.' : /not found|404/i.test(m) ? 'Kein passendes Modell gefunden – Feld „Modell“ leeren und speichern.' : 'Gemini ist nicht erreichbar.';
+          // Technische Meldung von Google (ohne Schlüssel) zur Fehlersuche mitgeben
+          const technical = m.replace(/(AIza|AQ\.)[\w.-]+/g, '…').slice(0, 300);
+          return res.status(502).json({ error: `${hint} (Google: ${technical})` });
         }
       }
       if (group === 'email') {
