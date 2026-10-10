@@ -111,3 +111,11 @@
 @media (prefers-reduced-motion: reduce) {
   .aurora-blob, .shimmer-border, .animate-ping { animation: none !important; }
 }
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*="animate-[marquee"] { animation: none !important; }
+}

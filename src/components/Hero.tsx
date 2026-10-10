@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { ArrowRight, BadgeCheck, Bot, CalendarCheck, FileSearch, MessageSquare, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../data/translations';
-import heroImage from '../assets/images/hero_advisor_office_1791468907588.jpg';
+import heroImage from '../assets/images/hero_advisor_office.webp';
 
 interface HeroProps {
   currentLang: Language;
