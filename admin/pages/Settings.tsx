@@ -118,6 +118,7 @@ function Connections() {
       <Notice tone="blue">
         Zugangsdaten werden nie hier im Browser eingegeben, sondern als <strong>Secrets</strong> auf dem Server hinterlegt (Google AI Studio → Secrets bzw. Cloud Run → Variablen &amp; Secrets).
         Danach den Server neu starten bzw. neu bereitstellen.
+        <span className="block mt-2">Am einfachsten in der <a className="underline" href="https://shell.cloud.google.com/?show=terminal" target="_blank" rel="noopener noreferrer">Google Cloud Shell</a>: <Code>cd ~/Daryos.de && git pull && bash scripts/cloudrun-config.sh</Code> – das Menü richtet Zwei-Faktor, Chat-Assistent und E-Mail Schritt für Schritt ein.</span>
       </Notice>
 
       <Card title="Datenbank (Cloud Firestore)" actions={status(i.storage?.configured)}>

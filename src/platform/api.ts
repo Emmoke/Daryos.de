@@ -52,8 +52,8 @@ export const api = {
   compare: (input: unknown) => request<CompareResponse>('POST', '/compare', input),
   status: (id: string) => request<PublicRequestStatus>('GET', `/requests/${encodeURIComponent(id)}`),
   contact: (id: string, body: unknown) => request<ContactResponse>('POST', `/requests/${encodeURIComponent(id)}/contact`, body),
-  chat: (messages: { role: 'user' | 'assistant'; text: string }[]) =>
-    request<{ reply: string; disclaimer: string }>('POST', '/chat', { messages }),
+  chat: (messages: { role: 'user' | 'assistant'; text: string }[], sessionId?: string) =>
+    request<{ reply: string; disclaimer: string; sessionId?: string }>('POST', '/chat', { messages, sessionId }),
   ask: (id: string, question: string) =>
     request<{ answer: string; disclaimer: string }>('POST', `/requests/${encodeURIComponent(id)}/assistant`, { question }),
 };

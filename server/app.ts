@@ -11,6 +11,8 @@ import { RateLimiter, rateLimit, readCookie, sameOriginOnly, SESSION_COOKIE, Ses
 import type { Notifier } from './notifier';
 import { AssistantNotConfiguredError, buildSystemSummary, type Assistant, type ChatTurn } from './assistant';
 import { verifyTotp } from './totp';
+import { TariffError, type TariffCatalog } from './tariffs';
+import { AssistantConfigError, SESSION_ID_PATTERN, toolInstructions, type AssistantConfigStore } from './assistantConfig';
 import { AccountingError, EXPENSE_CATEGORIES, INCOME_CATEGORIES, settingsComplete, type AccountingStore } from './accounting';
 import { ConversationStore, handleWebhook, sendAndLog, verifyChallenge, verifySignature, withinServiceWindow, type WhatsAppConfig, type WhatsAppSender } from './whatsapp';
 
@@ -22,6 +24,8 @@ export interface AppDeps {
   sessions: SessionManager;
   admin: { email: string; name: string; passwordHash?: string; totpSecret?: string };
   accounting?: AccountingStore;
+  tariffs?: TariffCatalog;
+  assistantConfig?: AssistantConfigStore;
   /** Anzeigename des Datenspeichers (z. B. Cloud Firestore) */
   storageName?: string;
   whatsappNumber?: string;
@@ -57,7 +61,12 @@ export function createApp(deps: AppDeps) {
   };
   const chatLimiter = limits.chat ?? new RateLimiter(30, 10 * 60_000);
   const wa = deps.whatsapp;
+  const chatOptions = () => {
+    const c = deps.assistantConfig?.getSettings();
+    return c ? { extraInstructions: c.extraInstructions, knowledge: c.knowledge, toolInstructions: toolInstructions(c.tools) } : {};
+  };
   const waDeps = wa && {
+    chatOptions,
     store: wa.store,
     sender: wa.sender,
     assistant: deps.assistant,
@@ -91,7 +100,7 @@ export function createApp(deps: AppDeps) {
       email: { configured: deps.notifier.configured, detail: deps.notifier.configured ? 'eingerichtet' : 'nicht eingerichtet' },
       whatsapp: whatsappStatus(),
       assistant: { configured: deps.assistant.configured, detail: deps.assistant.configured ? 'aktiv' : 'nicht eingerichtet' },
-      chat: { configured: deps.assistant.configured },
+      chat: { configured: deps.assistant.configured, storesTranscripts: deps.assistantConfig?.getSettings().storeTranscripts ?? false },
     };
     res.json(status);
   });
@@ -111,10 +120,14 @@ export function createApp(deps: AppDeps) {
         history.push({ role: m.role, text: m.text.trim() });
       }
       if (history.at(-1)!.role !== 'user') return res.status(400).json({ error: 'Die letzte Nachricht muss vom Kunden stammen.' });
+      const sessionId = typeof req.body?.sessionId === 'string' && SESSION_ID_PATTERN.test(req.body.sessionId) ? req.body.sessionId : undefined;
+      const question = history.at(-1)!.text;
       try {
-        const reply = await deps.assistant.chat(history.slice(-12));
-        res.json({ reply, disclaimer: 'Automatischer Assistent – unverbindliche Auskunft, keine Tarifzusage.' });
+        const reply = await deps.assistant.chat(history.slice(-12), chatOptions());
+        const sid = await deps.assistantConfig?.record(sessionId, question, reply).catch(() => undefined);
+        res.json({ reply, sessionId: sid, disclaimer: 'Automatischer Assistent – unverbindliche Auskunft, keine Tarifzusage.' });
       } catch (err) {
+        await deps.assistantConfig?.record(sessionId, question, null).catch(() => undefined);
         if (err instanceof AssistantNotConfiguredError) {
           return res.status(503).json({ error: 'Der Chat-Assistent ist noch nicht eingerichtet.' });
         }
@@ -525,9 +538,11 @@ export function createApp(deps: AppDeps) {
       const r = await deps.store.get(String(req.params.id));
       if (!r) return res.status(404).json({ error: 'Anfrage nicht gefunden.' });
       if (!r.contact) return res.status(409).json({ error: 'Ohne Kontaktanfrage kann kein Entwurf erstellt werden.' });
+      const offerId = typeof req.body?.offerId === 'string' ? req.body.offerId : undefined;
+      if (offerId && !r.comparison?.offers.some((o) => o.offer.id === offerId)) return res.status(400).json({ error: 'Das Angebot gehört nicht zu dieser Anfrage.' });
       let draft;
       try {
-        draft = await deps.assistant.draftEmail(r);
+        draft = await deps.assistant.draftEmail(r, offerId);
       } catch {
         return res.status(502).json({ error: 'Der Entwurf konnte nicht erstellt werden.' });
       }
@@ -538,6 +553,116 @@ export function createApp(deps: AppDeps) {
       res.status(201).json({ request: updated, draft });
     }),
   );
+
+  // Entwurf bearbeiten (nur solange er nicht versendet ist)
+  app.put(
+    '/admin/requests/:id/drafts/:draftId',
+    requireAdmin,
+    asyncHandler(async (req: AdminRequest, res) => {
+      const subject = typeof req.body?.subject === 'string' ? req.body.subject.trim() : '';
+      const body = typeof req.body?.body === 'string' ? req.body.body.trim() : '';
+      if (subject.length < 3 || subject.length > 200 || body.length < 20 || body.length > 20000) {
+        return res.status(400).json({ error: 'Betreff (3–200 Zeichen) und Text (20–20.000 Zeichen) angeben.' });
+      }
+      const r = await deps.store.get(String(req.params.id));
+      const d = r?.drafts.find((x) => x.id === req.params.draftId);
+      if (!r || !d) return res.status(404).json({ error: 'Entwurf nicht gefunden.' });
+      if (d.sentAt) return res.status(409).json({ error: 'Versendete E-Mails können nicht mehr geändert werden.' });
+      const updated = await deps.store.update(r.id, (rec) => {
+        const dr = rec.drafts.find((x) => x.id === d.id)!;
+        dr.subject = subject;
+        dr.body = body;
+        dr.editedAt = now().toISOString();
+      });
+      res.json({ request: updated });
+    }),
+  );
+
+  // Entwurf an den Kunden senden – nur auf ausdrückliche Freigabe des Administrators
+  app.post(
+    '/admin/requests/:id/drafts/:draftId/send',
+    requireAdmin,
+    asyncHandler(async (req: AdminRequest, res) => {
+      if (req.body?.confirm !== true) return res.status(400).json({ error: 'Bitte den Versand ausdrücklich bestätigen.' });
+      const r = await deps.store.get(String(req.params.id));
+      const d = r?.drafts.find((x) => x.id === req.params.draftId);
+      if (!r || !d) return res.status(404).json({ error: 'Entwurf nicht gefunden.' });
+      if (d.sentAt) return res.status(409).json({ error: 'Diese E-Mail wurde bereits versendet.' });
+      if (d.offerIsDemo) return res.status(409).json({ error: 'Der Entwurf enthält ein DEMO-Testangebot. DEMO-Angebote dürfen nicht an Kunden versendet werden.' });
+      if (!r.contact?.email) return res.status(409).json({ error: 'Für diese Anfrage liegt keine E-Mail-Adresse vor.' });
+      if (!deps.notifier.configured) return res.status(503).json({ error: 'Der E-Mail-Versand ist noch nicht eingerichtet (SMTP). Siehe Einstellungen → Verbindungen.' });
+      const log = await deps.notifier.sendCustomerEmail(r.contact.email, d.subject, d.body);
+      const actor = `admin:${req.admin!.email}`;
+      const updated = await deps.store.update(r.id, (rec) => {
+        rec.notifications.push(log);
+        if (log.status === 'sent') {
+          const dr = rec.drafts.find((x) => x.id === d.id)!;
+          dr.sentAt = log.at;
+          dr.sentTo = rec.contact!.email;
+          dr.sentBy = actor;
+          dr.approvedBy = actor;
+          logNote(rec, actor, `E-Mail „${d.subject}“ an den Kunden gesendet`, now());
+        } else {
+          logNote(rec, actor, `E-Mail-Versand fehlgeschlagen: ${log.detail}`, now());
+        }
+      });
+      if (log.status !== 'sent') return res.status(502).json({ error: `Versand fehlgeschlagen: ${log.detail}`, request: updated });
+      res.json({ request: updated });
+    }),
+  );
+
+  // ---------- KI-Assistent steuern ----------
+  const cfgHandler =
+    (fn: (req: AdminRequest, res: Response, c: AssistantConfigStore) => Promise<unknown> | unknown) =>
+    asyncHandler(async (req: AdminRequest, res) => {
+      if (!deps.assistantConfig) return res.status(404).json({ error: 'Nicht aktiviert.' });
+      try {
+        await fn(req, res, deps.assistantConfig);
+      } catch (err) {
+        if (err instanceof AssistantConfigError) return res.status(400).json({ error: err.message, fields: err.fields });
+        throw err;
+      }
+    });
+  app.get('/admin/assistant', requireAdmin, cfgHandler((_q, res, c) => res.json({ settings: c.getSettings(), stats: c.stats(), configured: deps.assistant.configured, detail: deps.assistant.detail })));
+  app.put('/admin/assistant', requireAdmin, cfgHandler(async (req, res, c) => res.json({ settings: await c.updateSettings(req.body, `admin:${req.admin!.email}`) })));
+  app.get('/admin/assistant/sessions', requireAdmin, cfgHandler((_q, res, c) => res.json({ sessions: c.listSessions().map((s) => ({ id: s.id, startedAt: s.startedAt, updatedAt: s.updatedAt, messages: s.messages.length, handover: s.handover, failed: s.failed, firstQuestion: s.messages.find((m) => m.role === 'user')?.text.slice(0, 120) ?? '' })) })));
+  app.get('/admin/assistant/sessions/:id', requireAdmin, cfgHandler((req, res, c) => {
+    const s = c.getSession(String(req.params.id));
+    if (!s) return res.status(404).json({ error: 'Gespräch nicht gefunden.' });
+    res.json({ session: s });
+  }));
+  app.delete('/admin/assistant/sessions/:id', requireAdmin, cfgHandler(async (req, res, c) => res.json({ ok: await c.deleteSession(String(req.params.id)) })));
+  // Testfrage mit den aktuellen Einstellungen (wird nicht gespeichert)
+  app.post('/admin/assistant/test', requireAdmin, cfgHandler(async (req, res) => {
+    const q = typeof req.body?.question === 'string' ? req.body.question.trim() : '';
+    if (q.length < 3 || q.length > 1000) return res.status(400).json({ error: 'Bitte eine Testfrage mit 3–1.000 Zeichen eingeben.' });
+    try {
+      res.json({ reply: await deps.assistant.chat([{ role: 'user', text: q }], chatOptions()) });
+    } catch (err) {
+      if (err instanceof AssistantNotConfiguredError) return res.status(503).json({ error: 'Der KI-Assistent ist noch nicht eingerichtet (GEMINI_API_KEY fehlt).' });
+      res.status(502).json({ error: 'Der KI-Assistent ist gerade nicht erreichbar.' });
+    }
+  }));
+
+  // ---------- Tarifkatalog ----------
+  const tariffHandler =
+    (fn: (req: AdminRequest, res: Response, c: TariffCatalog) => Promise<unknown> | unknown) =>
+    asyncHandler(async (req: AdminRequest, res) => {
+      if (!deps.tariffs) return res.status(404).json({ error: 'Tarifkatalog ist nicht aktiviert.' });
+      try {
+        await fn(req, res, deps.tariffs);
+      } catch (err) {
+        if (err instanceof TariffError) return res.status(err.status).json({ error: err.message, fields: err.fields });
+        throw err;
+      }
+    });
+  app.get('/admin/tariffs', requireAdmin, tariffHandler((_q, res, c) => res.json({ tariffs: c.list(), currentCount: c.current().length, source: deps.offerProvider.info })));
+  app.post('/admin/tariffs', requireAdmin, tariffHandler(async (req, res, c) => res.status(201).json({ tariff: await c.create(req.body, `admin:${req.admin!.email}`) })));
+  app.put('/admin/tariffs/:id', requireAdmin, tariffHandler(async (req, res, c) => res.json({ tariff: await c.update(String(req.params.id), req.body, `admin:${req.admin!.email}`) })));
+  app.delete('/admin/tariffs/:id', requireAdmin, tariffHandler(async (req, res, c) => {
+    await c.remove(String(req.params.id));
+    res.json({ ok: true });
+  }));
 
   // ---------- WhatsApp-Postfach für Administratoren ----------
 

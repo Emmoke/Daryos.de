@@ -7,9 +7,21 @@ export interface Notifier {
   readonly configured: boolean;
   readonly detail: string;
   notifyAdminNewRequest(requestId: string, adminUrl: string): Promise<NotificationLog>;
+  /** Nur nach ausdrücklicher Freigabe durch den Administrator aufrufen. */
+  sendCustomerEmail(to: string, subject: string, text: string): Promise<NotificationLog>;
 }
 
 export class SmtpNotifier implements Notifier {
+  async sendCustomerEmail(to: string, subject: string, text: string): Promise<NotificationLog> {
+    const at = new Date().toISOString();
+    try {
+      await this.transport.sendMail({ from: this.cfg.from, to, replyTo: this.cfg.adminTo, subject, text });
+      return { at, channel: 'email', recipient: 'customer', status: 'sent', detail: `an ${to}` };
+    } catch (err) {
+      return { at, channel: 'email', recipient: 'customer', status: 'failed', detail: (err as Error).message.slice(0, 200) };
+    }
+  }
+
   readonly configured = true;
   readonly detail: string;
   private transport: nodemailer.Transporter;
@@ -42,6 +54,10 @@ export class SmtpNotifier implements Notifier {
 }
 
 export class DisabledNotifier implements Notifier {
+  async sendCustomerEmail(): Promise<NotificationLog> {
+    return { at: new Date().toISOString(), channel: 'email', recipient: 'customer', status: 'not_configured', detail: this.detail };
+  }
+
   readonly configured = false;
   readonly detail = 'E-Mail-Versand nicht eingerichtet (SMTP_HOST, MAIL_FROM, ADMIN_NOTIFY_EMAIL fehlen).';
   async notifyAdminNewRequest(): Promise<NotificationLog> {

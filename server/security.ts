@@ -26,7 +26,8 @@ export function verifyPassword(password: string, stored: string): boolean {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
-export const SESSION_COOKIE = 'daryos_admin';
+// "__session" ist der einzige Cookie-Name, den Firebase Hosting (eigene Domain) an den Server weiterreicht
+export const SESSION_COOKIE = '__session';
 
 interface Session {
   user: AdminUser;

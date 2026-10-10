@@ -30,12 +30,14 @@ export function ChatWidget({ onOpenBooking }: { onOpenBooking: () => void }) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
+  const [storesTranscripts, setStoresTranscripts] = useState(false);
+  const sessionRef = useRef<string | undefined>(undefined);
   const [error, setError] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open || available !== null) return;
-    api.integrations().then((i) => setAvailable(i.chat?.configured ?? false)).catch(() => setAvailable(false));
+    api.integrations().then((i) => { setAvailable(i.chat?.configured ?? false); setStoresTranscripts(!!i.chat?.storesTranscripts); }).catch(() => setAvailable(false));
   }, [open, available]);
 
   useEffect(() => {
@@ -58,7 +60,8 @@ export function ChatWidget({ onOpenBooking }: { onOpenBooking: () => void }) {
     try {
       // Begrüßung nicht mitsenden – sie ist kein Teil des echten Gesprächs
       const history = next.filter((m) => m.text !== GREETING.text).slice(-12);
-      const r = await api.chat(history);
+      const r = await api.chat(history, sessionRef.current);
+      if (r.sessionId) sessionRef.current = r.sessionId;
       setTurns((cur) => [...cur, { role: 'assistant', text: r.reply }]);
     } catch (err) {
       if (err instanceof ApiError && (err.status === 503 || err.status === 0)) setAvailable(false);
@@ -155,7 +158,10 @@ export function ChatWidget({ onOpenBooking }: { onOpenBooking: () => void }) {
                   </button>
                 </form>
               )}
-              <p className="text-[10px] text-slate-400 text-center">Bitte keine Bank-, Ausweis- oder Zählerdaten im Chat senden.</p>
+              <p className="text-[10px] text-slate-400 text-center">
+                Bitte keine Bank-, Ausweis- oder Zählerdaten im Chat senden.
+                {storesTranscripts && available && ' Chatverläufe werden zur Verbesserung des Service 30 Tage gespeichert (ohne IP-Adresse).'}
+              </p>
             </div>
           </motion.div>
         )}

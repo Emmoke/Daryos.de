@@ -7,7 +7,7 @@
 // - Opt-out per "STOP", Übergabe an einen Menschen, Duplikaterkennung über Nachrichten-IDs
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Backend } from './persistence';
-import type { Assistant, ChatTurn } from './assistant';
+import type { Assistant, ChatOptions, ChatTurn } from './assistant';
 import { HANDOVER_PATTERN, OPT_OUT_PATTERN } from './knowledge';
 import { REQUEST_ID_PATTERN, type RequestStore } from './store';
 import { logNote } from './workflow';
@@ -190,6 +190,8 @@ export interface WhatsAppDeps {
   autoReply: boolean;
   retentionDays: number;
   now: () => Date;
+  /** Vom Administrator gepflegte Anweisungen/Wissen für den Assistenten */
+  chatOptions?: () => ChatOptions;
 }
 
 /** Wertet einen (bereits signaturgeprüften) Webhook-Body aus. */
@@ -256,7 +258,7 @@ async function handleMessage(msg: IncomingMessage, name: string | undefined, dep
       .slice(-10)
       .map((m) => ({ role: m.direction === 'in' ? 'user' : 'assistant', text: m.text }));
     try {
-      reply = await deps.assistant.chat(history);
+      reply = await deps.assistant.chat(history, deps.chatOptions?.());
     } catch {
       reply = BOT_TEXTS.handover;
       conv = await deps.store.upsert(msg.from, (c) => (c.needsHuman = true), now, deps.retentionDays);
