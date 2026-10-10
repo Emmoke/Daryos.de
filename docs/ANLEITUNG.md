@@ -22,6 +22,22 @@ Parallel: Chat-Assistent auf der Webseite und WhatsApp-Bot beantworten allgemein
 und Ihrem eigenen Wissen (Verwaltung → KI-Assistent). Grundregel: **Die KI bereitet vor – verbindliche Schritte
 passieren nur durch Sie.**
 
+## 1a. Die „vier Säulen“ (wie im AI-Studio-/Firebase-Tutorial) – so sind sie bei Daryos umgesetzt
+
+| Säule | Im Video | Bei Daryos |
+|---|---|---|
+| Anmeldung | Firebase Authentication | **Verwaltung:** Passwort + Zwei-Faktor. **Kunden:** „Mein Konto“ mit Anmeldelink per E-Mail (kein Passwort nötig) |
+| Datenbank | Firestore | Firestore (Frankfurt), Zugriff **nur über den Server** – Browser haben keinen Direktzugriff |
+| Dateispeicher | Firebase Storage | Privater Cloud-Storage-Bucket `daryos-cd99a-uploads` (Frankfurt), Kunden laden Unterlagen hoch, nur Verwaltung + Kunde selbst sehen sie |
+| Sicherheitsregeln | Firestore/Storage Rules | Firestore-Regeln sperren alles für Browser; Bucket ohne öffentlichen Zugriff; Dateityp-Prüfung am Inhalt; Rate-Limits |
+| Admin-Dashboard | einfache Benutzerliste | Verwaltung mit Anfragen, Tarifen, KI-Assistent, WhatsApp, Buchhaltung, Verbindungen |
+| Umgebungsvariablen | Hostinger-Panel | **Verwaltung → Einstellungen → Verbindungen** (verschlüsselt) bzw. Secret Manager |
+| Hosting + Domain | Hostinger | Google Cloud Run (Frankfurt) + Firebase Hosting für daryos.de (siehe Abschnitt 5) |
+| Automatische Updates | GitHub → Hostinger | GitHub → Cloud Run (siehe Abschnitt 4a) |
+
+**Mein Konto (Kunden):** Webseite → „Mein Konto“ → E-Mail der Anfrage eingeben → Link in der E-Mail anklicken (15 Min. gültig) →
+Anfragen, gesendete Angebote und Unterlagen-Upload (PDF/JPG/PNG bis 8 MB). Funktioniert, sobald E-Mail eingerichtet ist.
+
 ## 2. Tagesablauf (ca. 10 Minuten)
 
 1. **Übersicht** → „Zu erledigen“.
@@ -45,15 +61,27 @@ PDF → bei Zahlungseingang „Bezahlt“ (bucht automatisch die Einnahme).
 
 ## 4. Einrichtung in der Google Cloud Shell
 
+Am einfachsten direkt in der Verwaltung: **Einstellungen → Verbindungen** (Gemini, E-Mail, WhatsApp) und
+**Einstellungen → Sicherheit** (Zwei-Faktor). Alternativ in der Cloud Shell:
 ```
 cd ~/Daryos.de && git pull && bash scripts/cloudrun-config.sh
 ```
-Menü: 1) Zwei-Faktor-Anmeldung · 2) Chat-Assistent (Gemini-Schlüssel) · 3) E-Mail (SMTP, z. B. Brevo) · 4) Status.
 
 Neue Version veröffentlichen (Einstellungen bleiben erhalten):
 ```
 cd ~/Daryos.de && git checkout main && git pull && bash scripts/cloudrun-deploy.sh
 ```
+
+## 4a. Automatische Updates aus GitHub (einmal einrichten)
+
+1. https://console.cloud.google.com/run?project=daryos-cd99a → Dienst **daryos** öffnen.
+2. Oben **„Kontinuierliche Bereitstellung einrichten“** (bzw. „Mit Repository verbinden“).
+3. Anbieter **GitHub** → mit GitHub anmelden → Repository **Emmoke/Daryos.de** wählen.
+4. Branch: `^main$` · Build-Typ: **Dockerfile** (Pfad `/Dockerfile`) → Speichern.
+
+Ab dann: Jede Übernahme (Merge) in `main` wird automatisch in 3–6 Minuten live. Einstellungen, Secrets und
+Verbindungen bleiben erhalten. Den Fortschritt sehen Sie unter Cloud Build → Verlauf.
+Wichtig: Darum nur geprüfte Änderungen in `main` übernehmen.
 
 ## 5. Eigene Domain daryos.de
 

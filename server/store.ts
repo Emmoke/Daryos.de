@@ -30,6 +30,17 @@ export interface DraftDocument {
   sentBy?: string;
 }
 
+/** Vom Kunden hochgeladene Unterlage; die Datei selbst liegt im Dateispeicher (files.ts) */
+export interface CustomerDocument {
+  id: string;
+  name: string;
+  contentType: string;
+  size: number;
+  uploadedAt: string;
+  uploadedBy: string;
+  storageKey: string;
+}
+
 export interface NotificationLog {
   at: string;
   channel: 'email' | 'whatsapp';
@@ -51,6 +62,7 @@ export interface RequestRecord {
   summary?: AdminSummary;
   drafts: DraftDocument[];
   notifications: NotificationLog[];
+  documents?: CustomerDocument[];
   /** Hash aus Kontakt + Angebot zur Erkennung doppelter Anfragen */
   contactFingerprint?: string;
   deleteAfter: string;

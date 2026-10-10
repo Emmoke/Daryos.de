@@ -175,6 +175,7 @@ function RequestDetail({ id, onChanged }: { id: string; onChanged: () => void })
       </Card>
 
       {req.contact && <OfferEmail req={req} onUpdated={(r) => { setReq(r); onChanged(); }} />}
+      <Documents req={req} onUpdated={(r) => setReq(r)} />
 
       <Card title="Verlauf">
         <ol className="space-y-2">
@@ -192,6 +193,32 @@ function RequestDetail({ id, onChanged }: { id: string; onChanged: () => void })
 }
 
 /** Angebot für den Kunden vorbereiten (Vorlage bzw. KI), prüfen, bearbeiten und nach Freigabe senden. */
+function Documents({ req, onUpdated }: { req: any; onUpdated: (r: any) => void }) {
+  const docs: any[] = req.documents ?? [];
+  const remove = async (d: any) => {
+    if (!window.confirm(`„${d.name}“ endgültig löschen?`)) return;
+    try { onUpdated((await api.deleteDocument(req.id, d.id)).request); } catch (e) { window.alert((e as Error).message); }
+  };
+  return (
+    <Card title={`Unterlagen des Kunden (${docs.length})`}>
+      {docs.length === 0 ? (
+        <p className="text-sm text-slate-500">Noch keine Unterlagen. Kunden laden sie unter „Mein Konto“ auf der Webseite hoch (Anmeldung per E-Mail-Link).</p>
+      ) : (
+        <ul className="divide-y divide-slate-100 text-sm">
+          {docs.map((d) => (
+            <li key={d.id} className="flex items-center gap-3 py-2">
+              <span className="flex-1 truncate">{d.name} <span className="text-slate-400">· {Math.max(1, Math.round(d.size / 1024))} KB · {new Date(d.uploadedAt).toLocaleString('de-DE')}</span></span>
+              <a className="text-indigo-600 hover:underline" href={`/api/admin/requests/${encodeURIComponent(req.id)}/documents/${d.id}`}>Herunterladen</a>
+              <button className="text-rose-600 hover:underline" onClick={() => remove(d)}>Löschen</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-3 text-xs text-slate-500">Nur PDF/JPG/PNG (Inhalt geprüft). Dateien liegen in einem privaten Speicher und werden mit der Anfrage nach Ablauf der Frist gelöscht.</p>
+    </Card>
+  );
+}
+
 function OfferEmail({ req, onUpdated }: { req: any; onUpdated: (r: any) => void }) {
   const offers: RankedOffer[] = (req.comparison?.offers ?? []).filter((o: RankedOffer) => o.complete);
   const [offerId, setOfferId] = useState<string>(req.selectedOfferId ?? offers[0]?.offer.id ?? '');

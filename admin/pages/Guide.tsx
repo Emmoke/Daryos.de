@@ -75,13 +75,23 @@ export function GuidePage() {
             </ol>
           </Card>
 
+          <Card title="Kundenkonto & Unterlagen">
+            <ol className="list-decimal pl-5 space-y-1.5 text-sm text-slate-700">
+              <li>Kunde öffnet auf der Webseite <strong>„Mein Konto“</strong> und gibt die E-Mail seiner Anfrage ein.</li>
+              <li>Er bekommt einen Anmeldelink (15 Minuten gültig, kein Passwort).</li>
+              <li>Er sieht Status, Ihre gesendeten Angebote und lädt z. B. die Jahresabrechnung hoch.</li>
+              <li>Sie finden die Datei unter <strong>Anfragen → Unterlagen des Kunden</strong>.</li>
+            </ol>
+            <p className="mt-2 text-xs text-slate-500">Voraussetzung: E-Mail ist unter Einstellungen → Verbindungen eingerichtet.</p>
+          </Card>
+
           <Card title="Wo finde ich was?">
             <ul className="text-sm text-slate-700 space-y-1">
               <li><strong>Neue Anfragen & Status:</strong> Übersicht, Anfragen</li>
               <li><strong>Was Kunden im Vergleich sehen:</strong> Tarife (Hinweis oben: Katalog oder DEMO)</li>
               <li><strong>Einnahmen, Rechnungen, Steuerberater-Export:</strong> Buchhaltung</li>
-              <li><strong>Was verbunden ist (Datenbank, KI, E-Mail, WhatsApp):</strong> Einstellungen → Verbindungen</li>
-              <li><strong>Passwort, Zwei-Faktor:</strong> Einstellungen → Sicherheit</li>
+              <li><strong>Schlüssel für Chat, E-Mail, WhatsApp:</strong> Einstellungen → Verbindungen</li>
+              <li><strong>Zwei-Faktor:</strong> Einstellungen → Sicherheit</li>
             </ul>
           </Card>
         </div>
