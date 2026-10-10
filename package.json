@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.admin.config.ts",
     "start": "NODE_ENV=production tsx server.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist",
@@ -14,7 +14,8 @@
     "admin:hash": "tsx scripts/hash-password.ts",
     "admin:2fa": "tsx scripts/setup-2fa.ts",
     "build:admin": "vite build --config vite.admin.config.ts",
-    "build:all": "vite build && vite build --config vite.admin.config.ts"
+    "build:all": "vite build && vite build --config vite.admin.config.ts",
+    "build:site": "vite build"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
