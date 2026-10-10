@@ -12,6 +12,8 @@ import { notifierFromEnv } from './server/notifier';
 import { assistantFromEnv } from './server/assistant';
 import { hashPassword, SessionManager } from './server/security';
 import { AccountingStore } from './server/accounting';
+import { CatalogOrFallbackProvider, TariffCatalog } from './server/tariffs';
+import { AssistantConfigStore } from './server/assistantConfig';
 import { CloudApiSender, ConversationStore, whatsappConfigFromEnv } from './server/whatsapp';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -57,14 +59,16 @@ async function initApi(attempt = 1): Promise<void> {
     const backend = await backendFromEnv(env, root);
     console.log(`[daryos] Datenspeicher: ${backend.name}`);
     const waConfig = whatsappConfigFromEnv(env);
-    const [store, accounting, waStore] = await withTimeout(
-      Promise.all([MemoryRequestStore.open(backend), AccountingStore.open(backend), waConfig ? ConversationStore.open(backend) : Promise.resolve(undefined)]),
+    const [store, accounting, tariffs, assistantConfig, waStore] = await withTimeout(
+      Promise.all([MemoryRequestStore.open(backend), AccountingStore.open(backend), TariffCatalog.open(backend), AssistantConfigStore.open(backend), waConfig ? ConversationStore.open(backend) : Promise.resolve(undefined)]),
       30_000,
       'Laden der Daten',
     );
     apiHandler = createApp({
       store,
-      offerProvider: offerProviderFromEnv(env),
+      offerProvider: new CatalogOrFallbackProvider(tariffs, offerProviderFromEnv(env)),
+      tariffs,
+      assistantConfig,
       notifier: notifierFromEnv(env),
       assistant: assistantFromEnv(env),
       sessions: new SessionManager(),
@@ -85,6 +89,7 @@ async function initApi(attempt = 1): Promise<void> {
       try {
         const n = await store.purgeExpired(new Date());
         const w = (await waStore?.purgeExpired(new Date())) ?? 0;
+        await assistantConfig.purgeExpired(new Date());
         if (n || w) console.log(`[daryos] ${n} Anfrage(n) und ${w} WhatsApp-Unterhaltung(en) nach Ablauf der Frist gelöscht`);
       } catch (err) {
         console.error('[daryos] Löschen abgelaufener Daten fehlgeschlagen:', (err as Error).message);

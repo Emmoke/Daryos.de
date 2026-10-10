@@ -1,19 +1,25 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { BookOpen, Inbox, LayoutDashboard, LogOut, Menu, MessageCircle, Settings, ShieldCheck, X } from 'lucide-react';
+import { Bot, BookOpen, HelpCircle, Inbox, LayoutDashboard, LogOut, Menu, MessageCircle, Settings, ShieldCheck, Tag, X } from 'lucide-react';
 import { api, ApiError, type AdminUser } from './api';
 import { Button, Field, inputCls, Notice, Spinner } from './ui';
 import { OverviewPage } from './pages/Overview';
 import { RequestsPage } from './pages/Requests';
 import { WhatsAppPage } from './pages/WhatsApp';
+import { TariffsPage } from './pages/Tariffs';
+import { AssistantPage } from './pages/Assistant';
+import { GuidePage } from './pages/Guide';
 import { AccountingPage } from './pages/Accounting';
 import { SettingsPage } from './pages/Settings';
 
 const NAV = [
   { key: 'uebersicht', label: 'Übersicht', icon: LayoutDashboard },
   { key: 'anfragen', label: 'Anfragen', icon: Inbox },
+  { key: 'tarife', label: 'Tarife', icon: Tag },
   { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
+  { key: 'assistent', label: 'KI-Assistent', icon: Bot },
   { key: 'buchhaltung', label: 'Buchhaltung', icon: BookOpen },
   { key: 'einstellungen', label: 'Einstellungen', icon: Settings },
+  { key: 'anleitung', label: 'Anleitung', icon: HelpCircle },
 ] as const;
 type PageKey = (typeof NAV)[number]['key'];
 
@@ -106,9 +112,12 @@ export function AdminApp() {
       <main className="min-w-0 px-4 py-6 sm:px-8 sm:py-8 max-w-7xl">
         {page === 'uebersicht' && <OverviewPage />}
         {page === 'anfragen' && <RequestsPage />}
+        {page === 'tarife' && <TariffsPage />}
         {page === 'whatsapp' && <WhatsAppPage />}
+        {page === 'assistent' && <AssistantPage />}
         {page === 'buchhaltung' && <AccountingPage />}
         {page === 'einstellungen' && <SettingsPage twoFactor={twoFactor} />}
+        {page === 'anleitung' && <GuidePage />}
       </main>
     </div>
   );

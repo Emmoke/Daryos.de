@@ -170,24 +170,11 @@ function RequestDetail({ id, onChanged }: { id: string; onChanged: () => void })
           {['WAITING_FOR_ADMIN', 'APPROVED', 'SUBMITTED', 'ERROR'].includes(s) && <Button variant="danger" disabled={busy} onClick={() => act('reject', 'Abgelehnt.')}>Ablehnen</Button>}
           {req.contact && <Button disabled={busy} onClick={() => act('request_info', 'Rückfrage protokolliert.')}>Rückfrage protokollieren</Button>}
           <Button variant="ghost" disabled={busy} onClick={() => act('note', 'Notiz gespeichert.')}>Notiz speichern</Button>
-          {req.contact && <Button variant="ghost" disabled={busy} onClick={() => run(() => api.requestDraft(id), 'Entwurf erstellt (nicht versendet).')}>E-Mail-Entwurf erstellen</Button>}
         </div>
         {msg && <p role="status" className={`mt-3 text-sm ${msg.error ? 'text-rose-600' : 'text-emerald-700'}`}>{msg.text}</p>}
       </Card>
 
-      {req.drafts.length > 0 && (
-        <Card title="Entwürfe" actions={<span className="text-xs text-slate-500">werden nicht automatisch versendet</span>}>
-          <div className="space-y-2">
-            {req.drafts.map((d: any) => (
-              <details key={d.id} className="rounded-lg border border-slate-200 px-3 py-2">
-                <summary className="cursor-pointer text-sm">{d.subject} <span className="text-xs text-slate-500">· {d.createdBy === 'gemini' ? 'KI' : 'Vorlage'} · {dateTime(d.createdAt)}</span></summary>
-                <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-slate-700">{d.body}</pre>
-                <Button size="sm" className="mt-2" onClick={() => navigator.clipboard?.writeText(d.body)}>Text kopieren</Button>
-              </details>
-            ))}
-          </div>
-        </Card>
-      )}
+      {req.contact && <OfferEmail req={req} onUpdated={(r) => { setReq(r); onChanged(); }} />}
 
       <Card title="Verlauf">
         <ol className="space-y-2">
@@ -200,6 +187,107 @@ function RequestDetail({ id, onChanged }: { id: string; onChanged: () => void })
           ))}
         </ol>
       </Card>
+    </div>
+  );
+}
+
+/** Angebot für den Kunden vorbereiten (Vorlage bzw. KI), prüfen, bearbeiten und nach Freigabe senden. */
+function OfferEmail({ req, onUpdated }: { req: any; onUpdated: (r: any) => void }) {
+  const offers: RankedOffer[] = (req.comparison?.offers ?? []).filter((o: RankedOffer) => o.complete);
+  const [offerId, setOfferId] = useState<string>(req.selectedOfferId ?? offers[0]?.offer.id ?? '');
+  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const drafts = [...req.drafts].reverse();
+
+  const create = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      onUpdated((await api.requestDraft(req.id, offerId || undefined)).request);
+      setMsg({ text: 'Entwurf erstellt. Bitte prüfen und bei Bedarf anpassen.' });
+    } catch (e) {
+      setMsg({ text: e instanceof ApiError ? e.message : 'Fehler', error: true });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card title="Angebot an den Kunden" actions={<span className="text-xs text-slate-500">Versand nur nach Ihrer Freigabe</span>}>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="text-xs font-medium text-slate-700 flex-1 min-w-[220px]">
+          Angebot auswählen
+          <select value={offerId} onChange={(e) => setOfferId(e.target.value)} className={`${inputCls} mt-1`}>
+            {offers.map((o) => (
+              <option key={o.offer.id} value={o.offer.id}>
+                {o.offer.source.isDemo ? '[DEMO] ' : ''}{o.offer.providerName} – {o.offer.tariffName}{o.cost ? ` · ${eur(Math.round(o.cost.annualCostWithoutBonusEur * 100))}/Jahr` : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Button variant="primary" loading={busy} disabled={!offers.length} onClick={create}>Entwurf erstellen</Button>
+      </div>
+      <p className="mt-2 text-xs text-slate-500">Der Entwurf übernimmt Preise und Bedingungen direkt aus dem Angebot. Ist der KI-Assistent eingerichtet, formuliert er den Text – Zahlen werden dabei automatisch auf Veränderungen geprüft.</p>
+      {msg && <p role="status" className={`mt-2 text-sm ${msg.error ? 'text-rose-600' : 'text-emerald-700'}`}>{msg.text}</p>}
+      <div className="mt-4 space-y-3">
+        {drafts.map((d: any) => <DraftEditor key={d.id} req={req} draft={d} onUpdated={onUpdated} />)}
+      </div>
+    </Card>
+  );
+}
+
+function DraftEditor({ req, draft, onUpdated }: { req: any; draft: any; onUpdated: (r: any) => void }) {
+  const [subject, setSubject] = useState(draft.subject);
+  const [body, setBody] = useState(draft.body);
+  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const dirty = subject !== draft.subject || body !== draft.body;
+
+  const act = async (fn: () => Promise<{ request: any }>, ok: string) => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      onUpdated((await fn()).request);
+      setMsg({ text: ok });
+    } catch (e) {
+      setMsg({ text: e instanceof ApiError ? e.message : 'Fehler', error: true });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (draft.sentAt) {
+    return (
+      <details className="rounded-lg border border-emerald-200 bg-emerald-50/40 px-3 py-2">
+        <summary className="cursor-pointer text-sm"><Badge tone="green">gesendet</Badge> <span className="ml-1">{draft.subject}</span> <span className="text-xs text-slate-500">· an {draft.sentTo} · {dateTime(draft.sentAt)}</span></summary>
+        <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-slate-700">{draft.body}</pre>
+      </details>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-slate-200 p-3 space-y-2">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <Badge tone="amber">Entwurf</Badge> {draft.createdBy === 'gemini' ? 'von der KI formuliert' : 'aus Vorlage'} · {dateTime(draft.createdAt)}
+        {draft.offerIsDemo && <Badge tone="red">enthält DEMO-Angebot – Versand gesperrt</Badge>}
+      </div>
+      <input value={subject} onChange={(e) => setSubject(e.target.value)} aria-label="Betreff" className={inputCls} />
+      <textarea value={body} onChange={(e) => setBody(e.target.value)} aria-label="Text" rows={14} className={`${inputCls} h-auto py-2 font-mono text-[13px]`} />
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" disabled={!dirty || busy} onClick={() => act(() => api.saveDraft(req.id, draft.id, subject, body), 'Gespeichert.')}>Änderungen speichern</Button>
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={busy || dirty || draft.offerIsDemo}
+          title={dirty ? 'Bitte zuerst speichern' : undefined}
+          onClick={() => {
+            if (window.confirm(`Diese E-Mail jetzt an ${req.contact.email} senden?\n\nBetreff: ${draft.subject}`)) act(() => api.sendDraft(req.id, draft.id), 'E-Mail gesendet.');
+          }}
+        >
+          Geprüft – an Kunden senden
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => navigator.clipboard?.writeText(`${subject}\n\n${body}`)}>Text kopieren</Button>
+      </div>
+      {msg && <p role="status" className={`text-sm ${msg.error ? 'text-rose-600' : 'text-emerald-700'}`}>{msg.text}</p>}
     </div>
   );
 }

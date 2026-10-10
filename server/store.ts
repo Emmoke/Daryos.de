@@ -21,6 +21,13 @@ export interface DraftDocument {
   body: string;
   /** Entwürfe werden nie automatisch versendet. */
   approvedBy?: string;
+  /** Angebot, auf das sich der Entwurf bezieht */
+  offerId?: string;
+  offerIsDemo?: boolean;
+  editedAt?: string;
+  sentAt?: string;
+  sentTo?: string;
+  sentBy?: string;
 }
 
 export interface NotificationLog {

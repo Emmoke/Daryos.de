@@ -12,6 +12,28 @@ export interface ChatTurn {
   text: string;
 }
 
+/** Vom Administrator gepflegte Ergänzungen (siehe assistantConfig.ts). */
+export interface ChatOptions {
+  extraInstructions?: string;
+  knowledge?: { question: string; answer: string }[];
+  toolInstructions?: string;
+}
+
+export function buildChatPrompt(history: ChatTurn[], opts: ChatOptions = {}): string {
+  const transcript = history.map((t) => `${t.role === 'user' ? 'Kunde' : 'Assistent'}: ${t.text}`).join('\n');
+  const extraKnowledge = (opts.knowledge ?? []).map((k) => `F: ${k.question}\nA: ${k.answer}`).join('\n\n');
+  return [
+    `Wissensbasis:\n${buildKnowledgeBase()}`,
+    extraKnowledge && `## Ergänzendes Wissen von Daryos\n${extraKnowledge}`,
+    opts.toolInstructions && `## Erlaubte Wege für den Kunden\n${opts.toolInstructions}`,
+    opts.extraInstructions && `## Zusätzliche Hinweise des Betreibers (die verbindlichen Regeln haben immer Vorrang)\n${opts.extraInstructions}`,
+    `Bisheriges Gespräch:\n${transcript}`,
+    'Antworte als Assistent auf die letzte Nachricht des Kunden.',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 const CHAT_RULES = `Du bist der digitale Assistent von Daryos (Tarifberatung und Wechselservice in Leipzig) auf der Webseite bzw. in WhatsApp.
 Regeln (verbindlich):
 - Antworte nur auf Basis der Wissensbasis unten. Erfinde niemals Preise, Tarife, Ersparnisse, Anbieterkonditionen oder Termine.
@@ -83,23 +105,60 @@ export function buildSystemSummary(record: RequestRecord): AdminSummary {
   return { generatedAt: new Date().toISOString(), generatedBy: 'system', text, missingInformation: missing, warnings };
 }
 
-export function buildTemplateDraft(record: RequestRecord): DraftDocument {
-  const o = selectedOffer(record)?.offer;
+/** true, wenn jede Zahl aus `original` auch in `rewritten` vorkommt. */
+export function keepsAllNumbers(original: string, rewritten: string): boolean {
+  const nums = original.match(/\d+(?:[.,]\d+)*/g) ?? [];
+  return nums.every((n) => rewritten.includes(n));
+}
+
+export function findOffer(record: RequestRecord, offerId?: string): RankedOffer | undefined {
+  return (offerId ? record.comparison?.offers.find((o) => o.offer.id === offerId) : undefined) ?? selectedOffer(record);
+}
+
+/** Angebots-E-Mail auf Basis der echten Angebotsdaten (Vorlage, ohne KI). */
+export function buildTemplateDraft(record: RequestRecord, offerId?: string): DraftDocument {
+  const ranked = findOffer(record, offerId);
+  const o = ranked?.offer;
+  const lines: string[] = [];
+  if (o) {
+    lines.push(
+      `Angebot: ${o.tariffName} (${o.providerName}) – ${o.energyType === 'gas' ? 'Gas' : 'Strom'}`,
+      `Arbeitspreis: ${o.workPriceCtPerKwh?.toLocaleString('de-DE')} ct/kWh, Grundpreis: ${o.basePriceEurPerMonth !== null ? eur(o.basePriceEurPerMonth) : '–'} pro Monat (brutto)`,
+      `Preisgarantie: ${o.priceGuaranteeMonths ? `${o.priceGuaranteeMonths} Monate${o.priceGuaranteeType ? ` (${o.priceGuaranteeType})` : ''}` : 'keine'}`,
+      `Vertragslaufzeit: ${o.contractTermMonths ?? '–'} Monate, Kündigungsfrist: ${o.noticePeriodWeeks ?? '–'} Wochen`,
+    );
+    if (ranked?.cost) {
+      lines.push(`Geschätzte Jahreskosten bei ${record.input.annualConsumptionKwh.toLocaleString('de-DE')} kWh: ${eur(ranked.cost.annualCostWithoutBonusEur)} (ohne Bonus)`);
+      if (ranked.cost.oneTimeBonusEur) lines.push(`Im ersten Jahr bei Erfüllung der Bonusbedingungen: ${eur(ranked.cost.firstYearCostWithBonusEur)}`);
+    }
+    for (const b of o.bonuses) lines.push(`Bonus: ${eur(b.amountEur)} – ${b.conditions} (einmalig)`);
+    if (o.officialUrl && !o.source.isDemo) lines.push(`Offizielle Tarifseite des Anbieters: ${o.officialUrl}`);
+    lines.push(`Quelle: ${o.source.name}, Stand ${new Date(o.source.fetchedAt).toLocaleDateString('de-DE')}`);
+  }
   return {
     id: randomUUID(),
     createdAt: new Date().toISOString(),
     createdBy: 'system',
     kind: 'email_to_customer',
-    subject: `Ihre Anfrage ${record.id} bei Daryos`,
+    offerId: o?.id,
+    offerIsDemo: o?.source.isDemo ?? false,
+    subject: `Ihr Tarifangebot von Daryos – Anfrage ${record.id}`,
     body: `Guten Tag ${record.contact?.name ?? ''},
 
-vielen Dank für Ihre Anfrage zum Tarif „${o?.tariffName ?? '–'}“ von ${o?.providerName ?? '–'}.
-Wir haben Ihre Angaben geprüft. Für die weitere Bearbeitung benötigen wir noch:
+vielen Dank für Ihre Anfrage. Wir haben Ihre Angaben geprüft und folgendes Angebot für Sie herausgesucht:
+
+${lines.length ? lines.map((l) => `• ${l}`).join('\n') : '• (Bitte Angebot auswählen)'}
+
+Die Kosten sind eine Schätzung auf Basis Ihres angegebenen Verbrauchs; abgerechnet wird Ihr tatsächlicher Verbrauch.
+
+Wenn Ihnen das Angebot zusagt, benötigen wir für den Wechsel noch:
 - Lieferadresse
-- Zählernummer
+- Zählernummer (steht auf Ihrer letzten Jahresabrechnung)
 - Name Ihres bisherigen Anbieters und ggf. Kundennummer
 
 Bitte beachten Sie: Dies ist noch kein Vertragsabschluss. Ein Vertrag kommt erst zustande, wenn Sie den Antrag beim Anbieter bestätigen und der Anbieter ihn annimmt.
+
+Den Stand Ihrer Anfrage können Sie jederzeit mit Ihrer Anfrage-ID ${record.id} auf unserer Webseite abrufen.
 
 Mit freundlichen Grüßen
 Ihr Daryos-Team`,
@@ -111,9 +170,9 @@ export interface Assistant {
   readonly detail: string;
   answerCustomer(record: RequestRecord, question: string): Promise<string>;
   /** Allgemeiner Webseiten-/WhatsApp-Chat auf Basis der freigegebenen Wissensbasis. */
-  chat(history: ChatTurn[]): Promise<string>;
+  chat(history: ChatTurn[], opts?: ChatOptions): Promise<string>;
   improveSummary(record: RequestRecord, base: AdminSummary): Promise<AdminSummary>;
-  draftEmail(record: RequestRecord): Promise<DraftDocument>;
+  draftEmail(record: RequestRecord, offerId?: string): Promise<DraftDocument>;
 }
 
 export class AssistantNotConfiguredError extends Error {}
@@ -139,9 +198,8 @@ export class GeminiAssistant implements Assistant {
     return text;
   }
 
-  chat(history: ChatTurn[]) {
-    const transcript = history.map((t) => `${t.role === 'user' ? 'Kunde' : 'Assistent'}: ${t.text}`).join('\n');
-    return this.generate(`Wissensbasis:\n${buildKnowledgeBase()}\n\nBisheriges Gespräch:\n${transcript}\n\nAntworte als Assistent auf die letzte Nachricht des Kunden.`, CHAT_RULES);
+  chat(history: ChatTurn[], opts?: ChatOptions) {
+    return this.generate(buildChatPrompt(history, opts), CHAT_RULES);
   }
 
   answerCustomer(record: RequestRecord, question: string) {
@@ -155,11 +213,13 @@ export class GeminiAssistant implements Assistant {
     return { ...base, generatedAt: new Date().toISOString(), generatedBy: 'gemini', text };
   }
 
-  async draftEmail(record: RequestRecord): Promise<DraftDocument> {
-    const base = buildTemplateDraft(record);
+  async draftEmail(record: RequestRecord, offerId?: string): Promise<DraftDocument> {
+    const base = buildTemplateDraft(record, offerId);
     const body = await this.generate(
-      `Formuliere einen E-Mail-Entwurf an den Kunden ${record.contact?.name ?? ''} zu seiner Anfrage. Erfrage die fehlenden Angaben (Lieferadresse, Zählernummer, bisheriger Anbieter). Stelle klar, dass noch kein Vertrag abgeschlossen ist.\n\nKontext:\n${offerContext(record)}`,
+      `Überarbeite diesen E-Mail-Entwurf an den Kunden sprachlich (freundlich, klar, kurz). Ändere KEINE Zahlen, Preise, Fristen, Links oder Bedingungen und erfinde nichts dazu. Behalte den Hinweis, dass noch kein Vertrag abgeschlossen ist.\n\nEntwurf:\n${base.body}\n\nKundennachricht: ${record.contact?.message ?? '–'}`,
     );
+    // Sicherheitsprüfung: Alle Zahlen (Preise, Fristen, IDs) der Vorlage müssen im KI-Text unverändert vorkommen
+    if (!keepsAllNumbers(base.body, body)) return base;
     return { ...base, createdBy: 'gemini', body };
   }
 }
@@ -170,14 +230,14 @@ export class DisabledAssistant implements Assistant {
   async answerCustomer(): Promise<string> {
     throw new AssistantNotConfiguredError(this.detail);
   }
-  async chat(_history: ChatTurn[]): Promise<string> {
+  async chat(_history: ChatTurn[], _opts?: ChatOptions): Promise<string> {
     throw new AssistantNotConfiguredError(this.detail);
   }
   async improveSummary(_r: RequestRecord, base: AdminSummary) {
     return base;
   }
-  async draftEmail(record: RequestRecord) {
-    return buildTemplateDraft(record);
+  async draftEmail(record: RequestRecord, offerId?: string) {
+    return buildTemplateDraft(record, offerId);
   }
 }
 

@@ -68,8 +68,8 @@ ok "Rechte gesetzt"
 
 info "5/6 Veröffentlichen (3–6 Minuten) …"
 if gcloud run deploy "$SERVICE" --source . --region "$REGION" --max-instances 1 --allow-unauthenticated --quiet \
-    --set-env-vars "STORAGE=firestore,FIREBASE_PROJECT_ID=$PROJECT,ADMIN_EMAIL=$ADMIN_EMAIL,TRUST_PROXY=true" \
-    --set-secrets "ADMIN_PASSWORD_HASH=$SECRET:latest"; then
+    --update-env-vars "STORAGE=firestore,FIREBASE_PROJECT_ID=$PROJECT,ADMIN_EMAIL=$ADMIN_EMAIL,TRUST_PROXY=true" \
+    --update-secrets "ADMIN_PASSWORD_HASH=$SECRET:latest"; then
   URL="$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')"
   gcloud run services update "$SERVICE" --region "$REGION" --update-env-vars "APP_URL=$URL" --quiet >/dev/null 2>&1
   info "6/6 Fertig!"
