@@ -113,3 +113,9 @@ test('Zwei-Faktor in der Verwaltung: Einrichtung nur mit Passwort und gültigem 
     server.close();
   }
 });
+
+test('Gemini: bei abgeschaltetem Modell wird das neueste stabile Flash-Modell gewählt', async () => {
+  const { pickFlashModel } = await import('../server/assistant');
+  assert.equal(pickFlashModel(['models/gemini-2.0-flash', 'models/gemini-3.0-flash', 'models/gemini-3.5-flash-preview', 'models/gemini-3.0-flash-lite', 'models/gemini-3.0-pro', 'models/text-embedding-004']), 'gemini-3.0-flash');
+  assert.equal(pickFlashModel(['models/gemini-pro']), undefined);
+});

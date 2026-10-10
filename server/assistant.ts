@@ -179,22 +179,51 @@ export interface Assistant {
 
 export class AssistantNotConfiguredError extends Error {}
 
+/** Wählt aus den verfügbaren Modellen das neueste stabile „Flash“-Modell (schnell, günstig). */
+export function pickFlashModel(names: string[]): string | undefined {
+  const usable = names
+    .map((n) => n.replace(/^models\//, ''))
+    .filter((n) => /flash/.test(n) && !/(image|tts|audio|live|embed|thinking|lite|robotics|computer)/.test(n));
+  const version = (n: string) => Number(n.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? 0);
+  const stable = (n: string) => !/(preview|exp)/.test(n);
+  return usable.sort((a, b) => Number(stable(b)) - Number(stable(a)) || version(b) - version(a) || a.length - b.length)[0];
+}
+
 export class GeminiAssistant implements Assistant {
   readonly configured = true;
-  readonly detail: string;
+  detail: string;
   private ai: GoogleGenAI;
+  private resolved = false;
 
-  constructor(apiKey: string, private readonly model: string) {
+  constructor(apiKey: string, private model: string) {
     this.ai = new GoogleGenAI({ apiKey });
     this.detail = `Gemini (${model})`;
   }
 
+  /** Falls das eingestellte Modell abgeschaltet wurde: verfügbares Modell bei Google abfragen und wechseln */
+  private async resolveModel(): Promise<boolean> {
+    if (this.resolved) return false;
+    this.resolved = true;
+    const names: string[] = [];
+    for await (const m of await this.ai.models.list()) {
+      if (m.name && (!m.supportedActions || m.supportedActions.includes('generateContent'))) names.push(m.name);
+    }
+    const next = pickFlashModel(names);
+    if (!next || next === this.model) return false;
+    console.warn(`[daryos] Gemini-Modell „${this.model}“ nicht verfügbar – verwende „${next}“.`);
+    this.model = next;
+    this.detail = `Gemini (${next})`;
+    return true;
+  }
+
   private async generate(prompt: string, systemInstruction = SYSTEM_RULES, maxOutputTokens = 600, temperature = 0.2): Promise<string> {
-    const res = await this.ai.models.generateContent({
-      model: this.model,
-      contents: prompt,
-      config: { systemInstruction, temperature, maxOutputTokens },
-    });
+    let res;
+    try {
+      res = await this.ai.models.generateContent({ model: this.model, contents: prompt, config: { systemInstruction, temperature, maxOutputTokens } });
+    } catch (err) {
+      if (!/not found|NOT_FOUND|404|not supported/i.test(String((err as Error)?.message)) || !(await this.resolveModel())) throw err;
+      res = await this.ai.models.generateContent({ model: this.model, contents: prompt, config: { systemInstruction, temperature, maxOutputTokens } });
+    }
     const text = res.text?.trim();
     if (!text) throw new Error('Leere Antwort des KI-Modells');
     return text;
@@ -252,6 +281,6 @@ export class DisabledAssistant implements Assistant {
 
 export function assistantFromEnv(env: NodeJS.ProcessEnv): Assistant {
   const key = env.GEMINI_API_KEY;
-  if (key && key !== 'MY_GEMINI_API_KEY') return new GeminiAssistant(key, env.GEMINI_MODEL || 'gemini-2.5-flash');
+  if (key && key !== 'MY_GEMINI_API_KEY') return new GeminiAssistant(key, env.GEMINI_MODEL || 'gemini-flash-latest');
   return new DisabledAssistant();
 }
