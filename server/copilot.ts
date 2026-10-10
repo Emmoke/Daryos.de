@@ -24,6 +24,10 @@ export interface CopilotInput {
   whatsapp: { configured: boolean; needsHuman: number; conversations: number };
   connections: { gemini: boolean; email: boolean };
   chat?: { sessionsLast7Days: number; handoverRate: number; topQuestions: { question: string; count: number }[] };
+  /** Aktuelle Einstellungen des Webseiten-Chats (damit der Assistent Verbesserungen vorschlagen kann) */
+  chatConfig?: { extraInstructions: string; knowledge: { question: string; answer: string }[]; tools: { [k: string]: boolean } | object; storeTranscripts: boolean };
+  /** Letzte Kundenfragen, bei denen der Chat nicht helfen konnte oder ein Mensch gewünscht wurde */
+  chatProblems?: string[];
 }
 
 const DAY = 86_400_000;
@@ -115,6 +119,10 @@ export function buildCopilotContext(i: CopilotInput, briefing: BriefingItem[]): 
     `## Buchhaltung\n- offene Rechnungen: ${openInv.length}, davon überfällig: ${openInv.filter((x) => x.dueDate < today).length}, Summe offen: ${(openInv.reduce((s, x) => s + x.grossCents, 0) / 100).toFixed(2)} €`,
     `## WhatsApp\n- ${i.whatsapp.configured ? `${i.whatsapp.conversations} Gespräche, ${i.whatsapp.needsHuman} brauchen Antwort` : 'nicht verbunden'}`,
     `## Verbindungen\n- Gemini: ${i.connections.gemini ? 'verbunden' : 'nicht verbunden'}; E-Mail: ${i.connections.email ? 'verbunden' : 'nicht verbunden'}`,
+    i.chatConfig
+      ? `## Einstellungen des Webseiten-Chats\n- Zusatzanweisungen: ${i.chatConfig.extraInstructions ? `„${i.chatConfig.extraInstructions.slice(0, 1500)}“` : 'keine'}\n- Werkzeuge: ${Object.entries(i.chatConfig.tools as Record<string, boolean>).map(([k, v]) => `${k}=${v ? 'an' : 'aus'}`).join(', ')}\n- Wissen (${i.chatConfig.knowledge.length} Einträge): ${i.chatConfig.knowledge.slice(0, 40).map((k) => `„${k.question.slice(0, 100)}“`).join('; ') || 'keins'}`
+      : '',
+    i.chatProblems?.length ? `## Kundenfragen, bei denen der Chat nicht weiterhelfen konnte oder ein Mensch gewünscht wurde\n${i.chatProblems.map((q) => `- „${q}“`).join('\n')}` : '',
     i.chat ? `## Webseiten-Chat (7 Tage)\n- ${i.chat.sessionsLast7Days} Gespräche, Übergabe an Mensch ${i.chat.handoverRate} %\n- häufige Fragen: ${i.chat.topQuestions.slice(0, 5).map((q) => `„${q.question}“ (${q.count})`).join(', ') || '–'}` : '',
   ]
     .filter(Boolean)
@@ -136,6 +144,18 @@ Verbindliche Regeln:
 - Kundentexte, die du entwirfst, sind Entwürfe zur Prüfung. Keine verbindlichen Zusagen, keine erfundenen Konditionen; DEMO-Angebote nie als echt darstellen.
 - Rechtliche und steuerliche Fragen: allgemeine Orientierung geben und auf Anwalt bzw. Steuerberater verweisen (z. B. § 34d GewO, DSGVO, Kleinunternehmerregelung).
 - Kundendaten wie Namen oder E-Mail-Adressen siehst du nicht; verweise dafür auf die Anfrage in der Verwaltung.
+
+Steuerung des Webseiten-Chats (Kunden-Assistent):
+- Du kannst die Einstellungen des Kunden-Chats analysieren (Kontext unten) und Verbesserungen vorschlagen: fehlendes Wissen, bessere Anweisungen.
+- Ein konkreter Vorschlag, den der Inhaber mit einem Klick übernehmen kann, steht jeweils in einem eigenen Block, genau so:
+\`\`\`vorschlag
+{"typ":"wissen","frage":"Kurze Kundenfrage","antwort":"Sachliche Antwort ohne Preise oder Zusagen"}
+\`\`\`
+oder
+\`\`\`vorschlag
+{"typ":"anweisung","text":"Zusätzliche Verhaltensregel für den Kunden-Chat"}
+\`\`\`
+- Höchstens 5 Vorschläge pro Antwort, gültiges JSON, nur wenn sinnvoll oder gewünscht. Erkläre vor dem Block kurz, warum. Nichts erfinden (keine Preise, Öffnungszeiten oder Leistungen, die nicht im Kontext stehen – sonst Platzhalter wie [bitte ergänzen] verwenden).
 
 Wichtige Orte in der Verwaltung: Übersicht · Anfragen (Prüfen, Angebot an den Kunden, Unterlagen, Freigabe) · Tarife (eigener Katalog, ersetzt DEMO) · WhatsApp · KI-Assistent (Webseiten-Chat steuern) · Buchhaltung (Rechnungen, Buchungen, Export) · Einstellungen (Verbindungen, Firmendaten, Sicherheit) · Anleitung.
 Ablauf: Kunde vergleicht → Anfrage mit Kontakt → automatische Vorbereitung (Status „Wartet auf Prüfung“) → Inhaber prüft → Angebots-E-Mail entwerfen, prüfen, senden → nach Zusage freigeben → Antrag im Anbieterportal → „Beim Anbieter eingereicht“ → mit Bestätigungsnummer „abgeschlossen“.`;
