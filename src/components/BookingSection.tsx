@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CalendarCheck, MapPin, Phone, Video, MessageSquare, Check, Download, ArrowRight, ShieldCheck, Clock } from 'lucide-react';
 import { Language, ConsultationType, ServiceType, AppointmentData } from '../types';
 import { translations } from '../data/translations';
+import { api, ApiError } from '../platform/api';
 
 interface BookingSectionProps {
   currentLang: Language;
@@ -32,14 +33,36 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   const [notes, setNotes] = useState<string>(initialNotes);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [confirmedData, setConfirmedData] = useState<AppointmentData | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [formError, setFormError] = useState('');
+  // Vom Server angenommen? Dann sieht Daryos die Anfrage in der Verwaltung; sonst (Vorschau ohne Server) WhatsApp
+  const [serverId, setServerId] = useState<string | null>(null);
 
   const timeSlots = [
     '09:30', '10:30', '11:30', '13:00', '14:00', '15:00', '16:00', '17:00'
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !phone) return;
+    if (!consent) { setFormError('Bitte stimmen Sie der Verarbeitung Ihrer Angaben zu.'); return; }
+    setFormError('');
+    setSending(true);
+    let id: string | null = null;
+    try {
+      const r = await api.bookAppointment({ name: fullName, phone, email, service: serviceType, format: consultationType, date: selectedDate, time: selectedTime, notes, consentPrivacy: true });
+      id = r.appointment.id;
+    } catch (err) {
+      // 503 = keine Verbindung zum Server (z. B. Vorschau) → weiter über WhatsApp; sonst Fehler anzeigen
+      if (err instanceof ApiError && err.status !== 503 && err.status !== 0) {
+        setFormError(Object.values(err.fields)[0] ?? err.message);
+        setSending(false);
+        return;
+      }
+    }
+    setSending(false);
+    setServerId(id);
 
     const data: AppointmentData = {
       consultationType,
@@ -96,10 +119,10 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
       `DTSTAMP:${startStr}Z`,
       `DTSTART:${startStr}`,
       `DTEND:${endStr}`,
-      `SUMMARY:Daryos Beratungstermin: ${getServiceLabel(confirmedData.serviceType)}`,
+      `SUMMARY:Wunschtermin (noch nicht bestätigt): Daryos ${getServiceLabel(confirmedData.serviceType)}`,
       `DESCRIPTION:Beratungstermin mit Daryos Leipzig.\\nFormat: ${getConsultationLabel(confirmedData.consultationType)}\\nTelefon: +49 176 43416174`,
       'LOCATION:Rotfuchsstraße 1, 04329 Leipzig, Deutschland',
-      'STATUS:CONFIRMED',
+      'STATUS:TENTATIVE',
       'END:VEVENT',
       'END:VCALENDAR',
     ].join('\r\n');
@@ -306,14 +329,21 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                 </div>
               </div>
 
+              <label className="flex items-start gap-2 text-xs text-slate-400">
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 w-4 h-4 accent-blue-500" />
+                <span>Ich bin einverstanden, dass Daryos meine Angaben zur Terminvereinbarung verarbeitet (siehe Datenschutzerklärung). <span className="text-rose-400">*</span></span>
+              </label>
+              {formError && <p role="alert" className="text-sm text-rose-400">{formError}</p>}
+
               {/* Submit CTA */}
               <div className="pt-2">
                 <button
+                  disabled={sending}
                   type="submit"
                   className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <CalendarCheck className="w-5 h-5" />
-                  <span>{t.booking.submitBtn}</span>
+                  <span>{sending ? 'Wird gesendet …' : 'Termin anfragen'}</span>
                 </button>
                 <div className="text-center text-[11px] text-slate-500 mt-2 flex items-center justify-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
@@ -330,10 +360,12 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
 
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-white">
-                  {t.booking.confirmationTitle}
+                  {serverId ? 'Terminanfrage eingegangen' : t.booking.confirmationTitle}
                 </h3>
                 <p className="text-sm text-slate-400 max-w-md mx-auto">
-                  {t.booking.confirmationDesc}
+                  {serverId
+                    ? `Ihre Anfrage ${serverId} ist bei Daryos angekommen. Der Termin ist noch nicht bestätigt – wir melden uns mit einer Bestätigung oder einem Alternativvorschlag${email ? ' per E-Mail' : ' telefonisch'}.`
+                    : t.booking.confirmationDesc}
                 </p>
               </div>
 
@@ -368,7 +400,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                   className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <MessageSquare className="w-4 h-4" />
-                  <span>{t.booking.openWhatsAppAction}</span>
+                  <span>{serverId ? 'Zusätzlich per WhatsApp schreiben' : t.booking.openWhatsAppAction}</span>
                 </button>
 
                 <button
@@ -377,7 +409,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                   className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 border border-slate-700 cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
-                  <span>{t.booking.exportCalendar}</span>
+                  <span>Wunschtermin vormerken</span>
                 </button>
               </div>
 

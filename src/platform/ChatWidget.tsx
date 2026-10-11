@@ -26,6 +26,15 @@ function loadHistory(): Turn[] {
 
 export function ChatWidget({ onOpenBooking }: { onOpenBooking: () => void }) {
   const [open, setOpen] = useState(false);
+  // Schließen mit Escape und beim Seitenwechsel – sonst verdeckt das Fenster auf dem Handy die Seite
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    const onHash = () => setOpen(false);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('hashchange', onHash);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('hashchange', onHash); };
+  }, [open]);
   const [turns, setTurns] = useState<Turn[]>(loadHistory);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);

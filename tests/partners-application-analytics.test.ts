@@ -143,3 +143,67 @@ test('Antrag: Verwaltung bittet um Daten, Kunde ergänzt in „Mein Konto“, Ei
     server.close();
   }
 });
+
+test('Termine: Anfrage von der Webseite, Bestätigung mit anderem Termin, Kalender nur nach Bestätigung, Konto zeigt Termin', async () => {
+  const { AppointmentStore } = await import('../server/appointments');
+  const store = new MemoryRequestStore();
+  const mail = new MailBox();
+  const appointments = await AppointmentStore.open();
+  const deps: AppDeps = {
+    store, offerProvider: new DemoOfferProvider(), notifier: mail, assistant: new DisabledAssistant(), sessions: new SessionManager(),
+    admin: { email: 'inhaber@daryos.test', name: 'Inhaber', passwordHash: hashPassword('passwort-1234567') }, secureCookies: false, appUrl: 'https://daryos.test',
+    customers: new CustomerAuth(), appointments,
+    limits: { compare: new RateLimiter(99, 60_000), contact: new RateLimiter(99, 60_000), login: new RateLimiter(99, 60_000), assistant: new RateLimiter(99, 60_000), status: new RateLimiter(99, 60_000) },
+  };
+  const app = express();
+  app.use('/api', createApp(deps));
+  const server: Server = await new Promise((r) => { const s = app.listen(0, () => r(s)); });
+  const base = `http://127.0.0.1:${(server.address() as { port: number }).port}/api`;
+  const call = async (method: string, path: string, body?: unknown, cookie?: string) => {
+    const res = await fetch(base + path, { method, headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
+    const text = await res.text();
+    let json: any = null;
+    try { json = JSON.parse(text); } catch { /* ICS */ }
+    return { status: res.status, json, text, cookie: res.headers.get('set-cookie')?.split(';')[0] };
+  };
+  const day = (n: number) => { const d = new Date(Date.now() + n * 864e5); if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
+  try {
+    const bad = await call('POST', '/appointments', { name: 'E', phone: 'x', format: 'vor-ort', date: '2020-01-01', time: '10:00' });
+    assert.equal(bad.status, 400);
+    assert.ok(bad.json.fields.consentPrivacy && bad.json.fields.date && bad.json.fields.phone);
+    const ok = await call('POST', '/appointments', { name: 'Erika Mustermann', phone: '0176 1234567', email: 'Erika@Example.de', service: 'strom', format: 'vor-ort', date: day(2), time: '10:30', consentPrivacy: true });
+    assert.equal(ok.status, 201);
+    const id = ok.json.appointment.id;
+    assert.match(mail.mails.at(-1)!.text, /noch nicht bestätigt/);
+
+    const admin = (await call('POST', '/admin/login', { password: 'passwort-1234567' })).cookie!;
+    const list = await call('GET', '/admin/appointments', undefined, admin);
+    const token = list.json.appointments[0].calendarToken;
+    assert.equal((await call('GET', `/appointments/calendar/${token}`)).status, 404, 'Kalender erst nach Bestätigung');
+    const conf = await call('POST', `/admin/appointments/${id}/confirm`, { date: day(3), time: '14:00', notify: true }, admin);
+    assert.equal(conf.json.emailed, true);
+    assert.match(mail.mails.at(-1)!.text, /Neuer Terminvorschlag|nicht frei/);
+    const ics = await call('GET', `/appointments/calendar/${token}`);
+    assert.match(ics.text, /DTSTART;TZID=Europe\/Berlin:\d{8}T140000/);
+    assert.match(ics.text, /STATUS:CONFIRMED/);
+
+    // Kunde ohne Tarifanfrage kann sich anmelden und sieht den Termin
+    await call('POST', '/customer/login', { email: 'erika@example.de' });
+    const t = mail.mails.at(-1)!.text.match(/#\/konto\/anmelden\/([\w-]+)/)![1];
+    const c = (await call('POST', '/customer/verify', { token: t })).cookie!;
+    const me = await call('GET', '/customer/me', undefined, c);
+    assert.equal(me.json.appointments[0].status, 'bestaetigt');
+    assert.ok(me.json.appointments[0].calendarUrl.includes(token));
+
+    const cancel = await call('POST', `/admin/appointments/${id}/status`, { status: 'abgesagt', note: 'Krankheit', notify: true }, admin);
+    assert.equal(cancel.json.appointment.status, 'abgesagt');
+    assert.equal((await call('GET', `/appointments/calendar/${token}`)).status, 404);
+
+    // Termin aus der Verwaltung gilt sofort als bestätigt
+    const own = await call('POST', '/admin/appointments', { name: 'Max', phone: '0341 123456', format: 'telefon', date: day(1), time: '09:30' }, admin);
+    assert.equal(own.json.appointment.status, 'bestaetigt');
+    assert.match(own.json.appointment.confirmed.location, /0341 123456/);
+  } finally {
+    server.close();
+  }
+});

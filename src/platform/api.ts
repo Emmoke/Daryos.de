@@ -53,8 +53,10 @@ export interface CustomerApplication {
   form: { key: string; label: string; group: string; required?: boolean; type?: string; options?: Record<string, string>; placeholder?: string }[];
   checks: { field?: string; level: 'fehler' | 'warnung'; message: string }[];
 }
+export interface CustomerAppointment { id: string; status: string; statusLabel: string; service: string; format: string; wish?: { date: string; time: string }; confirmed: { date: string; time: string; location: string; note?: string } | null; calendarUrl: string | null }
 export interface CustomerAccount {
   email: string;
+  appointments: CustomerAppointment[];
   uploadsEnabled: boolean;
   requests: (PublicRequestStatus & { documents: CustomerDocument[]; messages: { subject: string; body: string; sentAt: string }[]; application: CustomerApplication | null })[];
 }
@@ -66,6 +68,7 @@ export const api = {
   contact: (id: string, body: unknown) => request<ContactResponse>('POST', `/requests/${encodeURIComponent(id)}/contact`, body),
   chat: (messages: { role: 'user' | 'assistant'; text: string }[], sessionId?: string) =>
     request<{ reply: string; disclaimer: string; sessionId?: string }>('POST', '/chat', { messages, sessionId }),
+  bookAppointment: (body: unknown) => request<{ appointment: CustomerAppointment }>('POST', '/appointments', body),
   customerLogin: (email: string) => request<{ ok: true; message: string }>('POST', '/customer/login', { email }),
   customerVerify: (token: string) => request<{ email: string }>('POST', '/customer/verify', { token }),
   customerMe: () => request<CustomerAccount>('GET', '/customer/me'),

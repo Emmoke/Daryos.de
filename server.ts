@@ -20,6 +20,7 @@ import { fileStorageFromEnv } from './server/files';
 import { CopilotStore } from './server/copilot';
 import { PartnerStore } from './server/partners';
 import { AnalyticsStore } from './server/analytics';
+import { AppointmentStore } from './server/appointments';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -65,8 +66,8 @@ async function initApi(attempt = 1): Promise<void> {
     console.log(`[daryos] Datenspeicher: ${backend.name}`);
     const files = await fileStorageFromEnv(env, root);
     console.log(`[daryos] Dateispeicher: ${files.name}`);
-    const [store, accounting, tariffs, assistantConfig, waStore, integrations, copilot, partners, analytics] = await withTimeout(
-      Promise.all([MemoryRequestStore.open(backend), AccountingStore.open(backend), TariffCatalog.open(backend), AssistantConfigStore.open(backend), ConversationStore.open(backend), IntegrationStore.open(backend, encryptionKeyFromEnv(env, isProd)), CopilotStore.open(backend), PartnerStore.open(backend), AnalyticsStore.open(backend)]),
+    const [store, accounting, tariffs, assistantConfig, waStore, integrations, copilot, partners, analytics, appointments] = await withTimeout(
+      Promise.all([MemoryRequestStore.open(backend), AccountingStore.open(backend), TariffCatalog.open(backend), AssistantConfigStore.open(backend), ConversationStore.open(backend), IntegrationStore.open(backend, encryptionKeyFromEnv(env, isProd)), CopilotStore.open(backend), PartnerStore.open(backend), AnalyticsStore.open(backend), AppointmentStore.open(backend)]),
       30_000,
       'Laden der Daten',
     );
@@ -90,6 +91,7 @@ async function initApi(attempt = 1): Promise<void> {
       copilot,
       partners,
       analytics,
+      appointments,
       integrations: { store: integrations, baseEnv: env, conversations: waStore },
       appUrl: env.APP_URL && env.APP_URL !== 'MY_APP_URL' ? env.APP_URL.replace(/\/$/, '') : `http://localhost:${port}`,
       secureCookies: isProd,
@@ -110,6 +112,7 @@ async function initApi(attempt = 1): Promise<void> {
         const w = await waStore.purgeExpired(new Date());
         await assistantConfig.purgeExpired(new Date());
         await analytics.purgeExpired(new Date());
+        await appointments.purgeExpired(new Date());
         if (n || w) console.log(`[daryos] ${n} Anfrage(n) und ${w} WhatsApp-Unterhaltung(en) nach Ablauf der Frist gelöscht`);
       } catch (err) {
         console.error('[daryos] Löschen abgelaufener Daten fehlgeschlagen:', (err as Error).message);

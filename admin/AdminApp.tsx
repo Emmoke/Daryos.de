@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { BarChart3, Bot, BookOpen, Handshake, HelpCircle, Inbox, LayoutDashboard, LogOut, Menu, MessageCircle, Settings, ShieldCheck, Tag, X } from 'lucide-react';
+import { BarChart3, Bot, BookOpen, CalendarDays, Handshake, HelpCircle, Inbox, LayoutDashboard, LogOut, Menu, MessageCircle, Settings, ShieldCheck, Tag, X } from 'lucide-react';
 import { api, ApiError, type AdminUser } from './api';
 import { Button, Field, inputCls, Notice, Spinner } from './ui';
 import { OverviewPage } from './pages/Overview';
@@ -7,6 +7,7 @@ import { RequestsPage } from './pages/Requests';
 import { WhatsAppPage } from './pages/WhatsApp';
 import { TariffsPage } from './pages/Tariffs';
 import { PartnersPage } from './pages/Partners';
+import { AppointmentsPage } from './pages/Appointments';
 import { AnalyticsPage } from './pages/Analytics';
 import { AssistantPage } from './pages/Assistant';
 import { GuidePage } from './pages/Guide';
@@ -17,6 +18,7 @@ import { SettingsPage } from './pages/Settings';
 const NAV = [
   { key: 'uebersicht', label: 'Übersicht', icon: LayoutDashboard },
   { key: 'anfragen', label: 'Anfragen', icon: Inbox },
+  { key: 'termine', label: 'Termine', icon: CalendarDays },
   { key: 'tarife', label: 'Tarife', icon: Tag },
   { key: 'partner', label: 'Partner', icon: Handshake },
   { key: 'auswertung', label: 'Auswertung', icon: BarChart3 },
@@ -119,6 +121,7 @@ export function AdminApp() {
         {page === 'anfragen' && <RequestsPage />}
         {page === 'tarife' && <TariffsPage />}
         {page === 'partner' && <PartnersPage />}
+        {page === 'termine' && <AppointmentsPage />}
         {page === 'auswertung' && <AnalyticsPage />}
         {page === 'whatsapp' && <WhatsAppPage />}
         {page === 'assistent' && <AssistantPage />}

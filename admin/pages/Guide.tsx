@@ -97,6 +97,7 @@ export function GuidePage() {
             <ul className="text-sm text-slate-700 space-y-1">
               <li><strong>Neue Anfragen & Status:</strong> Übersicht, Anfragen</li>
               <li><strong>Was Kunden im Vergleich sehen:</strong> Tarife (Hinweis oben: Katalog oder DEMO)</li>
+              <li><strong>Terminanfragen bestätigen, eigene Termine:</strong> Termine (oder bei der Anfrage „Termin vereinbaren“)</li>
               <li><strong>Vertragspartner & Portal-Links:</strong> Partner</li>
               <li><strong>Antrag ausfüllen (selbst, Kunde, KI aus Rechnung):</strong> Anfragen → Antrag vorbereiten</li>
               <li><strong>Was Besucher suchen, wo Tarife fehlen:</strong> Auswertung</li>

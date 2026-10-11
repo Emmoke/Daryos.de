@@ -9,6 +9,8 @@ export interface Notifier {
   notifyAdminNewRequest(requestId: string, adminUrl: string): Promise<NotificationLog>;
   /** Nur nach ausdrücklicher Freigabe durch den Administrator aufrufen. */
   sendCustomerEmail(to: string, subject: string, text: string): Promise<NotificationLog>;
+  /** Hinweis an den Inhaber (ohne Kundendaten im Text) */
+  notifyAdmin?(subject: string, text: string): Promise<NotificationLog>;
 }
 
 export class SmtpNotifier implements Notifier {
@@ -34,6 +36,16 @@ export class SmtpNotifier implements Notifier {
       auth: cfg.user ? { user: cfg.user, pass: cfg.pass } : undefined,
     });
     this.detail = `SMTP ${cfg.host}:${cfg.port} → ${cfg.adminTo}`;
+  }
+
+  async notifyAdmin(subject: string, text: string): Promise<NotificationLog> {
+    const at = new Date().toISOString();
+    try {
+      await this.transport.sendMail({ from: this.cfg.from, to: this.cfg.adminTo, subject, text });
+      return { at, channel: 'email', recipient: 'admin', status: 'sent', detail: `an ${this.cfg.adminTo}` };
+    } catch (err) {
+      return { at, channel: 'email', recipient: 'admin', status: 'failed', detail: (err as Error).message.slice(0, 200) };
+    }
   }
 
   async notifyAdminNewRequest(requestId: string, adminUrl: string): Promise<NotificationLog> {
