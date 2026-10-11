@@ -28,6 +28,8 @@ export interface CopilotInput {
   chatConfig?: { extraInstructions: string; knowledge: { question: string; answer: string }[]; tools: { [k: string]: boolean } | object; storeTranscripts: boolean };
   /** Letzte Kundenfragen, bei denen der Chat nicht helfen konnte oder ein Mensch gewünscht wurde */
   chatProblems?: string[];
+  /** Auswertung der letzten 30 Tage (nur Zählwerte) */
+  analytics?: { totals: { visits: number; comparisons: number; contacts: number; conversion: number; comparisonsWithoutRealOffer: number }; byRegion: { key: string; count: number }[]; byBand: { key: string; count: number }[]; noRealOffer: { key: string; count: number }[]; selectedOffers: { key: string; count: number }[]; referrers: { key: string; count: number }[]; insights: string[] };
 }
 
 const DAY = 86_400_000;
@@ -106,6 +108,7 @@ export function buildCopilotContext(i: CopilotInput, briefing: BriefingItem[]): 
       r.summary?.warnings.length ? `Hinweise: ${r.summary.warnings.join('; ')}` : '',
       r.drafts.some((d) => d.sentAt) ? `Angebots-E-Mail gesendet am ${r.drafts.filter((d) => d.sentAt).pop()!.sentAt!.slice(0, 10)}` : r.drafts.length ? 'Entwurf vorhanden, nicht gesendet' : '',
       (r.documents ?? []).length ? `${r.documents!.length} Unterlage(n)` : '',
+      r.application ? `Antrag: ${r.application.status}, ${r.application.checks.filter((c) => c.level === 'fehler').length} offene Fehler` : '',
     ];
     return '- ' + parts.filter(Boolean).join(' | ');
   });
@@ -123,6 +126,9 @@ export function buildCopilotContext(i: CopilotInput, briefing: BriefingItem[]): 
       ? `## Einstellungen des Webseiten-Chats\n- Zusatzanweisungen: ${i.chatConfig.extraInstructions ? `„${i.chatConfig.extraInstructions.slice(0, 1500)}“` : 'keine'}\n- Werkzeuge: ${Object.entries(i.chatConfig.tools as Record<string, boolean>).map(([k, v]) => `${k}=${v ? 'an' : 'aus'}`).join(', ')}\n- Wissen (${i.chatConfig.knowledge.length} Einträge): ${i.chatConfig.knowledge.slice(0, 40).map((k) => `„${k.question.slice(0, 100)}“`).join('; ') || 'keins'}`
       : '',
     i.chatProblems?.length ? `## Kundenfragen, bei denen der Chat nicht weiterhelfen konnte oder ein Mensch gewünscht wurde\n${i.chatProblems.map((q) => `- „${q}“`).join('\n')}` : '',
+    i.analytics
+      ? `## Auswertung Webseite (30 Tage, nur Zählwerte)\n- Besuche (mit Einwilligung): ${i.analytics.totals.visits}, Vergleiche: ${i.analytics.totals.comparisons}, Anfragen: ${i.analytics.totals.contacts}, Abschlussquote Vergleich→Anfrage: ${i.analytics.totals.conversion} %\n- Vergleiche ohne echten Tarif: ${i.analytics.totals.comparisonsWithoutRealOffer}; Regionen: ${i.analytics.noRealOffer.map((x) => `${x.key} (${x.count})`).join(', ') || '–'}\n- PLZ-Bereiche: ${i.analytics.byRegion.map((x) => `${x.key} (${x.count})`).join(', ') || '–'}\n- Verbrauchsklassen: ${i.analytics.byBand.map((x) => `${x.key} (${x.count})`).join(', ') || '–'}\n- Gewählte Angebote: ${i.analytics.selectedOffers.map((x) => `${x.key} (${x.count})`).join(', ') || '–'}\n- Herkunft: ${i.analytics.referrers.map((x) => `${x.key} (${x.count})`).join(', ') || '–'}\n- Hinweise: ${i.analytics.insights.join(' ')}`
+      : '',
     i.chat ? `## Webseiten-Chat (7 Tage)\n- ${i.chat.sessionsLast7Days} Gespräche, Übergabe an Mensch ${i.chat.handoverRate} %\n- häufige Fragen: ${i.chat.topQuestions.slice(0, 5).map((q) => `„${q.question}“ (${q.count})`).join(', ') || '–'}` : '',
   ]
     .filter(Boolean)
@@ -137,6 +143,7 @@ Deine Aufgaben:
 - Beraten: Ablauf einer Anfrage, Prüfung, Tarifpflege, Kundenkommunikation, Buchhaltung, Organisation, Ideen für Automatisierung und Marketing.
 - Texte entwerfen: Antworten an Kunden, Nachfass-E-Mails, WhatsApp-Nachrichten, FAQ-Einträge, Tarifbeschreibungen.
 - Auf Wunsch Tages- oder Wochenplan erstellen.
+- Die Auswertung der Webseite deuten: wo fehlen Tarife (Regionen ohne echtes Angebot), welche Verbrauchsgruppen, wie gut wird aus Vergleichen eine Anfrage – und konkrete Verbesserungen vorschlagen.
 
 Verbindliche Regeln:
 - Nutze für Fakten über Anfragen, Tarife, Rechnungen nur den Kontext unten. Erfinde keine Anfragen, Preise, Tarife, Kunden oder Zahlen. Wenn etwas fehlt, sag es.

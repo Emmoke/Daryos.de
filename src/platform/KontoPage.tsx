@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Download, FileText, Loader2, LogOut, Mail, Trash2, Upload } from 'lucide-react';
-import { api, ApiError, dateTime, type CustomerAccount } from './api';
+import { api, ApiError, dateTime, type CustomerAccount, type CustomerApplication } from './api';
 
 // Kundenkonto: Anmeldung per E-Mail-Link (ohne Passwort), Anfragen, Nachrichten von Daryos und Unterlagen hochladen.
 export function KontoPage({ token }: { token?: string }) {
@@ -128,6 +128,8 @@ function RequestCard({ r, uploadsEnabled, onChange }: { r: CustomerAccount['requ
         <a href={`#/status/${r.requestId}`} className="text-sm text-orange-400 hover:underline">Verlauf ansehen</a>
       </header>
 
+      {r.application && <ApplicationForm id={r.requestId} app={r.application} onDone={onChange} />}
+
       {r.messages.length > 0 && (
         <div>
           <h2 className="font-semibold mb-2">Nachrichten von Daryos</h2>
@@ -172,5 +174,68 @@ function RequestCard({ r, uploadsEnabled, onChange }: { r: CustomerAccount['requ
         {msg && <p role="status" className={`mt-2 text-sm ${msg.error ? 'text-rose-400' : 'text-emerald-400'}`}>{msg.text}</p>}
       </div>
     </article>
+  );
+}
+
+// Antragsdaten, um die Daryos gebeten hat – ohne Bankdaten
+function ApplicationForm({ id, app, onDone }: { id: string; app: CustomerApplication; onDone: () => void }) {
+  const [fields, setFields] = useState<Record<string, string>>(app.fields);
+  const [checks, setChecks] = useState(app.checks);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const groups: Record<string, CustomerApplication['form']> = {};
+  for (const f of app.form) (groups[f.group] ??= []).push(f);
+  const cls = 'w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg focus:outline-none focus:border-orange-500 text-sm';
+  return (
+    <form
+      className="rounded-xl border border-orange-500/40 bg-orange-500/5 p-4 space-y-4"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setMsg(null);
+        try {
+          const r = await api.saveApplication(id, fields);
+          setChecks(r.checks);
+          if (r.status === 'vollstaendig') { setMsg({ text: 'Vielen Dank! Ihre Angaben sind vollständig. Daryos reicht den Antrag nach Prüfung ein.' }); setTimeout(onDone, 2500); }
+          else setMsg({ text: 'Gespeichert. Bitte die markierten Angaben noch ergänzen.', error: true });
+        } catch (err) {
+          setMsg({ text: err instanceof ApiError ? err.message : 'Fehler', error: true });
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <div>
+        <h2 className="font-semibold">Angaben für Ihren Wechselantrag</h2>
+        <p className="text-sm text-slate-400">Die Zählernummer und die Marktlokations-ID finden Sie auf Ihrer letzten Jahresabrechnung. Bitte keine Bankdaten – die erfragt der Anbieter direkt.</p>
+      </div>
+      {Object.entries(groups).map(([g, list]) => (
+        <fieldset key={g}>
+          <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{g}</legend>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {list.map((f) => {
+              const chk = checks.find((c) => c.field === f.key);
+              return (
+                <label key={f.key} className="text-sm">
+                  <span className="block mb-1 text-slate-300">{f.label}{f.required && ' *'}</span>
+                  {f.type === 'select' ? (
+                    <select className={cls} value={fields[f.key] ?? ''} onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })}>
+                      <option value="">–</option>{Object.entries(f.options ?? {}).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                    </select>
+                  ) : (
+                    <input className={cls} type={f.type === 'date' ? 'date' : 'text'} value={fields[f.key] ?? ''} placeholder={f.placeholder} onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })} />
+                  )}
+                  {chk && <span className={`mt-0.5 block text-xs ${chk.level === 'fehler' ? 'text-rose-400' : 'text-amber-300'}`}>{chk.message}</span>}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      ))}
+      <button disabled={busy} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 font-semibold text-sm disabled:opacity-60">
+        {busy && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />} Angaben speichern
+      </button>
+      {msg && <p role="status" className={`text-sm ${msg.error ? 'text-amber-300' : 'text-emerald-400'}`}>{msg.text}</p>}
+    </form>
   );
 }

@@ -29,6 +29,8 @@ export interface Tariff {
   /** Woher stammt das Angebot? z. B. "Maklerpool XY, Abruf 10.10.2026" */
   source: string;
   officialUrl?: string;
+  /** Vertragspartner, über den der Antrag läuft (Seite „Partner“) */
+  partnerId?: string;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -108,6 +110,7 @@ export function validateTariff(body: unknown, now: Date): Omit<Tariff, 'id' | 'c
     validUntil,
     source,
     officialUrl,
+    partnerId: str(b.partnerId, 60) || undefined,
     active: b.active !== false,
   };
 }

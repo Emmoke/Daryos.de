@@ -48,10 +48,15 @@ export interface ContactResponse {
 }
 
 export interface CustomerDocument { id: string; name: string; size: number; contentType: string; uploadedAt: string; byCustomer: boolean }
+export interface CustomerApplication {
+  fields: Record<string, string>;
+  form: { key: string; label: string; group: string; required?: boolean; type?: string; options?: Record<string, string>; placeholder?: string }[];
+  checks: { field?: string; level: 'fehler' | 'warnung'; message: string }[];
+}
 export interface CustomerAccount {
   email: string;
   uploadsEnabled: boolean;
-  requests: (PublicRequestStatus & { documents: CustomerDocument[]; messages: { subject: string; body: string; sentAt: string }[] })[];
+  requests: (PublicRequestStatus & { documents: CustomerDocument[]; messages: { subject: string; body: string; sentAt: string }[]; application: CustomerApplication | null })[];
 }
 
 export const api = {
@@ -65,6 +70,7 @@ export const api = {
   customerVerify: (token: string) => request<{ email: string }>('POST', '/customer/verify', { token }),
   customerMe: () => request<CustomerAccount>('GET', '/customer/me'),
   customerLogout: () => request<{ ok: true }>('POST', '/customer/logout', {}),
+  saveApplication: (id: string, fields: Record<string, string>) => request<{ status: string; checks: CustomerApplication['checks'] }>('PUT', `/customer/requests/${encodeURIComponent(id)}/application`, { fields }),
   deleteDocument: (id: string, docId: string) => request<{ ok: true }>('DELETE', `/customer/requests/${encodeURIComponent(id)}/documents/${docId}`),
   async uploadDocument(id: string, file: File) {
     let res: Response;

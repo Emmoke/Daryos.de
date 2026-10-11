@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { REQUEST_STATUSES, STATUS_LABELS, type RankedOffer, type RequestStatus } from '../../shared/platform';
 import { api, ApiError, dateTime, eur } from '../api';
 import { Badge, Button, Card, Empty, inputCls, Notice, PageHeader, Spinner } from '../ui';
+import { ApplicationCard } from './ApplicationCard';
 
 const TONE: Partial<Record<RequestStatus, 'gray' | 'blue' | 'green' | 'amber' | 'red' | 'violet'>> = {
   WAITING_FOR_ADMIN: 'amber',
@@ -183,6 +184,7 @@ function RequestDetail({ id, onChanged }: { id: string; onChanged: () => void })
 
       {req.contact && <OfferEmail req={req} onUpdated={(r) => { setReq(r); onChanged(); }} />}
       <Documents req={req} onUpdated={(r) => setReq(r)} />
+      <ApplicationCard req={req} onUpdated={(r) => { setReq(r); onChanged(); }} />
 
       <Card title="Verlauf">
         <ol className="space-y-2">

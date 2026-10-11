@@ -175,6 +175,8 @@ export interface Assistant {
   draftEmail(record: RequestRecord, offerId?: string): Promise<DraftDocument>;
   /** Beratungs-Chat für den Inhaber in der Verwaltung (Kontext ohne personenbezogene Kundendaten) */
   adminChat(prompt: string, rules: string): Promise<string>;
+  /** Liest Angaben aus einer Rechnung / einem Zählerfoto (PDF, JPG, PNG) – Antwort als JSON-Text */
+  readDocument(data: Buffer, mimeType: string, instruction: string): Promise<string>;
 }
 
 export class AssistantNotConfiguredError extends Error {}
@@ -237,6 +239,23 @@ export class GeminiAssistant implements Assistant {
     return this.generate(prompt, rules, 2048, 0.4);
   }
 
+  async readDocument(data: Buffer, mimeType: string, instruction: string) {
+    const run = () =>
+      this.ai.models.generateContent({
+        model: this.model,
+        contents: [{ role: 'user', parts: [{ inlineData: { mimeType, data: data.toString('base64') } }, { text: instruction }] }],
+        config: { temperature: 0, maxOutputTokens: 800, responseMimeType: 'application/json' },
+      });
+    let res;
+    try {
+      res = await run();
+    } catch (err) {
+      if (!/not found|NOT_FOUND|404/i.test(String((err as Error)?.message)) || !(await this.resolveModel())) throw err;
+      res = await run();
+    }
+    return res.text ?? '';
+  }
+
   answerCustomer(record: RequestRecord, question: string) {
     return this.generate(`Kontext:\n${offerContext(record)}\n\nFrage des Kunden:\n${question}`);
   }
@@ -269,6 +288,9 @@ export class DisabledAssistant implements Assistant {
     throw new AssistantNotConfiguredError(this.detail);
   }
   async adminChat(_prompt: string, _rules: string): Promise<string> {
+    throw new AssistantNotConfiguredError(this.detail);
+  }
+  async readDocument(_data: Buffer, _mimeType: string, _instruction: string): Promise<string> {
     throw new AssistantNotConfiguredError(this.detail);
   }
   async improveSummary(_r: RequestRecord, base: AdminSummary) {
