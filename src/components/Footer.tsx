@@ -2,6 +2,7 @@ import React from 'react';
 import { Language, AuthUser } from '../types';
 import { translations } from '../data/translations';
 import { Logo } from './Logo';
+import { openConsentSettings } from '../platform/consent';
 
 interface FooterProps {
   currentLang: Language;
@@ -52,6 +53,13 @@ export const Footer: React.FC<FooterProps> = ({ currentLang, onOpenLegal }) => {
               className="hover:text-slate-300 transition-colors cursor-pointer underline-offset-4 hover:underline"
             >
               {t.footer.privacy}
+            </button>
+            <span>·</span>
+            <button
+              onClick={openConsentSettings}
+              className="hover:text-slate-300 transition-colors cursor-pointer underline-offset-4 hover:underline"
+            >
+              Cookie-Einstellungen
             </button>
           </div>
         </div>

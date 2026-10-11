@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import type { Backend } from './persistence';
 import type { ComparisonInput, ComparisonResult, RequestStatus, StatusHistoryEntry } from '../shared/platform';
 import type { ContactInput } from './validation';
+import type { Application } from './application';
 
 export interface AdminSummary {
   generatedAt: string;
@@ -63,6 +64,8 @@ export interface RequestRecord {
   drafts: DraftDocument[];
   notifications: NotificationLog[];
   documents?: CustomerDocument[];
+  /** Antragsdaten für das Partnerportal (ohne Bankdaten) */
+  application?: Application;
   /** Hash aus Kontakt + Angebot zur Erkennung doppelter Anfragen */
   contactFingerprint?: string;
   deleteAfter: string;

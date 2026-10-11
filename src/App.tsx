@@ -17,6 +17,8 @@ import { Language, ServiceType } from './types';
 import { VergleichPage } from './platform/VergleichPage';
 import { StatusPage } from './platform/StatusPage';
 import { KontoPage } from './platform/KontoPage';
+import { ConsentBanner } from './components/ConsentBanner';
+import { trackView } from './platform/consent';
 import { ChatWidget } from './platform/ChatWidget';
 
 
@@ -35,6 +37,16 @@ export default function App() {
   const [legalModal, setLegalModal] = useState<'impressum' | 'datenschutz' | null>(null);
 
   const [route, setRoute] = useState<string>(() => window.location.hash);
+  // Statistik (nur mit Einwilligung): ein Zähler je Seitenwechsel, nicht bei Sprüngen innerhalb der Startseite
+  const lastTracked = React.useRef('');
+  useEffect(() => {
+    const name = route.startsWith('#/') ? route.split('/')[1] : 'start';
+    const track = () => { if (lastTracked.current !== name) { lastTracked.current = name; trackView(route); } };
+    track();
+    const onConsent = () => { lastTracked.current = ''; track(); };
+    window.addEventListener('daryos:consent-changed', onConsent);
+    return () => window.removeEventListener('daryos:consent-changed', onConsent);
+  }, [route]);
 
   useEffect(() => {
     try {
@@ -184,6 +196,8 @@ export default function App() {
         currentLang={currentLang}
       />
 
+
+      <ConsentBanner onOpenPrivacy={() => setLegalModal('datenschutz')} />
 
       {/* Chat-Assistent mit WhatsApp- und Termin-Schnellzugriff */}
       <ChatWidget onOpenBooking={scrollToBooking} />

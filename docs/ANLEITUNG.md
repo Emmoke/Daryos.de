@@ -48,6 +48,15 @@ Knopf **„Assistent“** unten rechts (öffnet sich bei Dringendem automatisch)
 - Datenschutz: An die KI gehen nur Anfrage-ID, Status, Sparte, PLZ-Bereich, Verbrauch und fehlende Angaben – keine Namen,
   E-Mail-Adressen oder Telefonnummern. Der Assistent kann nichts senden, freigeben oder ändern.
 
+## 1c. Partner, Anträge und Auswertung
+
+- **Partner:** Anbieter/Maklerpools mit Vermittlungsvertrag eintragen (Portal-Link, Partnernummer, verlangte Angaben). Tarife unter „Tarife“ dem Partner zuordnen.
+- **Antrag vorbereiten** (bei jeder Anfrage): „Aus Anfrage übernehmen“, „KI liest …“ (liest Zählernummer, MaLo, Adresse, Verbrauch aus der hochgeladenen Rechnung – Vorschläge zum Bestätigen)
+  oder „Kunden um Daten bitten“ (Kunde ergänzt in „Mein Konto“). Automatische Prüfung (Pflichtfelder, MaLo-Prüfziffer, Volljährigkeit, Lieferbeginn, DEMO).
+  Dann im Partnerportal einreichen (Felder per Klick kopieren) und die Vorgangsnummer eintragen. Bankdaten werden nicht gespeichert.
+- **Auswertung:** Besuche (nur mit Einwilligung), Vergleiche nach PLZ-Bereich und Verbrauch, **Suchen ohne echten Tarif** (dort Tarife ergänzen), Quote Vergleich → Anfrage, Empfehlungen.
+- **Datenschutz-Banner:** „Nur notwendige“ oder „Statistik erlauben“, jederzeit änderbar über „Cookie-Einstellungen“ im Seitenfuß. Keine Werbe-/Tracking-Cookies, keine IP-Adressen.
+
 ## 2. Tagesablauf (ca. 10 Minuten)
 
 1. **Übersicht** → „Zu erledigen“.

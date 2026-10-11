@@ -97,7 +97,18 @@ export const LegalModals: React.FC<LegalModalsProps> = ({ activeModal, onClose }
             </div>
 
             <div className="space-y-2">
-              <h4 className="font-bold text-white text-sm">4. Ihre Rechte</h4>
+              <h4 className="font-bold text-white text-sm">4. Online-Plattform: Vergleich, Kundenkonto, Chat, Statistik</h4>
+              <p>
+                • <strong>Tarifvergleich und Anfrage:</strong> Ihre Angaben (Sparte, PLZ, Verbrauch, bei einer Anfrage Name und Kontaktdaten) verarbeiten wir zur Erstellung und Bearbeitung Ihres Angebots (Art. 6 Abs. 1 lit. b DSGVO). Vergleiche ohne Anfrage löschen wir nach 30 Tagen, Anfragen nach 180 Tagen, soweit keine gesetzlichen Aufbewahrungspflichten bestehen.<br />
+                • <strong>Mein Konto und Unterlagen:</strong> Die Anmeldung erfolgt per Link an Ihre E-Mail-Adresse; dafür setzen wir einen technisch notwendigen Anmelde-Cookie („__session“, 2 Stunden). Hochgeladene Unterlagen und Antragsdaten werden auf Servern von Google Cloud in Frankfurt gespeichert und mit der Anfrage gelöscht. Bankdaten erfragen wir nicht.<br />
+                • <strong>KI-Unterstützung:</strong> Der Chat-Assistent und das Auslesen von Unterlagen (nur durch Daryos auf Ihre Anfrage hin) nutzen Google Gemini als Auftragsverarbeiter. Chatverläufe speichern wir zur Verbesserung des Service 30 Tage ohne IP-Adresse.<br />
+                • <strong>E-Mail und WhatsApp:</strong> Für den E-Mail-Versand nutzen wir einen E-Mail-Dienstleister (Auftragsverarbeiter, EU), für WhatsApp die WhatsApp Business Platform von Meta.<br />
+                • <strong>Statistik:</strong> Nur wenn Sie im Banner „Statistik erlauben“ wählen, zählen wir Seitenaufrufe anonym als Tageswerte (Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG) – ohne Cookies, ohne IP-Adresse, ohne Profil. Unabhängig davon zählen wir Tarifvergleiche ohne Personenbezug (Sparte, zweistelliger PLZ-Bereich, Verbrauchsklasse), um unser Tarifangebot zu verbessern (Art. 6 Abs. 1 lit. f DSGVO). Ihre Auswahl können Sie jederzeit über „Cookie-Einstellungen“ im Seitenfuß ändern.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="font-bold text-white text-sm">5. Ihre Rechte</h4>
               <p className="text-slate-400 text-xs">
                 Sie haben jederzeit das Recht auf unentgeltliche Auskunft über Herkunft, Empfänger und Zweck Ihrer gespeicherten personenbezogenen Daten sowie ein Recht auf Berichtigung, Sperrung oder Löschung dieser Daten.
               </p>

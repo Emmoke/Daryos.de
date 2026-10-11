@@ -15,7 +15,7 @@ const inMonths = (m: number) => {
 const EMPTY: Form = {
   energyType: 'strom', providerName: '', tariffName: '', workPriceCtPerKwh: '', basePriceEurPerMonth: '', priceGuaranteeMonths: '12',
   priceGuaranteeType: '', contractTermMonths: '12', noticePeriodWeeks: '4', eco: false, bonusEur: '', bonusConditions: '', postalCodes: '',
-  minKwh: '', maxKwh: '', validFrom: today(), validUntil: inMonths(1), source: '', officialUrl: '', active: true,
+  minKwh: '', maxKwh: '', validFrom: today(), validUntil: inMonths(1), source: '', officialUrl: '', partnerId: '', active: true,
 };
 
 const toForm = (t: any): Form => ({
@@ -119,6 +119,8 @@ function TariffForm({ initial, isNew, onSave, onCancel }: { initial: Form; isNew
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [partners, setPartners] = useState<any[]>([]);
+  useEffect(() => { api.partners().then((r) => setPartners(r.partners)).catch(() => {}); }, []);
   const bind = (k: string) => ({ value: String(f[k] ?? ''), onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value }), className: inputCls });
 
   const submit = async (e: React.FormEvent) => {
@@ -157,6 +159,9 @@ function TariffForm({ initial, isNew, onSave, onCancel }: { initial: Form; isNew
           <Field label="Gültig bis" error={errors.validUntil}><input type="date" {...bind('validUntil')} /></Field>
           <Field label="Quelle des Angebots" error={errors.source} hint="z. B. Maklerpool XY, Abruf 10.10.2026" className="lg:col-span-2"><input {...bind('source')} /></Field>
           <Field label="Offizielle Tarifseite (optional)" error={errors.officialUrl} className="lg:col-span-2"><input {...bind('officialUrl')} placeholder="https://…" /></Field>
+          <Field label="Antrag über Partner (optional)" hint="Partner pflegen Sie unter „Partner“" className="lg:col-span-2">
+            <select {...bind('partnerId')}><option value="">– kein Partner hinterlegt –</option>{partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+          </Field>
         </div>
         <div className="flex flex-wrap gap-6 text-sm">
           <label className="flex items-center gap-2"><input type="checkbox" checked={!!f.eco} onChange={(e) => setF({ ...f, eco: e.target.checked })} className="w-4 h-4 accent-slate-900" /> Öko-Tarif (laut Anbieter)</label>

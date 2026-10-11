@@ -12,6 +12,9 @@ import { notifierFromEnv, type Notifier } from './notifier';
 import { AssistantNotConfiguredError, assistantFromEnv, buildSystemSummary, type Assistant, type ChatTurn } from './assistant';
 import { generateTotpSecret, verifyTotp } from './totp';
 import { CustomerAuth, normalizeEmail } from './customers';
+import { PartnerError, type PartnerStore } from './partners';
+import type { AnalyticsStore } from './analytics';
+import { APPLICATION_FIELDS, APPLICATION_STATUS_LABELS, checkApplication, cleanFields, CUSTOMER_FIELD_KEYS, EXTRACT_PROMPT, nextStatus, parseExtraction, prefillFromRequest } from './application';
 import { buildBriefing, buildCopilotContext, buildCopilotPrompt, COPILOT_RULES, type CopilotStore } from './copilot';
 import { detectUploadType, MAX_DOCUMENTS_PER_REQUEST, MAX_UPLOAD_BYTES, safeFileName, UPLOAD_TYPES, type FileStorage } from './files';
 import { INTEGRATION_FIELDS, IntegrationError, type IntegrationGroup, type IntegrationStore } from './integrations';
@@ -41,6 +44,9 @@ export interface AppDeps {
   customers?: CustomerAuth;
   /** KI-Mitarbeiter der Verwaltung (merkt sich den letzten Besuch) */
   copilot?: CopilotStore;
+  partners?: PartnerStore;
+  /** Datensparsame Auswertung (nur Tageszahlen) */
+  analytics?: AnalyticsStore;
   integrations?: { store: IntegrationStore; baseEnv: NodeJS.ProcessEnv; conversations?: ConversationStore };
   appUrl?: string;
   secureCookies: boolean;
@@ -243,6 +249,7 @@ export function createApp(deps: AppDeps) {
         if (comparison.status === 'ok') transition(r, 'OFFERS_FOUND', SYSTEM, `${comparison.offers.length} Angebote (${info.name})`, now());
         else transition(r, 'ERROR', SYSTEM, comparison.message, now());
       });
+      deps.analytics?.recordComparison(input, comparison.offers.filter((o) => !o.offer.source.isDemo).length).catch(() => {});
       res.status(comparison.status === 'provider_error' ? 502 : 200).json({ requestId: record.id, status: updated!.status, comparison });
     }),
   );
@@ -320,6 +327,7 @@ export function createApp(deps: AppDeps) {
         rec.notifications.push(log);
       });
 
+      deps.analytics?.recordContact(`${ranked.offer.providerName} – ${ranked.offer.tariffName}${ranked.offer.source.isDemo ? ' (DEMO)' : ''}`).catch(() => {});
       res.status(201).json({ requestId: r.id, duplicate: false, status: toPublicStatus(updated!) });
     }),
   );
@@ -673,6 +681,25 @@ export function createApp(deps: AppDeps) {
     }
   }));
 
+  // ---------- Auswertung ----------
+  const eventLimiter = new RateLimiter(120, 10 * 60_000);
+  // Wird vom Browser nur nach Einwilligung in die Statistik aufgerufen; gespeichert werden nur Tageszähler
+  app.post('/events', rateLimit(eventLimiter, 'events'), asyncHandler(async (req, res) => {
+    if (!deps.analytics) return res.status(204).end();
+    const type = req.body?.type === 'visit' ? 'visit' : req.body?.type === 'view' ? 'view' : null;
+    if (!type || req.body?.consent !== true) return res.status(400).json({ error: 'Ungültig.' });
+    const route = typeof req.body.route === 'string' ? req.body.route.slice(0, 30) : undefined;
+    const ref = typeof req.body.referrer === 'string' ? req.body.referrer.toLowerCase().replace(/^www\./, '').slice(0, 60) : '';
+    const referrer = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(ref) ? ref : ref ? 'sonstige' : 'direkt';
+    await deps.analytics.recordEvent({ type, route, referrer, device: typeof req.body.device === 'string' ? req.body.device : undefined });
+    res.status(204).end();
+  }));
+  app.get('/admin/analytics', requireAdmin, (req, res) => {
+    if (!deps.analytics) return res.status(404).json({ error: 'Nicht aktiviert.' });
+    const days = [7, 30, 90, 365].includes(Number(req.query.days)) ? Number(req.query.days) : 30;
+    res.json(deps.analytics.summary(days));
+  });
+
   // ---------- KI-Mitarbeiter der Verwaltung ----------
   const copilotLimiter = new RateLimiter(60, 10 * 60_000);
   const copilotInput = async (since?: string) => {
@@ -688,6 +715,7 @@ export function createApp(deps: AppDeps) {
       connections: { gemini: deps.assistant.configured, email: deps.notifier.configured },
       chat: deps.assistantConfig?.stats(),
       chatConfig: deps.assistantConfig?.getSettings(),
+      analytics: deps.analytics?.summary(30),
       chatProblems: (deps.assistantConfig?.listSessions() ?? [])
         .filter((x) => x.handover || x.failed)
         .slice(0, 10)
@@ -785,6 +813,15 @@ export function createApp(deps: AppDeps) {
           documents: (r.documents ?? []).map(publicDocument),
           // Nur E-Mails, die Daryos nach Prüfung tatsächlich gesendet hat
           messages: r.drafts.filter((d) => d.sentAt).map((d) => ({ subject: d.subject, body: d.body, sentAt: d.sentAt })),
+          // Antragsdaten nur, wenn Daryos darum gebeten hat; nur die Felder, die der Kunde selbst ausfüllen darf
+          application:
+            r.application?.status === 'daten_angefordert'
+              ? {
+                  fields: Object.fromEntries(Object.entries(r.application.fields).filter(([k]) => CUSTOMER_FIELD_KEYS.has(k))),
+                  form: APPLICATION_FIELDS.filter((f) => f.customer),
+                  checks: r.application.checks.filter((c) => !c.field || CUSTOMER_FIELD_KEYS.has(c.field)),
+                }
+              : null,
         })),
       });
     }),
@@ -824,6 +861,21 @@ export function createApp(deps: AppDeps) {
         throw err;
       }
       res.status(201).json({ document: publicDocument(doc) });
+    }),
+  );
+  app.put(
+    '/customer/requests/:id/application',
+    requireCustomer,
+    asyncHandler(async (req: CustomerRequest, res) => {
+      const r = await loadOwn(req, res);
+      if (!r) return;
+      if (r.application?.status !== 'daten_angefordert') return res.status(409).json({ error: 'Für diese Anfrage werden gerade keine Angaben benötigt.' });
+      const updated = await saveApplication(r.id, 'kunde', (a) => {
+        a.fields = { ...a.fields, ...cleanFields(req.body?.fields, CUSTOMER_FIELD_KEYS) };
+      });
+      await deps.store.update(r.id, (rec) => logNote(rec, 'kunde', 'Kunde hat Antragsdaten ergänzt', now()));
+      const a = updated!.application!;
+      res.json({ status: a.status, checks: a.checks.filter((c) => !c.field || CUSTOMER_FIELD_KEYS.has(c.field)) });
     }),
   );
   const sendDocument = async (res: Response, d: NonNullable<RequestRecord['documents']>[number]) => {
@@ -882,6 +934,130 @@ export function createApp(deps: AppDeps) {
         logNote(rec, `admin:${req.admin!.email}`, `Unterlage gelöscht: ${d.name}`, now());
       });
       await deps.files?.remove(d.storageKey).catch(() => {});
+      res.json({ request: updated });
+    }),
+  );
+
+  // ---------- Partner (Vermittlungsverträge) ----------
+  const partnerHandler =
+    (fn: (req: AdminRequest, res: Response, p: PartnerStore) => Promise<unknown> | unknown) =>
+    asyncHandler(async (req: AdminRequest, res) => {
+      if (!deps.partners) return res.status(404).json({ error: 'Nicht aktiviert.' });
+      try {
+        await fn(req, res, deps.partners);
+      } catch (err) {
+        if (err instanceof PartnerError) return res.status(err.status).json({ error: err.message, fields: err.fields });
+        throw err;
+      }
+    });
+  app.get('/admin/partners', requireAdmin, partnerHandler((_q, res, p) => res.json({ partners: p.list() })));
+  app.post('/admin/partners', requireAdmin, partnerHandler(async (req, res, p) => res.status(201).json({ partner: await p.create(req.body, `admin:${req.admin!.email}`) })));
+  app.put('/admin/partners/:id', requireAdmin, partnerHandler(async (req, res, p) => res.json({ partner: await p.update(String(req.params.id), req.body, `admin:${req.admin!.email}`) })));
+  app.delete('/admin/partners/:id', requireAdmin, partnerHandler(async (req, res, p) => {
+    await p.remove(String(req.params.id));
+    res.json({ ok: true });
+  }));
+
+  // ---------- Antrag vorbereiten (manuell, durch den Kunden oder mit KI aus Unterlagen) ----------
+  app.get('/admin/application-fields', requireAdmin, (_req, res) => res.json({ fields: APPLICATION_FIELDS, statusLabels: APPLICATION_STATUS_LABELS }));
+  const saveApplication = async (id: string, actor: string, mutate: (a: NonNullable<RequestRecord['application']>, r: RequestRecord) => void) =>
+    deps.store.update(id, (rec) => {
+      const a = rec.application ?? { fields: {}, status: 'entwurf' as const, checks: [], updatedAt: '', updatedBy: '' };
+      mutate(a, rec);
+      a.checks = checkApplication(a.fields, rec, now());
+      a.status = nextStatus(a.status, a.checks);
+      a.updatedAt = now().toISOString();
+      a.updatedBy = actor;
+      rec.application = a;
+    });
+  app.put(
+    '/admin/requests/:id/application',
+    requireAdmin,
+    asyncHandler(async (req: AdminRequest, res) => {
+      const r = await deps.store.get(String(req.params.id));
+      if (!r) return res.status(404).json({ error: 'Anfrage nicht gefunden.' });
+      if (r.application?.status === 'eingereicht') return res.status(409).json({ error: 'Der Antrag ist bereits eingereicht und kann nicht mehr geändert werden.' });
+      const partnerId = typeof req.body?.partnerId === 'string' && deps.partners?.get(req.body.partnerId) ? req.body.partnerId : undefined;
+      const updated = await saveApplication(r.id, `admin:${req.admin!.email}`, (a) => {
+        a.fields = cleanFields(req.body?.fields);
+        a.partnerId = partnerId;
+      });
+      res.json({ request: updated });
+    }),
+  );
+  app.post(
+    '/admin/requests/:id/application/prefill',
+    requireAdmin,
+    asyncHandler(async (req: AdminRequest, res) => {
+      const r = await deps.store.get(String(req.params.id));
+      if (!r) return res.status(404).json({ error: 'Anfrage nicht gefunden.' });
+      // Vorschläge zurückgeben – übernommen wird erst beim Speichern
+      res.json({ suggestions: prefillFromRequest(r) });
+    }),
+  );
+  app.post(
+    '/admin/requests/:id/application/extract',
+    requireAdmin,
+    rateLimit(limits.assistant, 'extract'),
+    asyncHandler(async (req: AdminRequest, res) => {
+      const r = await deps.store.get(String(req.params.id));
+      const d = r?.documents?.find((x) => x.id === req.body?.documentId);
+      if (!r || !d) return res.status(404).json({ error: 'Unterlage nicht gefunden.' });
+      if (!deps.assistant.configured) return res.status(503).json({ error: 'Gemini ist nicht verbunden (Einstellungen → Verbindungen).' });
+      const data = await deps.files?.get(d.storageKey);
+      if (!data) return res.status(404).json({ error: 'Datei nicht gefunden.' });
+      try {
+        const suggestions = parseExtraction(await deps.assistant.readDocument(data, d.contentType, EXTRACT_PROMPT));
+        await deps.store.update(r.id, (rec) => logNote(rec, `admin:${req.admin!.email}`, `KI hat „${d.name}“ ausgelesen (${Object.keys(suggestions).length} Angaben vorgeschlagen)`, now()));
+        res.json({ suggestions });
+      } catch (err) {
+        console.error('[daryos] Auslesen fehlgeschlagen:', (err as Error)?.message);
+        res.status(502).json({ error: 'Die Unterlage konnte nicht ausgelesen werden. Bitte manuell eintragen.' });
+      }
+    }),
+  );
+  app.post(
+    '/admin/requests/:id/application/request-data',
+    requireAdmin,
+    asyncHandler(async (req: AdminRequest, res) => {
+      const r = await deps.store.get(String(req.params.id));
+      if (!r?.contact?.email) return res.status(404).json({ error: 'Anfrage ohne E-Mail-Adresse.' });
+      if (req.body?.confirm !== true) return res.status(400).json({ error: 'Bitte bestätigen.' });
+      if (!deps.notifier.configured) return res.status(503).json({ error: 'E-Mail ist nicht verbunden (Einstellungen → Verbindungen).' });
+      const log = await deps.notifier.sendCustomerEmail(
+        r.contact.email,
+        `Ihre Anfrage ${r.id}: Bitte Angaben für den Antrag ergänzen`,
+        `Guten Tag,\n\nfür Ihren Wechselantrag benötigen wir noch einige Angaben (z. B. Zählernummer und Geburtsdatum).\nBitte ergänzen Sie diese in Ihrem Kundenkonto: ${deps.appUrl ?? ''}/#/konto\n(Anmeldung mit dieser E-Mail-Adresse per Link – kein Passwort nötig.)\n\nBankdaten geben Sie bitte nicht dort an; diese erfragt der Anbieter direkt.\n\nIhr Daryos-Team`,
+      );
+      if (log.status !== 'sent') return res.status(502).json({ error: `Versand fehlgeschlagen: ${log.detail}` });
+      const updated = await deps.store.update(r.id, (rec) => {
+        const a = rec.application ?? { fields: prefillFromRequest(rec), status: 'entwurf' as const, checks: [], updatedAt: '', updatedBy: '' };
+        a.status = 'daten_angefordert';
+        a.checks = checkApplication(a.fields, rec, now());
+        a.updatedAt = now().toISOString();
+        a.updatedBy = `admin:${req.admin!.email}`;
+        rec.application = a;
+        rec.notifications.push(log);
+        logNote(rec, `admin:${req.admin!.email}`, 'Kunde per E-Mail gebeten, die Antragsdaten in „Mein Konto“ zu ergänzen', now());
+      });
+      res.json({ request: updated });
+    }),
+  );
+  app.post(
+    '/admin/requests/:id/application/submitted',
+    requireAdmin,
+    asyncHandler(async (req: AdminRequest, res) => {
+      const r = await deps.store.get(String(req.params.id));
+      if (!r?.application) return res.status(404).json({ error: 'Kein Antrag vorhanden.' });
+      if (r.application.status !== 'vollstaendig') return res.status(409).json({ error: 'Der Antrag ist noch nicht vollständig.' });
+      const portalRef = typeof req.body?.portalRef === 'string' ? req.body.portalRef.trim().slice(0, 100) : '';
+      if (!portalRef) return res.status(400).json({ error: 'Bitte die Vorgangs-/Antragsnummer aus dem Partnerportal angeben.', fields: { portalRef: 'Pflichtfeld' } });
+      const updated = await deps.store.update(r.id, (rec) => {
+        rec.application!.status = 'eingereicht';
+        rec.application!.submittedAt = now().toISOString();
+        rec.application!.portalRef = portalRef;
+        logNote(rec, `admin:${req.admin!.email}`, `Antrag im Partnerportal eingereicht (Vorgang ${portalRef})`, now());
+      });
       res.json({ request: updated });
     }),
   );

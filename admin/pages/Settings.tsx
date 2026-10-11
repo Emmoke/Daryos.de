@@ -157,7 +157,7 @@ function Connections() {
         <p className="text-sm text-slate-700">Aktuell: <strong>{i?.storage?.detail ?? '…'}</strong>. Wird beim Veröffentlichen mit <Code>scripts/cloudrun-deploy.sh</Code> automatisch eingerichtet.</p>
       </Card>
       <Card title="Angebotsquelle für den Tarifvergleich" actions={i?.offerProvider?.isDemo ? <Badge tone="amber">Demo</Badge> : <Badge tone="green">Katalog</Badge>}>
-        <p className="text-sm text-slate-700">Aktuell: <strong>{i?.offerProvider?.name ?? '…'}</strong>. Echte Tarife pflegen Sie unter „Tarife“. Eine Anbieter- oder Maklerpool-API wird nach Vertrag und API-Dokumentation im Server ergänzt.</p>
+        <p className="text-sm text-slate-700">Aktuell: <strong>{i?.offerProvider?.name ?? '…'}</strong>. Ihre Vertragspartner (Anbieter, Maklerpool) mit Portal-Link pflegen Sie unter <a href="#/partner" className="text-indigo-600 hover:underline">Partner</a>, deren Tarife unter <a href="#/tarife" className="text-indigo-600 hover:underline">Tarife</a>. Anträge bereiten Sie bei jeder Anfrage vor (selbst, vom Kunden oder per KI aus der Rechnung) und reichen sie im Partnerportal ein. Eine direkte Schnittstelle (API) eines Partners kann nach Vertrag und API-Dokumentation ergänzt werden.</p>
       </Card>
     </div>
   );
