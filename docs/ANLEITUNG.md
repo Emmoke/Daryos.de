@@ -57,6 +57,14 @@ Knopf **„Assistent“** unten rechts (öffnet sich bei Dringendem automatisch)
 - **Auswertung:** Besuche (nur mit Einwilligung), Vergleiche nach PLZ-Bereich und Verbrauch, **Suchen ohne echten Tarif** (dort Tarife ergänzen), Quote Vergleich → Anfrage, Empfehlungen.
 - **Datenschutz-Banner:** „Nur notwendige“ oder „Statistik erlauben“, jederzeit änderbar über „Cookie-Einstellungen“ im Seitenfuß. Keine Werbe-/Tracking-Cookies, keine IP-Adressen.
 
+## 1d. Termine
+
+- Kunde wählt auf der Webseite („Termin anfragen“) Wunschtermin, Beratungsart und Thema → erscheint unter **Termine → Warten auf Bestätigung**; Sie erhalten eine E-Mail, der Kunde eine Eingangsbestätigung („noch nicht bestätigt“).
+- **Bestätigen / anderen Termin**: Datum/Uhrzeit übernehmen oder ändern, Hinweis eintragen → Kunde erhält Bestätigung bzw. Alternativvorschlag mit Kalender-Link.
+- **Termin anlegen** (z. B. nach Telefonat) oder bei einer Anfrage **„Termin vereinbaren“** – gilt sofort als bestätigt.
+- Absagen mit Nachricht, nach dem Termin „Erledigt“. Der Assistent erinnert an offene Terminanfragen und an Termine heute/morgen.
+- Kunden sehen ihre Termine in „Mein Konto“. Termindaten werden 90 Tage nach dem Termin gelöscht.
+
 ## 2. Tagesablauf (ca. 10 Minuten)
 
 1. **Übersicht** → „Zu erledigen“.

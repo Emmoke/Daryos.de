@@ -92,6 +92,21 @@ function Account({ account, onChange, onLogout }: { account: CustomerAccount; on
         <p className="text-slate-300">Angemeldet als <strong>{account.email}</strong></p>
         <button onClick={onLogout} className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white"><LogOut className="w-4 h-4" aria-hidden /> Abmelden</button>
       </div>
+      {account.appointments.length > 0 && (
+        <section className="mb-6 p-5 rounded-2xl bg-slate-900 border border-slate-800">
+          <h2 className="font-semibold mb-3">Ihre Termine</h2>
+          <ul className="space-y-3">
+            {account.appointments.map((t) => (
+              <li key={t.id} className="text-sm">
+                <p><strong>{t.confirmed ? `${new Date(`${t.confirmed.date}T12:00:00`).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' })}, ${t.confirmed.time} Uhr` : `Wunsch: ${t.wish?.date} ${t.wish?.time} Uhr`}</strong> · {t.format} · {t.service}</p>
+                <p className={t.status === 'bestaetigt' ? 'text-emerald-400' : t.status === 'abgesagt' ? 'text-slate-500' : 'text-amber-300'}>{t.statusLabel}{t.status === 'angefragt' && ' – Daryos bestätigt den Termin in Kürze'}</p>
+                {t.confirmed && <p className="text-slate-400">{t.confirmed.location}{t.confirmed.note ? ` · ${t.confirmed.note}` : ''}</p>}
+                {t.calendarUrl && <a href={t.calendarUrl} className="text-orange-400 hover:underline">In den Kalender eintragen</a>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {account.requests.length === 0 && <p className="text-slate-400">Zu dieser Adresse liegt keine Anfrage vor.</p>}
       <div className="space-y-6">
         {account.requests.map((r) => <RequestCard key={r.requestId} r={r} uploadsEnabled={account.uploadsEnabled} onChange={onChange} />)}

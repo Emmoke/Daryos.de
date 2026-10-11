@@ -14,6 +14,7 @@ import { generateTotpSecret, verifyTotp } from './totp';
 import { CustomerAuth, normalizeEmail } from './customers';
 import { PartnerError, type PartnerStore } from './partners';
 import type { AnalyticsStore } from './analytics';
+import { APPOINTMENT_FORMATS, APPOINTMENT_SERVICES, APPOINTMENT_STATUS, AppointmentError, appointmentIcs, describeTime, validateAppointmentInput, validateConfirmation, type Appointment, type AppointmentStore } from './appointments';
 import { APPLICATION_FIELDS, APPLICATION_STATUS_LABELS, checkApplication, cleanFields, CUSTOMER_FIELD_KEYS, EXTRACT_PROMPT, nextStatus, parseExtraction, prefillFromRequest } from './application';
 import { buildBriefing, buildCopilotContext, buildCopilotPrompt, COPILOT_RULES, type CopilotStore } from './copilot';
 import { detectUploadType, MAX_DOCUMENTS_PER_REQUEST, MAX_UPLOAD_BYTES, safeFileName, UPLOAD_TYPES, type FileStorage } from './files';
@@ -47,6 +48,7 @@ export interface AppDeps {
   partners?: PartnerStore;
   /** Datensparsame Auswertung (nur Tageszahlen) */
   analytics?: AnalyticsStore;
+  appointments?: AppointmentStore;
   integrations?: { store: IntegrationStore; baseEnv: NodeJS.ProcessEnv; conversations?: ConversationStore };
   appUrl?: string;
   secureCookies: boolean;
@@ -322,7 +324,7 @@ export function createApp(deps: AppDeps) {
         transition(rec, 'WAITING_FOR_ADMIN', SYSTEM, 'Zusammenfassung und Vollständigkeitsprüfung erstellt', now());
       });
 
-      const log = await deps.notifier.notifyAdminNewRequest(r.id, `${deps.appUrl ?? ''}/#/admin`);
+      const log = await deps.notifier.notifyAdminNewRequest(r.id, `${deps.appUrl ?? ''}/verwaltung/#/anfragen/${r.id}`);
       updated = await deps.store.update(r.id, (rec) => {
         rec.notifications.push(log);
       });
@@ -681,6 +683,85 @@ export function createApp(deps: AppDeps) {
     }
   }));
 
+  // ---------- Termine ----------
+  const apptHandler =
+    (fn: (req: AdminRequest, res: Response, s: AppointmentStore) => Promise<unknown> | unknown) =>
+    asyncHandler(async (req: AdminRequest, res) => {
+      if (!deps.appointments) return res.status(404).json({ error: 'Terminvereinbarung ist nicht aktiviert.' });
+      try {
+        await fn(req, res, deps.appointments);
+      } catch (err) {
+        if (err instanceof AppointmentError) return res.status(err.status).json({ error: err.message, fields: err.fields });
+        throw err;
+      }
+    });
+  const calendarLink = (a: Appointment) => `${deps.appUrl ?? ''}/api/appointments/calendar/${a.calendarToken}`;
+  const mailCustomer = async (a: Appointment, subject: string, text: string) => {
+    if (!a.email || !deps.notifier.configured) return null;
+    return deps.notifier.sendCustomerEmail(a.email, subject, `Guten Tag ${a.name},\n\n${text}\n\nIhr Daryos-Team\nRotfuchsstraße 1, 04329 Leipzig · Telefon +49 176 43416174`);
+  };
+  const publicAppointment = (a: Appointment) => ({
+    id: a.id, status: a.status, statusLabel: APPOINTMENT_STATUS[a.status], service: APPOINTMENT_SERVICES[a.service], format: APPOINTMENT_FORMATS[a.format],
+    wish: a.wish, confirmed: a.confirmed ? { date: a.confirmed.date, time: a.confirmed.time, location: a.confirmed.location, note: a.confirmed.note } : null,
+    calendarUrl: a.status === 'bestaetigt' ? calendarLink(a) : null,
+  });
+
+  app.post('/appointments', rateLimit(limits.contact, 'appointment'), apptHandler(async (req, res, s) => {
+    const input = validateAppointmentInput(req.body, now(), { requireConsent: true });
+    const a = await s.create(input, 'webseite', 'kunde', { consent: true });
+    deps.notifier.notifyAdmin?.(`Neue Terminanfrage ${a.id}`, `Eine neue Terminanfrage wartet auf Ihre Bestätigung.\n\nTermin-ID: ${a.id}\nVerwaltung: ${deps.appUrl ?? ''}/verwaltung/#/termine`).catch(() => {});
+    await mailCustomer(a, `Ihre Terminanfrage ${a.id} ist eingegangen`, `vielen Dank für Ihre Terminanfrage (Wunsch: ${describeTime(input.date, input.time)}, ${APPOINTMENT_FORMATS[input.format]}).\nDer Termin ist noch nicht bestätigt – wir melden uns in Kürze mit einer Bestätigung oder einem Alternativvorschlag.`).catch(() => null);
+    res.status(201).json({ appointment: publicAppointment(a) });
+  }));
+  // Kalenderdatei nur für bestätigte Termine, Zugriff über den geheimen Link aus der Bestätigungs-E-Mail
+  app.get('/appointments/calendar/:token', apptHandler((req, res, s) => {
+    const a = s.byToken(String(req.params.token));
+    if (!a || a.status !== 'bestaetigt' || !a.confirmed) return res.status(404).json({ error: 'Termin nicht gefunden oder nicht bestätigt.' });
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="Daryos-Termin-${a.confirmed.date}.ics"`);
+    res.send(appointmentIcs(a, now().toISOString()));
+  }));
+
+  app.get('/admin/appointments', requireAdmin, apptHandler((_q, res, s) => res.json({ appointments: s.list(), formats: APPOINTMENT_FORMATS, services: APPOINTMENT_SERVICES, statusLabels: APPOINTMENT_STATUS, emailConfigured: deps.notifier.configured })));
+  // Termin durch Daryos anlegen (z. B. nach Telefonat oder aus einer Anfrage) – gilt direkt als bestätigt
+  app.post('/admin/appointments', requireAdmin, apptHandler(async (req, res, s) => {
+    const input = validateAppointmentInput(req.body, now(), { requireConsent: false });
+    const requestId = typeof req.body?.requestId === 'string' && REQUEST_ID_PATTERN.test(req.body.requestId) ? req.body.requestId : undefined;
+    let a = await s.create(input, 'verwaltung', `admin:${req.admin!.email}`, { requestId });
+    const confirmed = validateConfirmation({ ...req.body, date: input.date, time: input.time }, now(), a);
+    a = await s.update(a.id, `admin:${req.admin!.email}`, `Termin festgelegt: ${describeTime(confirmed.date, confirmed.time)}`, (x) => { x.status = 'bestaetigt'; x.confirmed = confirmed; });
+    const log = req.body?.notify === true ? await mailCustomer(a, `Ihr Beratungstermin bei Daryos: ${describeTime(confirmed.date, confirmed.time)}`, `hiermit bestätigen wir Ihren Termin:\n\n${describeTime(confirmed.date, confirmed.time)}\n${APPOINTMENT_FORMATS[a.format]} · ${confirmed.location}${confirmed.note ? `\n${confirmed.note}` : ''}\n\nIn den Kalender eintragen: ${calendarLink(a)}\n\nFalls Sie verhindert sind, sagen Sie bitte kurz ab.`) : null;
+    if (requestId) await deps.store.update(requestId, (rec) => logNote(rec, `admin:${req.admin!.email}`, `Termin ${a.id} vereinbart: ${describeTime(confirmed.date, confirmed.time)}`, now())).catch(() => {});
+    res.status(201).json({ appointment: a, emailed: log?.status === 'sent' });
+  }));
+  app.post('/admin/appointments/:id/confirm', requireAdmin, apptHandler(async (req, res, s) => {
+    const cur = s.get(String(req.params.id));
+    if (!cur) throw new AppointmentError('Termin nicht gefunden.', {}, 404);
+    if (cur.status === 'abgesagt' || cur.status === 'erledigt') throw new AppointmentError('Dieser Termin ist bereits abgeschlossen.', {}, 409);
+    const c = validateConfirmation(req.body, now(), cur);
+    const changed = !!cur.wish && (cur.wish.date !== c.date || cur.wish.time !== c.time);
+    const a = await s.update(cur.id, `admin:${req.admin!.email}`, `${changed ? 'Neuer Termin vorgeschlagen' : 'Termin bestätigt'}: ${describeTime(c.date, c.time)}`, (x) => { x.status = 'bestaetigt'; x.confirmed = c; });
+    let emailed = false;
+    if (req.body?.notify === true) {
+      const log = await mailCustomer(a, `${changed ? 'Neuer Terminvorschlag' : 'Terminbestätigung'}: ${describeTime(c.date, c.time)}`, `${changed ? 'Ihr Wunschtermin war leider nicht frei. Wir schlagen Ihnen folgenden Termin vor' : 'hiermit bestätigen wir Ihren Termin'}:\n\n${describeTime(c.date, c.time)}\n${APPOINTMENT_FORMATS[a.format]} · ${c.location}${c.note ? `\n${c.note}` : ''}\n\nIn den Kalender eintragen: ${calendarLink(a)}\n\n${changed ? 'Passt Ihnen der Termin nicht? Antworten Sie einfach auf diese E-Mail oder rufen Sie uns an.' : 'Falls Sie verhindert sind, sagen Sie bitte kurz ab.'}`);
+      emailed = log?.status === 'sent';
+    }
+    res.json({ appointment: a, emailed });
+  }));
+  app.post('/admin/appointments/:id/status', requireAdmin, apptHandler(async (req, res, s) => {
+    const status = req.body?.status === 'abgesagt' ? 'abgesagt' : req.body?.status === 'erledigt' ? 'erledigt' : null;
+    if (!status) throw new AppointmentError('Ungültiger Status.');
+    const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 500) : '';
+    const a = await s.update(String(req.params.id), `admin:${req.admin!.email}`, `${APPOINTMENT_STATUS[status]}${note ? `: ${note}` : ''}`, (x) => { x.status = status; });
+    let emailed = false;
+    if (status === 'abgesagt' && req.body?.notify === true) {
+      const when = a.confirmed ?? a.wish;
+      const log = await mailCustomer(a, `Ihr Termin ${a.id} wurde abgesagt`, `leider müssen wir den Termin${when ? ` am ${describeTime(when.date, when.time)}` : ''} absagen.${note ? `\n\n${note}` : ''}\n\nGern vereinbaren wir einen neuen Termin – antworten Sie einfach auf diese E-Mail oder rufen Sie uns an.`);
+      emailed = log?.status === 'sent';
+    }
+    res.json({ appointment: a, emailed });
+  }));
+
   // ---------- Auswertung ----------
   const eventLimiter = new RateLimiter(120, 10 * 60_000);
   // Wird vom Browser nur nach Einwilligung in die Statistik aufgerufen; gespeichert werden nur Tageszähler
@@ -716,6 +797,7 @@ export function createApp(deps: AppDeps) {
       chat: deps.assistantConfig?.stats(),
       chatConfig: deps.assistantConfig?.getSettings(),
       analytics: deps.analytics?.summary(30),
+      appointments: deps.appointments?.list() ?? [],
       chatProblems: (deps.assistantConfig?.listSessions() ?? [])
         .filter((x) => x.handover || x.failed)
         .slice(0, 10)
@@ -781,8 +863,8 @@ export function createApp(deps: AppDeps) {
       if (!/^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Bitte eine gültige E-Mail-Adresse eingeben.', fields: { email: 'Ungültige E-Mail-Adresse.' } });
       if (!deps.notifier.configured) return res.status(503).json({ error: 'Das Kundenkonto ist in Kürze verfügbar. Bis dahin finden Sie den Stand Ihrer Anfrage unter „Status“ mit Ihrer Anfrage-ID.' });
       // Gleiche Antwort, ob ein Konto existiert oder nicht (keine Rückschlüsse auf Kunden möglich)
-      const generic = { ok: true, message: 'Falls zu dieser Adresse eine Anfrage vorliegt, haben wir Ihnen einen Anmeldelink geschickt. Er gilt 15 Minuten.' };
-      if (!(await ownRequests(email)).length) return res.json(generic);
+      const generic = { ok: true, message: 'Falls zu dieser Adresse eine Anfrage oder ein Termin vorliegt, haben wir Ihnen einen Anmeldelink geschickt. Er gilt 15 Minuten.' };
+      if (!(await ownRequests(email)).length && !deps.appointments?.byEmail(email).length) return res.json(generic);
       const link = `${deps.appUrl ?? ''}/#/konto/anmelden/${customers.createLink(email)}`;
       const log = await deps.notifier.sendCustomerEmail(email, 'Ihr Anmeldelink für Daryos', `Guten Tag,\n\nmit diesem Link melden Sie sich in Ihrem Daryos-Kundenkonto an (gültig 15 Minuten, nur einmal verwendbar):\n\n${link}\n\nFalls Sie keinen Link angefordert haben, können Sie diese E-Mail ignorieren.\n\nIhr Daryos-Team`);
       if (log.status !== 'sent') console.error('[daryos] Anmeldelink konnte nicht gesendet werden:', log.detail);
@@ -807,6 +889,7 @@ export function createApp(deps: AppDeps) {
       const list = await ownRequests(req.customerEmail!);
       res.json({
         email: req.customerEmail,
+        appointments: (deps.appointments?.byEmail(req.customerEmail!) ?? []).filter((a) => a.status !== 'erledigt').map(publicAppointment),
         uploadsEnabled: !!deps.files,
         requests: list.map((r) => ({
           ...toPublicStatus(r),

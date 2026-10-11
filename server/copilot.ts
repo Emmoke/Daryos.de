@@ -7,6 +7,7 @@ import type { Backend } from './persistence';
 import type { RequestRecord } from './store';
 import type { Tariff } from './tariffs';
 import type { Invoice } from './accounting';
+import type { Appointment } from './appointments';
 
 export interface BriefingItem {
   level: 'wichtig' | 'hinweis' | 'info' | 'ok';
@@ -29,6 +30,7 @@ export interface CopilotInput {
   /** Letzte Kundenfragen, bei denen der Chat nicht helfen konnte oder ein Mensch gewünscht wurde */
   chatProblems?: string[];
   /** Auswertung der letzten 30 Tage (nur Zählwerte) */
+  appointments?: Appointment[];
   analytics?: { totals: { visits: number; comparisons: number; contacts: number; conversion: number; comparisonsWithoutRealOffer: number }; byRegion: { key: string; count: number }[]; byBand: { key: string; count: number }[]; noRealOffer: { key: string; count: number }[]; selectedOffers: { key: string; count: number }[]; referrers: { key: string; count: number }[]; insights: string[] };
 }
 
@@ -62,6 +64,15 @@ export function buildBriefing(i: CopilotInput): BriefingItem[] {
 
   const errors = i.requests.filter((r) => r.status === 'ERROR');
   if (errors.length) items.push({ level: 'wichtig', text: `${errors.length} Anfrage(n) mit Fehler: ${ids(errors)}`, href: `#/anfragen/${errors[0].id}` });
+
+  const appts = i.appointments ?? [];
+  const asked = appts.filter((a) => a.status === 'angefragt');
+  if (asked.length) items.push({ level: 'wichtig', text: `${asked.length} Terminanfrage(n) warten auf Ihre Bestätigung: ${asked.slice(0, 3).map((a) => `${a.id} (${a.wish?.date} ${a.wish?.time})`).join(', ')}`, href: '#/termine' });
+  const tomorrow = new Date(i.now.getTime() + DAY).toISOString().slice(0, 10);
+  const soonAppts = appts.filter((a) => a.status === 'bestaetigt' && a.confirmed && (a.confirmed.date === today || a.confirmed.date === tomorrow));
+  if (soonAppts.length) items.push({ level: 'hinweis', text: `Termine heute/morgen: ${soonAppts.map((a) => `${a.confirmed!.date === today ? 'heute' : 'morgen'} ${a.confirmed!.time} (${a.format})`).join(', ')}`, href: '#/termine' });
+  const pastOpen = appts.filter((a) => a.status === 'bestaetigt' && a.confirmed && a.confirmed.date < today);
+  if (pastOpen.length) items.push({ level: 'info', text: `${pastOpen.length} vergangene(r) Termin(e) noch als „erledigt“ markieren`, href: '#/termine' });
 
   if (i.whatsapp.needsHuman) items.push({ level: 'wichtig', text: `${i.whatsapp.needsHuman} WhatsApp-Gespräch(e) brauchen Ihre Antwort`, href: '#/whatsapp' });
 
@@ -119,6 +130,7 @@ export function buildCopilotContext(i: CopilotInput, briefing: BriefingItem[]): 
     `## Lagebild\n${briefing.map((b) => `- [${b.level}] ${b.text}`).join('\n')}`,
     `## Offene Anfragen (${open.length})\n${reqLines.join('\n') || '- keine'}`,
     `## Tarifkatalog (${i.tariffs.length})\n${tariffLines.join('\n') || '- leer (Webseite zeigt DEMO-Beispiele)'}`,
+    `## Termine\n${(i.appointments ?? []).filter((a) => a.status === 'angefragt' || a.status === 'bestaetigt').slice(0, 20).map((a) => `- ${a.id} | ${a.status} | ${a.confirmed ? `${a.confirmed.date} ${a.confirmed.time}` : `Wunsch ${a.wish?.date} ${a.wish?.time}`} | ${a.format} | ${a.service}${a.requestId ? ` | Anfrage ${a.requestId}` : ''}`).join('\n') || '- keine'}`,
     `## Buchhaltung\n- offene Rechnungen: ${openInv.length}, davon überfällig: ${openInv.filter((x) => x.dueDate < today).length}, Summe offen: ${(openInv.reduce((s, x) => s + x.grossCents, 0) / 100).toFixed(2)} €`,
     `## WhatsApp\n- ${i.whatsapp.configured ? `${i.whatsapp.conversations} Gespräche, ${i.whatsapp.needsHuman} brauchen Antwort` : 'nicht verbunden'}`,
     `## Verbindungen\n- Gemini: ${i.connections.gemini ? 'verbunden' : 'nicht verbunden'}; E-Mail: ${i.connections.email ? 'verbunden' : 'nicht verbunden'}`,
